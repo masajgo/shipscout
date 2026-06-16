@@ -176,7 +176,7 @@ export default function MapView() {
           <div style={{fontFamily:"Space Grotesk, sans-serif", fontWeight:700, fontSize:18, letterSpacing:-0.5}}>
             <span style={{color:"#E8F0F3"}}>Ship</span><span style={{color:"#1D9E75"}}>Scout</span>
           </div>
-          {[["Vessels","/"],["Markets","/markets"],["Map","/map"],["Deal CRM","/crm"],["Alerts","/alerts"]].map(([t,h])=>(
+          {[["Vessels","/"],["Markets","/markets"],["Map","/map"],["S&P","/snp"],["Deal CRM","/crm"],["Alerts","/alerts"]].map(([t,h])=>(
             <a key={t} href={h} style={{color:t==="Map"?"#1D9E75":"#8FA8B2", fontSize:13, fontWeight:500, textDecoration:"none", borderBottom:t==="Map"?"2px solid #1D9E75":"2px solid transparent", paddingBottom:2}}>{t}</a>
           ))}
         </div>

@@ -241,7 +241,7 @@ export default function Alerts() {
           <div style={{fontFamily:"Space Grotesk, sans-serif", fontWeight:700, fontSize:18, letterSpacing:-0.5}}>
             <span style={{color:"#E8F0F3"}}>Ship</span><span style={{color:"#1D9E75"}}>Scout</span>
           </div>
-          {[["Vessels","/"],["Markets","/markets"],["Map","/map"],["Deal CRM","/crm"],["Alerts","/alerts"]].map(([t,h])=>(
+          {[["Vessels","/"],["Markets","/markets"],["Map","/map"],["S&P","/snp"],["Deal CRM","/crm"],["Alerts","/alerts"]].map(([t,h])=>(
             <a key={t} href={h} style={{color: t==="Alerts"?"#1D9E75":"#8FA8B2", fontSize:13, fontWeight:500, textDecoration:"none", borderBottom: t==="Alerts"?"2px solid #1D9E75":"2px solid transparent", paddingBottom:2, position:"relative"}}>
               {t}
               {t==="Alerts" && unread>0 && <span style={{position:"absolute", top:-6, right:-10, width:14, height:14, borderRadius:"50%", background:"#F87171", fontSize:8, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", color:"#fff"}}>{unread}</span>}

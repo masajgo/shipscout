@@ -21,15 +21,8 @@ const SHIP_TYPE_ICONS: Record<string, string> = {
   "Offshore":      "OS",
 };
 
-type Vessel = {
-  imo: string; name: string; flag: string; type: string;
-  built: number; dwt: number; ldt: number; location: string;
-  score: number; status: string; statusType: string;
-  estValue: string; market: string; deadline: string | null;
-};
-
 export default function Home() {
-  const [vessels, setVessels]       = useState<Vessel[]>([]);
+  const [vessels, setVessels]       = useState<any[]>([]);
   const [loading, setLoading]       = useState(true);
   const [typeFilter, setTypeFilter] = useState("All");
   const [signalFilter, setSignalFilter] = useState("All Signals");
@@ -38,13 +31,13 @@ export default function Home() {
   useEffect(() => {
     fetch("/api/vessels")
       .then(r => r.json())
-      .then(d => { setVessels(d.vessels ?? []); setLoading(false); })
+      .then(d => { setVessels(d.vessels || []); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 
   const filtered = vessels.filter(v => {
-    if (typeFilter !== "All" && !v.type.includes(typeFilter)) return false;
-    if (signalFilter !== "All Signals" && !v.status.includes(signalFilter)) return false;
+    if (typeFilter !== "All" && !(v.type || "").toLowerCase().includes(typeFilter.toLowerCase())) return false;
+    if (signalFilter !== "All Signals" && !(v.status || "").includes(signalFilter)) return false;
     return true;
   });
 

@@ -1,15 +1,29 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAISStream, AISVessel } from "@/hooks/useAISStream";
+import VesselPanel from "@/components/VesselPanel";
 
-const DEMO_VESSELS = [
-  { id:"demo-1", name:"MV PACIFIC TRADER", type:"Bulk Carrier", flag:"🇬🇷 Greece", year:2001, ldt:8420, score:87, port:"Piraeus", idle:47, status:"Idle", owner:"Danaos Shipping", email:"fleet@danaos.gr", verified:true, speed:0 },
-  { id:"demo-2", name:"MV CORAL STAR", type:"General Cargo", flag:"🇯🇵 Japan", year:1999, ldt:5180, score:91, port:"Singapore", idle:63, status:"Idle", owner:"Pacific Lines Ltd", email:"ops@pacificlines.jp", verified:true, speed:0 },
-  { id:"demo-3", name:"MV NORSE VIKING", type:"Oil Tanker", flag:"🇳🇴 Norway", year:2000, ldt:12740, score:83, port:"Rotterdam", idle:31, status:"Slow", owner:"Bergesen Maritime", email:"chartering@bergesen.no", verified:false, speed:1.5 },
-  { id:"demo-4", name:"MV ATLAS GLORY", type:"Container Ship", flag:"🇩🇪 Germany", year:2002, ldt:6890, score:79, port:"Hamburg", idle:22, status:"Slow", owner:"Hapag Trading", email:"ops@hapagtrading.de", verified:true, speed:2.1 },
-  { id:"demo-5", name:"MV EASTERN SUN", type:"Bulk Carrier", flag:"🇨🇳 China", year:1998, ldt:9310, score:94, port:"Shanghai", idle:88, status:"Idle", owner:"Sinoship Group", email:"fleet@sinoship.cn", verified:false, speed:0 },
-  { id:"demo-6", name:"MV ADRIATIC HOPE", type:"General Cargo", flag:"🇬🇷 Greece", year:2003, ldt:4250, score:71, port:"Piraeus", idle:18, status:"Active", owner:"Aegean Maritime", email:"ops@aegeanmaritime.gr", verified:true, speed:8.2 },
+interface OwnerData {
+  loading: boolean;
+  vessel: {
+    imo?: string; flag?: string; deadweight?: number;
+    year_built?: number; length?: number; vessel_type?: string;
+  } | null;
+  ownership: {
+    registered_owner?: string; beneficial_owner?: string;
+    operator?: string; ship_manager?: string;
+    country?: string; contact_email?: string; contact_phone?: string;
+  } | null;
+}
+
+const DEMO_VESSELS: DisplayVessel[] = [
+  { id:"demo-1", name:"MV PACIFIC TRADER", type:"Bulk Carrier", flag:"🇬🇷 Greece", year:2001, ldt:8420, score:87, port:"Piraeus", idle:47, status:"Idle", owner:"Danaos Shipping", email:"fleet@danaos.gr", verified:true, speed:0, imo:"9187432" },
+  { id:"demo-2", name:"MV CORAL STAR", type:"General Cargo", flag:"🇯🇵 Japan", year:1999, ldt:5180, score:91, port:"Singapore", idle:63, status:"Idle", owner:"Pacific Lines Ltd", email:"ops@pacificlines.jp", verified:true, speed:0, imo:"9302156" },
+  { id:"demo-3", name:"MV NORSE VIKING", type:"Oil Tanker", flag:"🇳🇴 Norway", year:2000, ldt:12740, score:83, port:"Rotterdam", idle:31, status:"Slow", owner:"Bergesen Maritime", email:"chartering@bergesen.no", verified:false, speed:1.5, imo:"9245871" },
+  { id:"demo-4", name:"MV ATLAS GLORY", type:"Container Ship", flag:"🇩🇪 Germany", year:2002, ldt:6890, score:79, port:"Hamburg", idle:22, status:"Slow", owner:"Hapag Trading", email:"ops@hapagtrading.de", verified:true, speed:2.1, imo:"9453218" },
+  { id:"demo-5", name:"MV EASTERN SUN", type:"Bulk Carrier", flag:"🇨🇳 China", year:1998, ldt:9310, score:94, port:"Shanghai", idle:88, status:"Idle", owner:"Sinoship Group", email:"fleet@sinoship.cn", verified:false, speed:0, imo:"9156743" },
+  { id:"demo-6", name:"MV ADRIATIC HOPE", type:"General Cargo", flag:"🇬🇷 Greece", year:2003, ldt:4250, score:71, port:"Piraeus", idle:18, status:"Active", owner:"Aegean Maritime", email:"ops@aegeanmaritime.gr", verified:true, speed:8.2, imo:"9078189" },
 ];
 
 interface DisplayVessel {
@@ -27,6 +41,7 @@ interface DisplayVessel {
   email: string;
   verified: boolean;
   speed: number;
+  imo?: string;
 }
 
 function aisToDisplay(v: AISVessel): DisplayVessel {
@@ -63,10 +78,24 @@ export default function Dashboard() {
   const [typeFilter, setTypeFilter] = useState("All");
   const [minScore, setMinScore] = useState(0);
   const [selected, setSelected] = useState<string|null>(null);
+  const [selectedIMO, setSelectedIMO] = useState<string | null>(null);
   const [emailModal, setEmailModal] = useState<DisplayVessel|null>(null);
   const [emailContent, setEmailContent] = useState("");
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [ownerData, setOwnerData] = useState<OwnerData | null>(null);
+
+  useEffect(() => {
+    if (!selected) { setOwnerData(null); return; }
+    const vessel = allVessels.find(v => v.id === selected);
+    const imo = vessel?.imo;
+    if (!imo) { setOwnerData({ loading: false, vessel: null, ownership: null }); return; }
+    setOwnerData({ loading: true, vessel: null, ownership: null });
+    fetch(`/api/owner/${imo}`)
+      .then(r => r.json())
+      .then(d => setOwnerData({ loading: false, vessel: d.vessel ?? null, ownership: d.ownership ?? null }))
+      .catch(() => setOwnerData({ loading: false, vessel: null, ownership: null }));
+  }, [selected]);
 
   const isLive = aisVessels.length > 0;
   const allVessels: DisplayVessel[] = isLive ? aisVessels.map(aisToDisplay) : DEMO_VESSELS;
@@ -258,7 +287,7 @@ ShipScout Maritime`;
 
           <div style={{display:"flex", flexDirection:"column", gap:8}}>
             {filtered.map(v=>(
-              <div key={v.id} onClick={()=>setSelected(v.id===selected?null:v.id)}
+              <div key={v.id} onClick={()=>{ if (v.imo) { setSelectedIMO(v.imo); setSelected(v.id); } else { setSelected(v.id===selected?null:v.id); setSelectedIMO(null); } }}
                 style={{background: selected===v.id?"#1A3A4A":"#0F2733", border: selected===v.id?"1px solid rgba(29,158,117,0.4)":"1px solid rgba(143,168,178,0.12)", borderRadius:12, padding:"14px 18px", cursor:"pointer", transition:"all 0.15s", display:"grid", gridTemplateColumns:"64px 1px 1fr auto auto", gap:16, alignItems:"center"}}>
 
                 <div style={{textAlign:"center"}}>
@@ -296,7 +325,7 @@ ShipScout Maritime`;
                   <div style={{fontSize:11, color: v.verified?"#1D9E75":"#8FA8B2"}}>{v.verified?"✓ Verified":"~ AIS"}</div>
                 </div>
 
-                <button onClick={e=>{e.stopPropagation(); setSelected(v.id); handleDraftEmail(v);}}
+                <button onClick={e=>{e.stopPropagation(); if (v.imo) { setSelected(v.id); setSelectedIMO(v.imo); } else { setSelected(v.id); handleDraftEmail(v); } }}
                   style={{background:"#1D9E75", border:"none", borderRadius:8, padding:"8px 14px", color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif", whiteSpace:"nowrap"}}>
                   Contact owner →
                 </button>
@@ -311,8 +340,8 @@ ShipScout Maritime`;
           </div>
         </main>
 
-        {/* DETAIL PANEL */}
-        {sel && !emailModal && (
+        {/* DETAIL PANEL — only for AIS-only vessels without IMO */}
+        {sel && !sel.imo && !emailModal && (
           <aside style={{width:300, background:"#0F2733", borderLeft:"1px solid rgba(143,168,178,0.12)", padding:20, overflowY:"auto", flexShrink:0}}>
             <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16}}>
               <div style={{fontSize:10, fontWeight:600, color:"#8FA8B2", fontFamily:"monospace", textTransform:"uppercase", letterSpacing:"0.08em"}}>Vessel Profile</div>
@@ -361,12 +390,67 @@ ShipScout Maritime`;
             </div>
 
             <div style={{background:"#1A3A4A", border:"1px solid rgba(143,168,178,0.15)", borderRadius:10, padding:14, marginBottom:12}}>
-              <div style={{fontSize:10, fontWeight:600, color:"#8FA8B2", fontFamily:"monospace", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:10}}>Owner Contact</div>
-              <div style={{fontSize:13, fontWeight:600, color:"#E8F0F3", marginBottom:3}}>{sel.owner}</div>
-              <div style={{fontSize:11, color: sel.verified?"#1D9E75":"#8FA8B2", marginBottom:6}}>
-                {sel.verified ? "✓ Verified" : "~ AIS Source"}
+              <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10}}>
+                <div style={{fontSize:10, fontWeight:600, color:"#8FA8B2", fontFamily:"monospace", textTransform:"uppercase", letterSpacing:"0.08em"}}>Owner Info</div>
+                {ownerData?.loading && <div style={{fontSize:10, color:"#1D9E75", fontFamily:"monospace"}}>loading…</div>}
               </div>
-              {sel.email && <div style={{fontSize:11, color:"#8FA8B2"}}>{sel.email}</div>}
+
+              {ownerData && !ownerData.loading && (ownerData.ownership || ownerData.vessel) ? (
+                <div>
+                  {ownerData.ownership?.registered_owner && (
+                    <div style={{marginBottom:8}}>
+                      <div style={{fontSize:10, color:"#8FA8B2", fontFamily:"monospace", marginBottom:2}}>Registered Owner</div>
+                      <div style={{fontSize:13, fontWeight:600, color:"#E8F0F3"}}>{ownerData.ownership.registered_owner}</div>
+                    </div>
+                  )}
+                  {ownerData.ownership?.operator && ownerData.ownership.operator !== ownerData.ownership?.registered_owner && (
+                    <div style={{marginBottom:8}}>
+                      <div style={{fontSize:10, color:"#8FA8B2", fontFamily:"monospace", marginBottom:2}}>Operator</div>
+                      <div style={{fontSize:12, color:"#E8F0F3"}}>{ownerData.ownership.operator}</div>
+                    </div>
+                  )}
+                  {ownerData.ownership?.ship_manager && (
+                    <div style={{marginBottom:8}}>
+                      <div style={{fontSize:10, color:"#8FA8B2", fontFamily:"monospace", marginBottom:2}}>Manager</div>
+                      <div style={{fontSize:12, color:"#E8F0F3"}}>{ownerData.ownership.ship_manager}</div>
+                    </div>
+                  )}
+                  {ownerData.ownership?.country && (
+                    <div style={{marginBottom:8}}>
+                      <div style={{fontSize:10, color:"#8FA8B2", fontFamily:"monospace", marginBottom:2}}>Country</div>
+                      <div style={{fontSize:12, color:"#E8F0F3"}}>{ownerData.ownership.country}</div>
+                    </div>
+                  )}
+                  {ownerData.ownership?.contact_email && (
+                    <div style={{marginBottom:8}}>
+                      <div style={{fontSize:10, color:"#8FA8B2", fontFamily:"monospace", marginBottom:2}}>Email</div>
+                      <a href={`mailto:${ownerData.ownership.contact_email}`} style={{fontSize:12, color:"#1D9E75", textDecoration:"none"}}>{ownerData.ownership.contact_email}</a>
+                    </div>
+                  )}
+                  {ownerData.ownership?.contact_phone && (
+                    <div style={{marginBottom:8}}>
+                      <div style={{fontSize:10, color:"#8FA8B2", fontFamily:"monospace", marginBottom:2}}>Phone</div>
+                      <div style={{fontSize:12, color:"#E8F0F3"}}>{ownerData.ownership.contact_phone}</div>
+                    </div>
+                  )}
+                  {ownerData.vessel?.imo && (
+                    <div style={{marginTop:8, paddingTop:8, borderTop:"1px solid rgba(143,168,178,0.1)", display:"flex", justifyContent:"space-between"}}>
+                      <span style={{fontSize:11, color:"#8FA8B2"}}>IMO</span>
+                      <span style={{fontSize:11, fontWeight:600, color:"#E8F0F3", fontFamily:"monospace"}}>{ownerData.vessel.imo}</span>
+                    </div>
+                  )}
+                  <div style={{fontSize:10, color:"#1D9E75", marginTop:8}}>✓ Datalastic verified</div>
+                </div>
+              ) : ownerData && !ownerData.loading ? (
+                <div>
+                  <div style={{fontSize:13, fontWeight:600, color:"#E8F0F3", marginBottom:3}}>{sel.owner}</div>
+                  <div style={{fontSize:11, color:"#8FA8B2", marginBottom:6}}>{sel.verified ? "✓ Verified" : "~ AIS Source"}</div>
+                  {sel.email && <div style={{fontSize:11, color:"#8FA8B2"}}>{sel.email}</div>}
+                  <div style={{fontSize:10, color:"rgba(143,168,178,0.4)", marginTop:6}}>No Datalastic data for this vessel</div>
+                </div>
+              ) : (
+                <div style={{fontSize:13, fontWeight:600, color:"#E8F0F3"}}>{sel.owner}</div>
+              )}
             </div>
 
             <div style={{display:"flex", flexDirection:"column", gap:8}}>
@@ -386,6 +470,11 @@ ShipScout Maritime`;
           </aside>
         )}
       </div>
+
+      {/* VESSEL PANEL — full detail overlay for IMO vessels */}
+      {selectedIMO && (
+        <VesselPanel imo={selectedIMO} onClose={() => { setSelectedIMO(null); setSelected(null); }} />
+      )}
     </div>
   );
 }

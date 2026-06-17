@@ -2,7 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg: #FFFFFF;
+  --surface: #F9FAFB;
+  --card: #FFFFFF;
+  --border: #EAECF0;
+  --border-mid: #D0D5DD;
+  --navy: #101828;
+  --navy-mid: #1D2939;
+  --text: #101828;
+  --text-secondary: #344054;
+  --muted: #667085;
+  --placeholder: #98A2B3;
+  --green: #1D9E75;
+  --green-bg: #ECFDF3;
+  --green-text: #027A48;
+  --red: #F04438;
+  --red-bg: #FEF3F2;
+  --amber: #DC6803;
+  --amber-bg: #FFFAEB;
+  --blue: #2563EB;
+  --blue-bg: #EFF8FF;
+}
+
+* { box-sizing: border-box; }
+
 body {
-  background: #0D1F28;
-  color: #E8F0F3;
+  background: #F9FAFB;
+  color: #101828;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #F9FAFB; }
+::-webkit-scrollbar-thumb { background: #D0D5DD; border-radius: 3px; }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }

@@ -1,98 +1,106 @@
-import { NextRequest } from 'next/server';
-import { WebSocket } from 'ws';
+import { NextResponse } from "next/server";
+import { WebSocket } from "ws";
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+export const runtime = "nodejs";
+export const maxDuration = 9;
 
-const BOUNDING_BOXES = [
-  [[25.0, 20.0], [45.0, 45.0]],
-  [[55.0, -10.0], [100.0, 25.0]],
-  [[-10.0, 45.0], [30.0, 65.0]],
-  [[100.0, -10.0], [140.0, 40.0]],
-];
+const BOUNDING_BOXES = [[[-90.0, -180.0], [90.0, 180.0]]];
 
-// Singleton — one WebSocket shared across all SSE clients
-const clients = new Set<(data: string) => void>();
-let ws: WebSocket | null = null;
-let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-
-function broadcast(data: object) {
-  const str = `data: ${JSON.stringify(data)}\n\n`;
-  clients.forEach(send => { try { send(str); } catch {} });
+export interface VesselData {
+  mmsi: string; name: string;
+  lat: number; lon: number;
+  speed: number; course: number;
+  vesselType: number; length: number; width: number;
+  draught: number; destination: string; timestamp: string;
 }
 
-function connectAIS() {
-  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
-  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+export async function GET() {
+  const vessels = await collectVessels(4000);
 
-  ws = new WebSocket('wss://stream.aisstream.io/v0/stream');
-
-  ws.on('open', () => {
-    ws!.send(JSON.stringify({
-      APIKey: process.env.AISSTREAM_API_KEY,
-      BoundingBoxes: BOUNDING_BOXES,
-      FilterMessageTypes: ['PositionReport', 'ShipStaticData'],
-    }));
-    broadcast({ type: 'connected' });
-  });
-
-  ws.on('message', (data: Buffer | string) => {
-    try {
-      const msg = JSON.parse(data.toString());
-      broadcast({ type: 'vessel', data: msg });
-    } catch {}
-  });
-
-  ws.on('error', () => {
-    broadcast({ type: 'error', message: 'AIS connection failed' });
-    scheduleReconnect();
-  });
-
-  ws.on('close', () => {
-    scheduleReconnect();
-  });
+  return NextResponse.json(
+    { vessels, ts: Date.now() },
+    {
+      headers: {
+        // CDN caches for 60s, then serves stale while refreshing in background
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+      },
+    }
+  );
 }
 
-function scheduleReconnect() {
-  if (reconnectTimer) return;
-  reconnectTimer = setTimeout(() => {
-    reconnectTimer = null;
-    if (clients.size > 0) connectAIS();
-  }, 10000);
-}
+function collectVessels(ms: number): Promise<VesselData[]> {
+  return new Promise((resolve) => {
+    const partials = new Map<string, Partial<VesselData>>();
+    let settled = false;
 
-export async function GET(request: NextRequest) {
-  const encoder = new TextEncoder();
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      try { ws.terminate(); } catch {}
+      resolve(
+        Array.from(partials.values()).filter(
+          (v): v is VesselData =>
+            !!v.mmsi && !!v.name && v.name.trim() !== "" && v.lat !== undefined
+        ) as VesselData[]
+      );
+    };
 
-  const stream = new ReadableStream({
-    start(controller) {
-      const send = (str: string) => controller.enqueue(encoder.encode(str));
-      clients.add(send);
+    const ws = new WebSocket("wss://stream.aisstream.io/v0/stream");
+    setTimeout(finish, ms);
 
-      // If already connected, tell this client immediately
-      if (ws?.readyState === WebSocket.OPEN) {
-        send(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
-      } else {
-        connectAIS();
-      }
+    ws.on("open", () => {
+      ws.send(JSON.stringify({
+        APIKey: process.env.AISSTREAM_API_KEY,
+        BoundingBoxes: BOUNDING_BOXES,
+        FilterMessageTypes: ["PositionReport", "ShipStaticData"],
+      }));
+    });
 
-      request.signal.addEventListener('abort', () => {
-        clients.delete(send);
-        try { controller.close(); } catch {}
-        // Close WebSocket only if no clients remain
-        if (clients.size === 0) {
-          ws?.close();
-          ws = null;
+    ws.on("message", (raw: Buffer | string) => {
+      try {
+        const data = JSON.parse(raw.toString());
+        const mmsi =
+          data.MetaData?.MMSI?.toString() ||
+          data.Message?.PositionReport?.UserID?.toString() ||
+          data.Message?.ShipStaticData?.UserID?.toString();
+        if (!mmsi) return;
+
+        const existing = partials.get(mmsi) || {};
+
+        if (data.Message?.PositionReport) {
+          const pos = data.Message.PositionReport;
+          partials.set(mmsi, {
+            ...existing, mmsi,
+            lat: pos.Latitude, lon: pos.Longitude,
+            speed: pos.SpeedOverGround ?? 0,
+            course: pos.CourseOverGround ?? 0,
+            timestamp: data.MetaData?.time_utc || new Date().toISOString(),
+          });
         }
-      });
-    },
-  });
 
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-    },
+        if (data.Message?.ShipStaticData) {
+          const stat = data.Message.ShipStaticData;
+          const dim = stat.Dimension || {};
+          const cur = partials.get(mmsi) || existing;
+          partials.set(mmsi, {
+            ...cur, mmsi,
+            name: stat.Name?.trim() || cur.name || "",
+            vesselType: stat.Type || cur.vesselType || 0,
+            length: (dim.A || 0) + (dim.B || 0),
+            width: (dim.C || 0) + (dim.D || 0),
+            draught: stat.MaximumStaticDraught || 0,
+            destination: stat.Destination?.trim() || cur.destination || "",
+          });
+        }
+
+        if (data.MetaData?.ShipName) {
+          const cur = partials.get(mmsi) || existing;
+          partials.set(mmsi, { ...cur, name: data.MetaData.ShipName.trim() || cur.name || "" });
+        }
+      } catch {}
+    });
+
+    ws.on("error", finish);
+    ws.on("close", () => { if (!settled) finish(); });
   });
 }

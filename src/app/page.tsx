@@ -118,18 +118,9 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Loading skeleton */}
         {loading && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {[1, 2, 3].map(i => (
-              <div key={i} style={{ background: "#fff", border: "1px solid #EAECF0", borderRadius: 10, padding: "16px 20px", height: 80, display: "flex", alignItems: "center", gap: 16 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 10, background: "#F2F4F7" }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ width: 180, height: 14, background: "#F2F4F7", borderRadius: 4, marginBottom: 8 }} />
-                  <div style={{ width: 280, height: 10, background: "#F9FAFB", borderRadius: 4 }} />
-                </div>
-              </div>
-            ))}
+          <div style={{ textAlign: "center", padding: "48px", color: "#98A2B3", fontSize: 13 }}>
+            Datalastic&apos;ten canlı veri çekiliyor...
           </div>
         )}
 

@@ -1,48 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import VesselPanel from "@/components/VesselPanel";
 
 const SHIP_TYPES = ["All", "Bulk Carrier", "Tanker", "Container", "General Cargo", "Cruise", "Offshore"];
-const SIGNALS = ["All Signals", "Detained", "AIS Dark", "Lay-up", "P&I Withdrawn", "Survey Due"];
-
-const VESSELS = [
-  {
-    imo: "9038828", name: "ZEUS", flag: "Panama",
-    type: "Tanker", built: 1992, dwt: 99450, ldt: 17400,
-    location: "Fujairah", score: 91, status: "P&I Withdrawn",
-    statusType: "r", estValue: "$8.87M", market: "Alang", deadline: "Auction Jun 18",
-  },
-  {
-    imo: "9038749", name: "ENERGY 5", flag: "Saint Kitts",
-    type: "Tanker", built: 1994, dwt: 106236, ldt: 18600,
-    location: "Singapore", score: 85, status: "Detained",
-    statusType: "r", estValue: "$9.49M", market: "Chittagong", deadline: null,
-  },
-  {
-    imo: "9248904", name: "CFL DEXING", flag: "Panama",
-    type: "Bulk Carrier", built: 2001, dwt: 74710, ldt: 12700,
-    location: "Rotterdam", score: 78, status: "Survey Due",
-    statusType: "a", estValue: "$6.48M", market: "Alang", deadline: null,
-  },
-  {
-    imo: "9065572", name: "WHITE SHARK", flag: "Saint Kitts",
-    type: "Bulk Carrier", built: 1993, dwt: 26472, ldt: 4500,
-    location: "Karachi", score: 88, status: "AIS Dark",
-    statusType: "b", estValue: "$2.30M", market: "Gadani", deadline: null,
-  },
-  {
-    imo: "9074705", name: "HONG LI", flag: "Panama",
-    type: "Bulk Carrier", built: 1995, dwt: 26435, ldt: 4490,
-    location: "Chittagong", score: 82, status: "Lay-up",
-    statusType: "a", estValue: "$2.29M", market: "Gadani", deadline: null,
-  },
-  {
-    imo: "9200811", name: "ISTANBUL BRIDGE", flag: "Liberia",
-    type: "Container", built: 2000, dwt: 66781, ldt: 11350,
-    location: "Istanbul", score: 70, status: "94d Idle",
-    statusType: "a", estValue: "$5.79M", market: "Aliağa", deadline: null,
-  },
-];
+const SIGNALS    = ["All Signals", "Detained", "AIS Dark", "Lay-up", "P&I Withdrawn", "Survey Due"];
 
 const STATUS_COLORS: Record<string, { color: string; bg: string; border: string }> = {
   r: { color: "#F04438", bg: "#FEF3F2", border: "#FECDCA" },
@@ -60,12 +21,28 @@ const SHIP_TYPE_ICONS: Record<string, string> = {
   "Offshore":      "OS",
 };
 
+type Vessel = {
+  imo: string; name: string; flag: string; type: string;
+  built: number; dwt: number; ldt: number; location: string;
+  score: number; status: string; statusType: string;
+  estValue: string; market: string; deadline: string | null;
+};
+
 export default function Home() {
+  const [vessels, setVessels]       = useState<Vessel[]>([]);
+  const [loading, setLoading]       = useState(true);
   const [typeFilter, setTypeFilter] = useState("All");
   const [signalFilter, setSignalFilter] = useState("All Signals");
-  const [selectedIMO, setSelectedIMO] = useState<string | null>(null);
+  const [selectedIMO, setSelectedIMO]  = useState<string | null>(null);
 
-  const filtered = VESSELS.filter(v => {
+  useEffect(() => {
+    fetch("/api/vessels")
+      .then(r => r.json())
+      .then(d => { setVessels(d.vessels ?? []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const filtered = vessels.filter(v => {
     if (typeFilter !== "All" && !v.type.includes(typeFilter)) return false;
     if (signalFilter !== "All Signals" && !v.status.includes(signalFilter)) return false;
     return true;
@@ -95,10 +72,10 @@ export default function Home() {
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, background: "#EAECF0", border: "1px solid #EAECF0", borderRadius: 12, overflow: "hidden", flexShrink: 0, width: 240 }}>
             {[
-              { n: "5,314", l: "Vessels tracked", c: "#101828" },
-              { n: "14",    l: "New signals",      c: "#1D9E75" },
-              { n: "3",     l: "Critical alerts",  c: "#F04438" },
-              { n: "$24M",  l: "Pipeline value",   c: "#101828" },
+              { n: loading ? "—" : String(vessels.length), l: "Vessels tracked", c: "#101828" },
+              { n: loading ? "—" : String(vessels.filter(v => v.statusType === "r").length), l: "Critical signals", c: "#F04438" },
+              { n: loading ? "—" : String(vessels.filter(v => v.score >= 80).length), l: "High priority",   c: "#DC6803" },
+              { n: loading ? "—" : `$${(vessels.reduce((s, v) => s + parseFloat(v.estValue.replace(/[$M]/g,"")), 0)).toFixed(0)}M`, l: "Pipeline value", c: "#1D9E75" },
             ].map(s => (
               <div key={s.l} style={{ background: "#fff", padding: "16px 18px" }}>
                 <div style={{ fontSize: 24, fontWeight: 800, color: s.c, letterSpacing: -1, lineHeight: 1 }}>{s.n}</div>
@@ -138,7 +115,9 @@ export default function Home() {
       <div style={{ padding: "20px 28px 40px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 14 }}>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#101828" }}>{filtered.length} vessels found</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#101828" }}>
+              {loading ? "Loading vessels..." : `${filtered.length} vessels found`}
+            </div>
             <div style={{ fontSize: 12, color: "#98A2B3", marginTop: 2 }}>Sorted by scrap score — highest opportunity first</div>
           </div>
           <button style={{ fontSize: 12, color: "#667085", border: "1px solid #EAECF0", padding: "6px 14px", borderRadius: 7, background: "#fff", cursor: "pointer" }}>
@@ -146,14 +125,29 @@ export default function Home() {
           </button>
         </div>
 
+        {/* Loading skeleton */}
+        {loading && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{ background: "#fff", border: "1px solid #EAECF0", borderRadius: 10, padding: "16px 20px", height: 80, display: "flex", alignItems: "center", gap: 16 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 10, background: "#F2F4F7" }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ width: 180, height: 14, background: "#F2F4F7", borderRadius: 4, marginBottom: 8 }} />
+                  <div style={{ width: 280, height: 10, background: "#F9FAFB", borderRadius: 4 }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {filtered.map(v => {
-            const age = 2026 - v.built;
-            const sc = STATUS_COLORS[v.statusType];
+            const age      = new Date().getFullYear() - v.built;
+            const sc       = STATUS_COLORS[v.statusType] ?? STATUS_COLORS.g;
             const typeCode = SHIP_TYPE_ICONS[v.type] || "VS";
             return (
               <div key={v.imo}
-                onClick={() => { console.log("[ShipScout] Opening panel for IMO:", v.imo); setSelectedIMO(v.imo); }}
+                onClick={() => { console.log("[ShipScout] IMO:", v.imo); setSelectedIMO(v.imo); }}
                 style={{
                   background: "#fff",
                   border: "1px solid #EAECF0",

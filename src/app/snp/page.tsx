@@ -51,6 +51,7 @@ export default function SNPPage() {
   const [dwtFilter, setDwtFilter]         = useState("Any DWT");
   const [showTypeMenu, setShowTypeMenu]   = useState(false);
   const [selectedIMO, setSelectedIMO]     = useState<string | null>(null);
+  const [sortBy, setSortBy]               = useState<"urgency"|"value"|"age">("urgency");
 
   useEffect(() => {
     fetch("/api/snp")
@@ -71,6 +72,10 @@ export default function SNPPage() {
       if (ageFilter === "25y+"   && age < 25)               return false;
     }
     return true;
+  }).sort((a, b) => {
+    if (sortBy === "value") return parseFloat(b.price.replace(/[$M]/g, "")) - parseFloat(a.price.replace(/[$M]/g, ""));
+    if (sortBy === "age")   return (year - a.built) < (year - b.built) ? 1 : -1;
+    return b.score - a.score; // urgency = score
   });
 
   return (
@@ -217,9 +222,13 @@ export default function SNPPage() {
               {selectedType !== "All" ? ` · ${selectedType}` : ""}
             </div>
           </div>
-          <button style={{ fontSize: 12, color: "#667085", border: "1px solid #EAECF0", padding: "6px 14px", borderRadius: 7, background: "#fff", cursor: "pointer" }}>
-            Sort: Urgency ▾
-          </button>
+          <div style={{ display: "flex", gap: 4 }}>
+            {(["urgency","value","age"] as const).map(s => (
+              <button key={s} onClick={() => setSortBy(s)} style={{ fontSize: 12, color: sortBy===s ? "#101828" : "#667085", border: `1px solid ${sortBy===s ? "#101828" : "#EAECF0"}`, padding: "6px 14px", borderRadius: 7, background: sortBy===s ? "#F2F4F7" : "#fff", cursor: "pointer", fontFamily: "Inter, sans-serif", textTransform: "capitalize" as const }}>
+                {s === "urgency" ? "Urgency ▾" : s === "value" ? "Value ▾" : "Age ▾"}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

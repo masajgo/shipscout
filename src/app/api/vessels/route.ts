@@ -19,9 +19,9 @@ const TRACKED_IMOS = [
   "9040089", // Additional verified vessel
 ];
 
-// $/LDT prices per market (updated Jun 2026)
+// $/LDT prices per market (Jun 2026, aligned with Markets page)
 const MARKET_PRICES: Record<string, number> = {
-  Alang: 510, Chittagong: 560, Gadani: 500, "Aliağa": 420,
+  Alang: 501, Chittagong: 541, Gadani: 511, "Aliağa": 332,
 };
 
 function bestMarket(type: string): string {
@@ -104,7 +104,7 @@ export async function GET() {
         built,
         dwt,
         ldt,
-        location:   d.last_port   || d.home_port || "—",
+        location:   d.last_port   || d.home_port || null,
         score,
         status,
         statusType,

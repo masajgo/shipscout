@@ -9,7 +9,7 @@ const TRACKED_IMOS = [
 ];
 
 const MARKET_PRICES: Record<string, number> = {
-  Alang: 510, Chittagong: 560, Gadani: 500, "Aliağa": 420,
+  Alang: 501, Chittagong: 541, Gadani: 511, "Aliağa": 332,
 };
 
 function typeLabel(raw: string): string {

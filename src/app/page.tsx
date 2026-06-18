@@ -143,7 +143,9 @@ export default function Home() {
             <div style={{ fontSize: 14, fontWeight: 600, color: "#101828" }}>
               {loading ? "Loading vessels..." : `${filtered.length} vessels found`}
             </div>
-            <div style={{ fontSize: 12, color: "#98A2B3", marginTop: 2 }}>Sorted by scrap score — highest opportunity first</div>
+            <div style={{ fontSize: 12, color: "#98A2B3", marginTop: 2 }}>
+              {sortBy === "score" ? "Sorted by scrap score — highest opportunity first" : sortBy === "age" ? "Sorted by age — oldest first" : "Sorted by estimated value — highest first"}
+            </div>
           </div>
           <div style={{ display: "flex", gap: 4 }}>
             {(["score","age","value"] as const).map(s => (
@@ -166,6 +168,14 @@ export default function Home() {
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {!loading && filtered.length === 0 && vessels.length > 0 && (
+            <div style={{ textAlign: "center", padding: "48px 20px", color: "#98A2B3" }}>
+              <div style={{ fontSize: 13, marginBottom: 10 }}>No vessels match your current filters.</div>
+              <button onClick={() => { setTypeFilter("All"); setSignalFilter("All Signals"); }} style={{ fontSize: 12, fontWeight: 600, color: "#1D9E75", border: "1px solid #A9EFC5", background: "#ECFDF3", padding: "7px 16px", borderRadius: 7, cursor: "pointer" }}>
+                Clear filters
+              </button>
+            </div>
+          )}
           {filtered.map(v => {
             const age      = new Date().getFullYear() - v.built;
             const sc       = STATUS_COLORS[v.statusType] ?? STATUS_COLORS.g;
@@ -209,9 +219,9 @@ export default function Home() {
                       { label: "Built",    val: `${v.built} · ${age}y` },
                       { label: "DWT",      val: `${v.dwt.toLocaleString()} t` },
                       { label: "LDT",      val: `${v.ldt.toLocaleString()} t` },
-                      { label: "Location", val: v.location },
+                      v.location && v.location !== "—" ? { label: "Location", val: v.location } : null,
                       { label: "Flag",     val: v.flag },
-                    ].map(s => (
+                    ].filter(Boolean).map(s => s && (
                       <div key={s.label}>
                         <div style={{ fontSize: 12, fontWeight: 600, color: "#344054" }}>{s.val}</div>
                         <div style={{ fontSize: 9, fontWeight: 500, color: "#98A2B3", textTransform: "uppercase" as const, letterSpacing: "0.08em", marginTop: 1 }}>{s.label}</div>

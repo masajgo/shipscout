@@ -31,7 +31,7 @@ export default function CRM() {
       const enriched = (crm.vessels || []).map((c: any) => {
         const v = vesselMap[c.imo] || {};
         const ldt = v.ldt || 0;
-        const price = v.market === "Chittagong" ? 560 : v.market === "Alang" ? 510 : v.market === "Aliağa" ? 420 : 500;
+        const price = v.market === "Chittagong" ? 541 : v.market === "Alang" ? 501 : v.market === "Aliağa" ? 332 : 511;
         return {
           id:           c.imo,
           vessel:       c.name || `IMO ${c.imo}`,
@@ -71,6 +71,7 @@ export default function CRM() {
     <div
       draggable
       onDragStart={() => setDrag(d.id)}
+      onDragEnd={() => setDrag(null)}
       onClick={() => setSel(d.id === sel ? null : d.id)}
       style={{
         background: sel === d.id ? "#F9FAFB" : "#fff",

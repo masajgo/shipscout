@@ -172,10 +172,10 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
           {data.particulars.ldt && (
             <Section title="Estimated Scrap Value">
               {[
-                { market: "Alang 🇮🇳",      price: 510 },
-                { market: "Chittagong 🇧🇩", price: 560 },
-                { market: "Gadani 🇵🇰",     price: 500 },
-                { market: "Aliağa 🇹🇷",     price: 420 },
+                { market: "Alang 🇮🇳",      price: 501 },
+                { market: "Chittagong 🇧🇩", price: 541 },
+                { market: "Gadani 🇵🇰",     price: 511 },
+                { market: "Aliağa 🇹🇷",     price: 332 },
               ].map(({ market, price }) => (
                 <div key={market} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: "1px solid rgba(143,168,178,0.08)" }}>
                   <span style={{ fontSize: 12, color: C.steel }}>{market}</span>

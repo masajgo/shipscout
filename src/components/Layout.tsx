@@ -13,10 +13,10 @@ const NAV = [
 ];
 
 const TICKER = [
-  { port: "Alang",      country: "India",      price: "510", delta: "+5", up: true  },
-  { port: "Chittagong", country: "Bangladesh", price: "560", delta: "+8", up: true  },
-  { port: "Gadani",     country: "Pakistan",   price: "500", delta: "−2", up: false },
-  { port: "Aliağa",     country: "Turkey",     price: "420", delta: "+3", up: true  },
+  { port: "Alang",      country: "India",      price: "501", delta: "−3", up: false },
+  { port: "Chittagong", country: "Bangladesh", price: "541", delta: "+8", up: true  },
+  { port: "Gadani",     country: "Pakistan",   price: "511", delta: "+2", up: true  },
+  { port: "Aliağa",     country: "Turkey",     price: "332", delta: "+4", up: true  },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {

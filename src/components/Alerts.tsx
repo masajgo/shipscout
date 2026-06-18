@@ -1,16 +1,5 @@
 "use client";
-import { useState } from "react";
-
-const alerts = [
-  { id:1,  type:"judicial", priority:"critical", title:"Judicial Auction — MV NIRVANA",         vessel:"MV NIRVANA",          flag:"🇮🇳", imo:"IMO 9187432", ldt:8200,  vesselType:"Oil Tanker",     age:27, market:"Alang",     value:4182000, description:"Gujarat High Court ordered demolition auction. Vessel arrested for unpaid crew wages ($340,000). Clean title — all liens extinguished on sale.", deadline:"Jun 18, 2026", daysLeft:4,  location:"Alang anchorage, India",           court:"Gujarat High Court, Ahmedabad",      reservePrice:3800000, inspection:"Jun 15–17, 2026",   contact:"court.alang@gujarathc.gov.in",    time:"2h ago",  read:false },
-  { id:2,  type:"dark",     priority:"high",     title:"AIS Dark — MV EASTERN PROMISE",         vessel:"MV EASTERN PROMISE",  flag:"🇬🇷", imo:"IMO 9302156", ldt:11400, vesselType:"Bulk Carrier",   age:25, market:"Chittagong", value:6162000, description:"Vessel went AIS dark 68nm southwest of Chittagong port. Last known position matches approach corridor. 26-year-old bulk carrier with survey due in 3 months.", deadline:null, daysLeft:null, location:"Bay of Bengal (last known)",  court:null, reservePrice:null, inspection:null, contact:"ops@aegeanshipping.gr",    time:"4h ago",  read:false },
-  { id:3,  type:"bank",     priority:"high",     title:"Bank Repo — MV ARCTIC STAR",            vessel:"MV ARCTIC STAR",      flag:"🇳🇴", imo:"IMO 9245871", ldt:9800,  vesselType:"Oil Tanker",     age:24, market:"Aliağa",    value:3234000, description:"DNB Bank Oslo foreclosed on vessel mortgage after 3 missed payments. Bank seeking fast sale. Direct negotiation possible before public auction.", deadline:"Jun 25, 2026", daysLeft:11, location:"Stavanger, Norway",                court:null,                                 reservePrice:2900000, inspection:"By appointment",     contact:"shipping.assets@dnb.no",          time:"1d ago",  read:false },
-  { id:4,  type:"idle",     priority:"medium",   title:"Extended Idle — MV PEARL OF ASIA",      vessel:"MV PEARL OF ASIA",    flag:"🇸🇬", imo:"IMO 9156234", ldt:7600,  vesselType:"General Cargo",  age:28, market:"Alang",     value:4104000, description:"Vessel anchored at Singapore Eastern Anchorage for 94 days. No cargo activity detected. Owner (Straits Shipping) has 2 other vessels flagged for sale.", deadline:null, daysLeft:null, location:"Singapore Eastern Anchorage", court:null, reservePrice:null, inspection:null, contact:"ops@straitsshipping.sg",   time:"1d ago",  read:true  },
-  { id:5,  type:"judicial", priority:"critical", title:"Admiralty Sale — MV BLUE HORIZON",      vessel:"MV BLUE HORIZON",     flag:"🇸🇬", imo:"IMO 9198745", ldt:6400,  vesselType:"Container Ship", age:26, market:"Alang",     value:3456000, description:"Singapore Admiralty Court ordered sale. Vessel arrested by port authority for $2.1M unpaid port dues. Auction open to international bidders.", deadline:"Jun 22, 2026", daysLeft:8,  location:"Singapore, Jurong Port",           court:"Singapore Admiralty Court",          reservePrice:3100000, inspection:"Jun 18–20, 2026",   contact:"admiralty@supremecourt.gov.sg",   time:"2d ago",  read:true  },
-  { id:6,  type:"survey",   priority:"medium",   title:"Survey Due — MV CASPIAN QUEEN",         vessel:"MV CASPIAN QUEEN",    flag:"🇦🇿", imo:"IMO 9267891", ldt:5200,  vesselType:"Oil Tanker",     age:23, market:"Aliağa",    value:1716000, description:"Class renewal survey due in 45 days. Estimated survey cost $380,000. Owner has 2 similar vessels already scrapped this year — pattern suggests demolition decision likely.", deadline:"Jul 28, 2026", daysLeft:44, location:"Baku, Azerbaijan",                 court:null,                                 reservePrice:null,    inspection:null,                contact:"fleet@caspianship.az",            time:"3d ago",  read:true  },
-  { id:7,  type:"sanctions",priority:"high",     title:"Sanctioned Vessel — MV SHADOW DANCER",  vessel:"MV SHADOW DANCER",    flag:"🇵🇦", imo:"IMO 9301567", ldt:8900,  vesselType:"Oil Tanker",     age:22, market:"Alang",     value:4806000, description:"Added to OFAC SDN list Jun 2026. Vessel cannot trade — owner seeking judicial sale to extinguish sanctions. Court sale would clear title in most jurisdictions.", deadline:null, daysLeft:null, location:"Unknown (AIS dark)",          court:"Pending — Singapore or India",       reservePrice:null,    inspection:null,                contact:"Legal review required",           time:"5d ago",  read:true  },
-  { id:8,  type:"dark",     priority:"medium",   title:"AIS Dark — MV FORTUNE SEEKER",          vessel:"MV FORTUNE SEEKER",   flag:"🇨🇳", imo:"IMO 9234871", ldt:6800,  vesselType:"Bulk Carrier",   age:24, market:"Alang",     value:3672000, description:"AIS dark for 12 days. Last position: Indian Ocean, heading toward Alang approach. 24-year old bulk carrier, class survey overdue by 8 months.", deadline:null, daysLeft:null, location:"Indian Ocean (last known)",   court:null, reservePrice:null, inspection:null, contact:"fleet@chinabulk.cn",       time:"6d ago",  read:true  },
-];
+import { useState, useEffect } from "react";
 
 const typeConfig: Record<string, { icon:string; label:string; color:string; bg:string; border:string }> = {
   judicial:  { icon:"🏛️", label:"Judicial Sale",  color:"#F04438", bg:"#FEF3F2", border:"#FECDCA" },
@@ -26,9 +15,17 @@ const priorityColor: Record<string, string> = {
 };
 
 export default function Alerts() {
-  const [sel, setSel]           = useState<number|null>(null);
-  const [filter, setFilter]     = useState("all");
-  const [alertData, setAlertData] = useState(alerts);
+  const [sel, setSel]             = useState<number|null>(null);
+  const [filter, setFilter]       = useState("all");
+  const [alertData, setAlertData] = useState<any[]>([]);
+  const [loading, setLoading]     = useState(true);
+
+  useEffect(() => {
+    fetch("/api/alerts")
+      .then(r => r.json())
+      .then(d => { setAlertData(d.alerts || []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
 
   const selA   = alertData.find(a => a.id === sel);
   const unread = alertData.filter(a => !a.read).length;
@@ -99,6 +96,11 @@ export default function Alerts() {
         </div>
 
         <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+          {loading && (
+            <div style={{ textAlign:"center", padding:"48px", color:"#98A2B3", fontSize:13 }}>
+              Datalastic&apos;ten canlı veri çekiliyor...
+            </div>
+          )}
           {filtered.map(a => {
             const tc = typeConfig[a.type];
             return (

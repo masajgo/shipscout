@@ -1,25 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const columns = [
-  { id:"contacted",   label:"Contacted",      color:"#667085" },
-  { id:"reply",       label:"Reply Received",  color:"#2563EB" },
+  { id:"lead",        label:"New Lead",        color:"#667085" },
+  { id:"contacted",   label:"Contacted",       color:"#2563EB" },
   { id:"negotiating", label:"Negotiating",     color:"#DC6803" },
   { id:"offer",       label:"Offer Sent",      color:"#7C3AED" },
   { id:"closed",      label:"Closed",          color:"#1D9E75" },
-];
-
-const deals = [
-  { id:1,  vessel:"MV PACIFIC TRADER",  type:"Bulk Carrier",   flag:"🇬🇷", ldt:8420,  value:2778600, owner:"Danaos Shipping",    email:"fleet@danaos.gr",      status:"negotiating", score:87, contacted:"Jun 10", lastActivity:"2h ago",         market:"Aliağa" },
-  { id:2,  vessel:"MV CORAL STAR",      type:"General Cargo",  flag:"🇯🇵", ldt:5180,  value:2797800, owner:"Pacific Lines",       email:"ops@pacificlines.jp",  status:"reply",       score:91, contacted:"Jun 8",  lastActivity:"1d ago",         market:"Alang" },
-  { id:3,  vessel:"MV NORSE VIKING",    type:"Oil Tanker",     flag:"🇳🇴", ldt:12740, value:4204200, owner:"Bergesen Maritime",   email:"chartering@bergesen.no",status:"contacted",  score:83, contacted:"Jun 12", lastActivity:"3h ago",         market:"Chittagong" },
-  { id:4,  vessel:"MV EASTERN SUN",     type:"Bulk Carrier",   flag:"🇨🇳", ldt:9310,  value:5027400, owner:"Sinoship Group",     email:"fleet@sinoship.cn",    status:"offer",       score:94, contacted:"Jun 5",  lastActivity:"4h ago",         market:"Alang" },
-  { id:5,  vessel:"MV ATLAS GLORY",     type:"Container Ship", flag:"🇩🇪", ldt:6890,  value:2272700, owner:"Hapag Trading",      email:"ops@hapagtrading.de",  status:"contacted",   score:79, contacted:"Jun 13", lastActivity:"30m ago",        market:"Gadani" },
-  { id:6,  vessel:"MV ADRIATIC HOPE",   type:"General Cargo",  flag:"🇬🇷", ldt:4250,  value:1402500, owner:"Aegean Maritime",    email:"ops@aegean.gr",        status:"closed",      score:71, contacted:"May 28", lastActivity:"Closed Jun 10",  market:"Aliağa" },
-  { id:7,  vessel:"MV SOUTHERN CROSS",  type:"Bulk Carrier",   flag:"🇦🇺", ldt:11200, value:5712000, owner:"Pacific Bulk Ltd",   email:"ops@pacbulk.au",       status:"negotiating", score:88, contacted:"Jun 7",  lastActivity:"5h ago",         market:"Alang" },
-  { id:8,  vessel:"MV BLACK SEA",       type:"Oil Tanker",     flag:"🇷🇺", ldt:7800,  value:4212000, owner:"Sovcomflot",         email:"fleet@scf.ru",         status:"reply",       score:82, contacted:"Jun 9",  lastActivity:"8h ago",         market:"Aliağa" },
-  { id:9,  vessel:"MV EUROPA",          type:"Container Ship", flag:"🇩🇪", ldt:5600,  value:3024000, owner:"Hamburg Sud",        email:"ops@hamburgsud.de",    status:"closed",      score:76, contacted:"May 20", lastActivity:"Closed Jun 1",   market:"Aliağa" },
-  { id:10, vessel:"MV TIGER BAY",       type:"Bulk Carrier",   flag:"🇸🇬", ldt:9800,  value:5292000, owner:"Pacific Int.",       email:"fleet@pacint.sg",      status:"contacted",   score:85, contacted:"Jun 13", lastActivity:"1h ago",         market:"Alang" },
 ];
 
 const statusColor: Record<string, string> = {
@@ -29,19 +16,58 @@ const statusColor: Record<string, string> = {
 const scoreColor = (s: number) => s >= 90 ? "#F04438" : s >= 80 ? "#DC6803" : "#2563EB";
 
 export default function CRM() {
-  const [sel, setSel]         = useState<number|null>(null);
-  const [drag, setDrag]       = useState<number|null>(null);
-  const [dealData, setDealData] = useState(deals);
-  const [view, setView]       = useState<"kanban"|"list">("kanban");
+  const [sel, setSel]           = useState<string|null>(null);
+  const [drag, setDrag]         = useState<string|null>(null);
+  const [dealData, setDealData] = useState<any[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [view, setView]         = useState<"kanban"|"list">("kanban");
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/crm/add").then(r => r.json()),
+      fetch("/api/vessels").then(r => r.json()),
+    ]).then(([crm, vess]) => {
+      const vesselMap = Object.fromEntries((vess.vessels || []).map((v: any) => [v.imo, v]));
+      const enriched = (crm.vessels || []).map((c: any) => {
+        const v = vesselMap[c.imo] || {};
+        const ldt = v.ldt || 0;
+        const price = v.market === "Chittagong" ? 560 : v.market === "Alang" ? 510 : v.market === "Aliağa" ? 420 : 500;
+        return {
+          id:           c.imo,
+          vessel:       c.name || `IMO ${c.imo}`,
+          type:         v.type  || "—",
+          flag:         v.flag  || "—",
+          ldt,
+          value:        ldt * price,
+          owner:        "—",
+          email:        "—",
+          status:       c.stage || "lead",
+          score:        c.score || v.score || 0,
+          contacted:    c.addedAt ? new Date(c.addedAt).toLocaleDateString("en", { month:"short", day:"numeric" }) : "—",
+          lastActivity: c.updatedAt ? new Date(c.updatedAt).toLocaleDateString("en", { month:"short", day:"numeric" }) : "—",
+          market:       v.market || "—",
+          imo:          c.imo,
+        };
+      });
+      setDealData(enriched);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
 
   const selD = dealData.find(d => d.id === sel);
-  const totalValue  = dealData.filter(d => d.status !== "closed").reduce((a, d) => a + d.value, 0);
-  const closedValue = dealData.filter(d => d.status === "closed").reduce((a, d) => a + d.value, 0);
+  const totalValue  = dealData.filter(d => d.status !== "closed").reduce((a, d) => a + (d.value || 0), 0);
+  const closedValue = dealData.filter(d => d.status === "closed").reduce((a, d) => a + (d.value || 0), 0);
 
-  const moveCard = (dealId: number, newStatus: string) =>
+  const moveCard = (dealId: string, newStatus: string) => {
     setDealData(prev => prev.map(d => d.id === dealId ? {...d, status: newStatus} : d));
+    fetch("/api/crm/add", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imo: dealId, stage: newStatus }),
+    }).catch(() => {});
+  };
 
-  const DealCard = ({ d }: { d: typeof deals[0] }) => (
+  const DealCard = ({ d }: { d: any }) => (
     <div
       draggable
       onDragStart={() => setDrag(d.id)}
@@ -85,7 +111,7 @@ export default function CRM() {
             <span style={{ fontSize:11, fontWeight:600, color:"#1D9E75", letterSpacing:"0.12em", textTransform:"uppercase" as const }}>Deal CRM</span>
           </div>
           <div style={{ fontSize:13, fontWeight:600, color:"#101828" }}>
-            {dealData.filter(d => d.status !== "closed").length} active deals · ${(totalValue/1000000).toFixed(1)}M pipeline
+            {loading ? "Loading..." : `${dealData.filter(d => d.status !== "closed").length} active deals · $${(totalValue/1000000).toFixed(1)}M pipeline`}
           </div>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:8 }}>
@@ -123,8 +149,18 @@ export default function CRM() {
             ))}
           </div>
 
+          {loading && (
+            <div style={{ textAlign:"center", padding:"48px", color:"#98A2B3", fontSize:13 }}>Loading deals from CRM...</div>
+          )}
+          {!loading && dealData.length === 0 && (
+            <div style={{ textAlign:"center", padding:"64px 20px", color:"#98A2B3" }}>
+              <div style={{ fontSize:32, marginBottom:12 }}>📋</div>
+              <div style={{ fontSize:14, fontWeight:600, color:"#344054", marginBottom:6 }}>No deals yet</div>
+              <div style={{ fontSize:13 }}>Add vessels from the Vessels page using the &quot;CRM&apos;e Ekle&quot; button.</div>
+            </div>
+          )}
           {/* KANBAN */}
-          {view === "kanban" && (
+          {!loading && view === "kanban" && dealData.length > 0 && (
             <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:12, alignItems:"start" }}>
               {columns.map(col => (
                 <div key={col.id}
@@ -144,7 +180,7 @@ export default function CRM() {
           )}
 
           {/* LIST VIEW */}
-          {view === "list" && (
+          {!loading && view === "list" && dealData.length > 0 && (
             <div style={{ background:"#fff", border:"1px solid #EAECF0", borderRadius:14, overflow:"hidden" }}>
               <table style={{ width:"100%", borderCollapse:"collapse" }}>
                 <thead>

@@ -75,16 +75,14 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
   const [watching, setWatching]     = useState(false);
 
   useEffect(() => {
-    console.log("[VesselPanel] Fetching /api/owner/" + imo);
     fetch(`/api/vessel/${imo}`)
       .then(r => r.json())
       .then(d => {
-        console.log("[VesselPanel] Response:", d);
         if (d.error) { setError(`API error: ${d.error}`); setLoading(false); return; }
         setData(d);
         setLoading(false);
       })
-      .catch(e => { console.error("[VesselPanel] Fetch failed:", e); setError("Network error"); setLoading(false); });
+      .catch(() => { setError("Network error"); setLoading(false); });
   }, [imo]);
 
   return (

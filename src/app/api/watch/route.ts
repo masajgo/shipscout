@@ -1,49 +1,59 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
+import { put, list } from "@vercel/blob";
 
-const STORE_PATH = path.join("/tmp", "watched_vessels.json");
+const BLOB_KEY = "watched_vessels.json";
 
-function loadStore() {
-  if (!fs.existsSync(STORE_PATH)) return { vessels: [], ownerQueue: [], emailQueue: [] };
-  return JSON.parse(fs.readFileSync(STORE_PATH, "utf8"));
+type Store = { vessels: any[]; ownerQueue: any[]; emailQueue: any[] };
+
+async function loadStore(): Promise<Store> {
+  try {
+    const { blobs } = await list({ prefix: BLOB_KEY });
+    if (!blobs.length) return { vessels: [], ownerQueue: [], emailQueue: [] };
+    const res = await fetch(blobs[0].downloadUrl);
+    if (!res.ok) return { vessels: [], ownerQueue: [], emailQueue: [] };
+    return await res.json();
+  } catch {
+    return { vessels: [], ownerQueue: [], emailQueue: [] };
+  }
 }
 
-function saveStore(store: object) {
-  fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2));
+async function saveStore(store: Store) {
+  await put(BLOB_KEY, JSON.stringify(store, null, 2), {
+    access: "public",
+    contentType: "application/json",
+    addRandomSuffix: false,
+  });
 }
 
 export async function POST(req: NextRequest) {
   const vessel = await req.json();
-  const store = loadStore();
+  const store  = await loadStore();
 
-  const exists = (store.vessels as { imo: string }[]).find((v) => v.imo === vessel.imo);
-  if (exists) {
-    return NextResponse.json({ status: "already_watching" });
-  }
+  const exists = store.vessels.find((v) => v.imo === vessel.imo);
+  if (exists) return NextResponse.json({ status: "already_watching" });
 
   const entry = {
-    imo: vessel.imo,
-    name: vessel.name,
-    flag: vessel.flag || null,
-    shipType: vessel.shipType || null,
+    imo:       vessel.imo,
+    name:      vessel.name,
+    flag:      vessel.flag      || null,
+    shipType:  vessel.shipType  || null,
     builtYear: vessel.builtYear || null,
-    source: vessel.source || null,
-    addedAt: new Date().toISOString(),
+    source:    vessel.source    || null,
+    addedAt:   new Date().toISOString(),
     detentions: [],
-    ownerInfo: null,
+    ownerInfo:  null,
     offerEmail: null,
-    status: "watching",
+    status:    "watching",
   };
 
-  (store.vessels as object[]).push(entry);
-  (store.ownerQueue as object[]).push({ imo: vessel.imo, name: vessel.name, queuedAt: new Date().toISOString() });
-  saveStore(store);
+  store.vessels.push(entry);
+  store.ownerQueue.push({ imo: vessel.imo, name: vessel.name, queuedAt: new Date().toISOString() });
+  await saveStore(store);
 
   return NextResponse.json({ status: "watching", vessel: entry });
 }
 
 export async function GET() {
-  const store = loadStore();
+  const store = await loadStore();
   return NextResponse.json({ vessels: store.vessels });
 }

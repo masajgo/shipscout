@@ -22,6 +22,7 @@ async function saveStore(store: Store) {
     access: "public",
     contentType: "application/json",
     addRandomSuffix: false,
+    allowOverwrite: true,
   });
 }
 

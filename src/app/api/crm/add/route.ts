@@ -20,6 +20,7 @@ async function saveCRM(data: any[]) {
     access: "public",
     contentType: "application/json",
     addRandomSuffix: false,
+    allowOverwrite: true,
   });
 }
 

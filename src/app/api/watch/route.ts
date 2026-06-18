@@ -26,6 +26,7 @@ async function saveStore(store: Store) {
 }
 
 export async function POST(req: NextRequest) {
+  try {
   const vessel = await req.json();
   const store  = await loadStore();
 
@@ -51,6 +52,9 @@ export async function POST(req: NextRequest) {
   await saveStore(store);
 
   return NextResponse.json({ status: "watching", vessel: entry });
+  } catch (err: any) {
+    return NextResponse.json({ error: String(err?.message || err) }, { status: 500 });
+  }
 }
 
 export async function GET() {

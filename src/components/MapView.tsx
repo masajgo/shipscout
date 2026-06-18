@@ -15,6 +15,19 @@ const scoreColor = (s: number) =>
 const scoreLabel = (s: number) =>
   s >= 90 ? "Critical" : s >= 80 ? "High" : s >= 70 ? "Medium" : "Low";
 
+// Pre-computed icon cache by [colorKey+size] to avoid DOM thrashing
+const iconCache = new Map<string, any>();
+function getIcon(L: any, color: string, size: number) {
+  const key = `${color}-${size}`;
+  if (!iconCache.has(key)) {
+    iconCache.set(key, L.divIcon({
+      html: `<div style="width:${size}px;height:${size}px;background:${color};border:2px solid rgba(0,0,0,0.4);border-radius:50%;box-shadow:0 0 ${size>=14?8:4}px ${color}99;cursor:pointer;"></div>`,
+      className: "", iconSize: [size, size], iconAnchor: [size/2, size/2],
+    }));
+  }
+  return iconCache.get(key);
+}
+
 export default function MapView() {
   const { vessels, connected, messageCount } = useAISStream();
   const mapRef        = useRef<HTMLDivElement>(null);
@@ -22,7 +35,7 @@ export default function MapView() {
   const leafletRef    = useRef<any>(null);
   const markersRef    = useRef<Map<string, any>>(new Map());
   const [selected, setSelected] = useState<typeof vessels[0] | null>(null);
-  const [minScore, setMinScore]  = useState(50);
+  const [minScore, setMinScore]  = useState(0);
   const [typeFilter, setTypeFilter] = useState("All");
   const [mapReady, setMapReady]  = useState(false);
 
@@ -64,10 +77,7 @@ export default function MapView() {
     filtered.forEach(v => {
       const color = scoreColor(v.score);
       const size  = v.score >= 90 ? 14 : v.score >= 80 ? 11 : 9;
-      const icon  = L.divIcon({
-        html: `<div style="width:${size}px;height:${size}px;background:${color};border:2px solid rgba(0,0,0,0.4);border-radius:50%;box-shadow:0 0 ${v.score>=80?8:4}px ${color}99;cursor:pointer;"></div>`,
-        className: "", iconSize: [size, size], iconAnchor: [size/2, size/2],
-      });
+      const icon  = getIcon(L, color, size);
       if (markersRef.current.has(v.mmsi)) {
         markersRef.current.get(v.mmsi).setLatLng([v.lat, v.lon]).setIcon(icon);
       } else {

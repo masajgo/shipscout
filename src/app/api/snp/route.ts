@@ -30,19 +30,27 @@ function bestMarket(type: string): string {
   return "Gadani";
 }
 
-function saleTypeFromAge(age: number): string {
-  if (age >= 32) return "distressed";
-  if (age >= 28) return "distressed";
-  if (age >= 24) return "voluntary";
+function saleTypeFromVessel(age: number, score: number, imo: string): string {
+  const imoNum = parseInt(imo) || 0;
+  const bucket = imoNum % 4;
+  if (score >= 90) {
+    // spread critical vessels across distressed, judicial, bank
+    if (bucket === 0) return "judicial";
+    if (bucket === 1) return "bank";
+    return "distressed";
+  }
+  if (score >= 80) return age >= 28 ? "distressed" : "voluntary";
   return "voluntary";
 }
 
-function tagsFromVessel(age: number, score: number): { label: string; type: string }[] {
+function tagsFromVessel(age: number, score: number, saleType: string): { label: string; type: string }[] {
   const tags: { label: string; type: string }[] = [];
   tags.push({ label: `${age}y old`, type: age >= 30 ? "urgent" : "idle" });
+  if (saleType === "judicial") tags.push({ label: "Judicial Sale", type: "judicial" });
+  else if (saleType === "bank") tags.push({ label: "Bank Repo", type: "bank" });
   if (score >= 90) tags.push({ label: "Motivated seller", type: "motivated" });
-  if (score >= 85) tags.push({ label: "P&I Withdrawn", type: "urgent" });
-  else if (score >= 78) tags.push({ label: "AIS Dark", type: "bank" });
+  if (score >= 85 && saleType === "distressed") tags.push({ label: "P&I Withdrawn", type: "urgent" });
+  else if (score >= 78 && saleType === "distressed") tags.push({ label: "AIS Dark", type: "bank" });
   else if (score >= 70) tags.push({ label: "Survey Due", type: "idle" });
   else if (score >= 60) tags.push({ label: "Lay-up", type: "idle" });
   return tags;
@@ -88,8 +96,8 @@ export async function GET() {
       const price    = MARKET_PRICES[market] ?? 500;
       const estUSD   = ldt * price;
       const score    = Math.min(99, scoreFromAge(age));
-      const saleType = saleTypeFromAge(age);
-      const tags     = tagsFromVessel(age, score);
+      const saleType = saleTypeFromVessel(age, score, imo);
+      const tags     = tagsFromVessel(age, score, saleType);
 
       return {
         id:        parseInt(imo),
@@ -103,7 +111,7 @@ export async function GET() {
         ldt,
         location:  d.last_port || d.home_port || "—",
         price:     `$${(estUSD / 1_000_000).toFixed(1)}M`,
-        priceType: score >= 85 ? "Distressed" : "Asking",
+        priceType: saleType === "judicial" ? "Reserve price" : saleType === "bank" ? "Bank offer" : score >= 85 ? "Distressed" : "Asking",
         saleType,
         tags,
         urgent:    score >= 88,

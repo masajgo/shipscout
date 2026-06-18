@@ -61,6 +61,7 @@ export default function CRM() {
   const [dealData, setDealData] = useState<any[]>([]);
   const [loading, setLoading]   = useState(true);
   const [view, setView]         = useState<"kanban"|"list">("kanban");
+  const [escrowDone, setEscrowDone] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     Promise.all([
@@ -278,8 +279,10 @@ export default function CRM() {
                 onClick={() => window.location.href = `mailto:${selD.email !== "—" ? selD.email : ""}?subject=Follow-up%20%E2%80%94%20${encodeURIComponent(selD.vessel)}&body=Dear%20Owner%2C%0A%0AWe%20are%20following%20up%20on%20the%20acquisition%20of%20${encodeURIComponent(selD.vessel)}.%0A%0APlease%20let%20us%20know%20your%20availability%20for%20further%20discussion.%0A%0ABest%20regards`}
                 style={{ background:"#101828", border:"none", borderRadius:10, padding:"10px", color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer" }}>Send follow-up →</button>
               <button
-                onClick={() => alert("Escrow feature — contact your broker to initiate the escrow process for " + selD.vessel)}
-                style={{ background:"#ECFDF3", border:"1px solid #A9EFC5", borderRadius:10, padding:"10px", color:"#1D9E75", fontSize:12, fontWeight:600, cursor:"pointer" }}>Open escrow</button>
+                onClick={() => { setEscrowDone(p => ({...p, [selD.id]: true})); setTimeout(() => setEscrowDone(p => ({...p, [selD.id]: false})), 3000); }}
+                style={{ background: escrowDone[selD.id] ? "#101828" : "#ECFDF3", border: escrowDone[selD.id] ? "1px solid #101828" : "1px solid #A9EFC5", borderRadius:10, padding:"10px", color: escrowDone[selD.id] ? "#fff" : "#1D9E75", fontSize:12, fontWeight:600, cursor:"pointer" }}>
+                {escrowDone[selD.id] ? "✓ Escrow initiated" : "Open escrow"}
+              </button>
             </div>
           </aside>
         )}

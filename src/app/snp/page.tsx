@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import VesselPanel from "@/components/VesselPanel";
 
 const SHIP_TYPES = [
@@ -50,8 +50,19 @@ export default function SNPPage() {
   const [ageFilter, setAgeFilter]         = useState("Any age");
   const [dwtFilter, setDwtFilter]         = useState("Any DWT");
   const [showTypeMenu, setShowTypeMenu]   = useState(false);
+  const typeMenuRef                       = useRef<HTMLDivElement>(null);
   const [selectedIMO, setSelectedIMO]     = useState<string | null>(null);
   const [sortBy, setSortBy]               = useState<"urgency"|"value"|"age">("urgency");
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (typeMenuRef.current && !typeMenuRef.current.contains(e.target as Node)) {
+        setShowTypeMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   useEffect(() => {
     fetch("/api/snp")
@@ -70,6 +81,14 @@ export default function SNPPage() {
       if (ageFilter === "10–20y" && (age < 10 || age > 20)) return false;
       if (ageFilter === "20–25y" && (age < 20 || age > 25)) return false;
       if (ageFilter === "25y+"   && age < 25)               return false;
+    }
+    if (dwtFilter !== "Any DWT") {
+      const dwt = l.dwt || 0;
+      if (dwtFilter === "< 5,000" && dwt >= 5000)              return false;
+      if (dwtFilter === "5–15k"   && (dwt < 5000 || dwt >= 15000)) return false;
+      if (dwtFilter === "15–40k"  && (dwt < 15000 || dwt >= 40000)) return false;
+      if (dwtFilter === "40–80k"  && (dwt < 40000 || dwt >= 80000)) return false;
+      if (dwtFilter === "80k+"    && dwt < 80000)              return false;
     }
     return true;
   }).sort((a, b) => {
@@ -137,7 +156,7 @@ export default function SNPPage() {
       <div style={{ background: "#fff", borderBottom: "1px solid #EAECF0", padding: "10px 28px", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" as const, position: "relative" }}>
 
         {/* Ship type dropdown */}
-        <div style={{ position: "relative" }}>
+        <div ref={typeMenuRef} style={{ position: "relative" }}>
           <button
             onClick={() => setShowTypeMenu(!showTypeMenu)}
             style={{
@@ -306,9 +325,12 @@ export default function SNPPage() {
             );
           })}
 
-          {filtered.length === 0 && (
-            <div style={{ textAlign: "center", padding: "48px 20px", color: "#98A2B3", fontSize: 13 }}>
-              No vessels match your current filters.
+          {filtered.length === 0 && !loading && (
+            <div style={{ textAlign: "center", padding: "48px 20px", color: "#98A2B3" }}>
+              <div style={{ fontSize: 13, marginBottom: 10 }}>No vessels match your current filters.</div>
+              <button onClick={() => { setSaleType("all"); setSelectedType("All"); setAgeFilter("Any age"); setDwtFilter("Any DWT"); }} style={{ fontSize: 12, fontWeight: 600, color: "#1D9E75", border: "1px solid #A9EFC5", background: "#ECFDF3", padding: "7px 16px", borderRadius: 7, cursor: "pointer" }}>
+                Clear filters
+              </button>
             </div>
           )}
         </div>

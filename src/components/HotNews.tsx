@@ -61,7 +61,7 @@ export default function HotNews() {
       setMeta(data.meta || null);
       setLastFetch(new Date());
     } catch {
-      // sessiz hata
+      // silent
     } finally {
       setLoading(false);
     }
@@ -69,7 +69,7 @@ export default function HotNews() {
 
   useEffect(() => {
     fetchNews();
-    const interval = setInterval(fetchNews, 6 * 60 * 60 * 1000); // 6 saatte bir
+    const interval = setInterval(fetchNews, 6 * 60 * 60 * 1000);
     return () => clearInterval(interval);
   }, [fetchNews]);
 
@@ -172,7 +172,7 @@ export default function HotNews() {
       {/* News list */}
       {filtered.length === 0 ? (
         <div className="text-center py-12 text-slate-500 text-sm">
-          Bu filtrede sinyal yok
+          No signals in this filter
         </div>
       ) : (
         <div className="space-y-2">
@@ -220,7 +220,7 @@ export default function HotNews() {
                     rel="noopener noreferrer"
                     className="text-slate-500 hover:text-slate-300 text-[11px] transition-colors"
                   >
-                    Kaynak ↗
+                    Source ↗
                   </a>
                   <button
                     onClick={() => toggleWatch(item.id)}

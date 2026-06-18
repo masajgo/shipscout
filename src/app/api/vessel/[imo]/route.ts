@@ -36,35 +36,38 @@ export async function GET(
 
   const builtYear = vessel?.data?.year_built;
   const age = builtYear ? new Date().getFullYear() - builtYear : null;
+  const dwt = vessel?.data?.deadweight || 0;
+  const ldt = vessel?.data?.lightship || (dwt ? Math.round(dwt * 0.17) : 0);
 
-  let scrapScore = 0;
-  if (age) {
-    if (age >= 30)      scrapScore += 35;
-    else if (age >= 25) scrapScore += 28;
-    else if (age >= 20) scrapScore += 20;
-    else if (age >= 15) scrapScore += 10;
+  function scoreFromAge(a: number): number {
+    if (a >= 32) return 90 + Math.min(9, a - 32);
+    if (a >= 28) return 82 + (a - 28);
+    if (a >= 24) return 72 + (a - 24) * 2;
+    if (a >= 20) return 60 + (a - 20) * 3;
+    return Math.max(30, 40 + a);
   }
-  if (inspect?.data?.length > 0)  scrapScore += 25;
-  if (inspect?.data?.length >= 3) scrapScore += 10;
+
+  let scrapScore = age ? scoreFromAge(age) : 30;
+  if (inspect?.data?.length >= 3) scrapScore = Math.min(99, scrapScore + 5);
   if (drydock?.data?.next_dry_dock) {
     const monthsLeft = (new Date(drydock.data.next_dry_dock).getTime() - Date.now()) / (1000 * 60 * 60 * 24 * 30);
-    if (monthsLeft < 6) scrapScore += 15;
+    if (monthsLeft < 6) scrapScore = Math.min(99, scrapScore + 5);
   }
 
   return NextResponse.json({
     imo,
     age,
-    scrapScore: Math.min(100, scrapScore),
+    scrapScore,
     particulars: {
       name:         vessel?.data?.name,
-      flag:         vessel?.data?.flag,
-      type:         vessel?.data?.vessel_type,
+      flag:         vessel?.data?.country_name,
+      type:         vessel?.data?.type_specific,
       builtYear:    vessel?.data?.year_built,
       builtAt:      vessel?.data?.place_of_build,
-      dwt:          vessel?.data?.deadweight,
+      dwt,
       grt:          vessel?.data?.gross_tonnage,
       nrt:          vessel?.data?.net_tonnage,
-      ldt:          vessel?.data?.lightship,
+      ldt,
       loa:          vessel?.data?.length,
       beam:         vessel?.data?.breadth,
       draft:        vessel?.data?.draught,

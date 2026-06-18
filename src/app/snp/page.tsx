@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const SHIP_TYPES = [
   { group: "Dry Cargo",          types: ["Bulk Carrier", "General Cargo", "Container Ship"] },
@@ -20,80 +20,6 @@ const SALE_TYPES = [
 const AGE_FILTERS  = ["Any age", "0–10y", "10–20y", "20–25y", "25y+"];
 const DWT_FILTERS  = ["Any DWT", "< 5,000", "5–15k", "15–40k", "40–80k", "80k+"];
 
-const LISTINGS = [
-  {
-    id: 1, imo: "9038880", name: "NEREO", flag: "Panama",
-    type: "Oil / Crude Tanker", group: "Tankers",
-    built: 1993, dwt: 99355, ldt: 16890, location: "Fujairah",
-    price: "$10.5M", priceType: "Asking",
-    saleType: "distressed",
-    tags: [{ label: "33y old", type: "idle" }, { label: "Motivated seller", type: "motivated" }],
-    urgent: true,
-  },
-  {
-    id: 2, imo: "8912522", name: "RUN FU 7", flag: "Panama",
-    type: "Bulk Carrier", group: "Dry Cargo",
-    built: 1990, dwt: 38852, ldt: 6605, location: "Singapore anchorage",
-    price: "On Request", priceType: "Negotiable",
-    saleType: "bank",
-    tags: [{ label: "Bank Repo", type: "bank" }, { label: "36y old", type: "urgent" }],
-    urgent: true,
-  },
-  {
-    id: 3, imo: "9108128", name: "LISBON EXPRESS", flag: "Bermuda",
-    type: "Container Ship", group: "Dry Cargo",
-    built: 1995, dwt: 34330, ldt: 5836, location: "Bremerhaven",
-    price: "$3.8M", priceType: "Asking",
-    saleType: "voluntary",
-    tags: [{ label: "Survey Due", type: "idle" }, { label: "Price reduced", type: "reduced" }],
-    urgent: false,
-  },
-  {
-    id: 4, imo: "9015101", name: "HAO 3", flag: "Saint Kitts",
-    type: "Bulk Carrier", group: "Dry Cargo",
-    built: 1991, dwt: 22174, ldt: 3770, location: "Chittagong",
-    price: "$2.3M", priceType: "Asking",
-    saleType: "distressed",
-    tags: [{ label: "94d idle", type: "idle" }, { label: "Motivated seller", type: "motivated" }],
-    urgent: false,
-  },
-  {
-    id: 5, imo: "9083940", name: "FORTUNE BOOMY", flag: "Sierra Leone",
-    type: "Chemical Tanker", group: "Tankers",
-    built: 1994, dwt: 11559, ldt: 1965, location: "Rotterdam",
-    price: "$1.4M", priceType: "Asking",
-    saleType: "voluntary",
-    tags: [{ label: "New listing", type: "new" }],
-    urgent: false,
-  },
-  {
-    id: 6, imo: "9040089", name: "CARIBBEAN ENERGY", flag: "Mongolia",
-    type: "Chemical Tanker", group: "Tankers",
-    built: 1993, dwt: 10511, ldt: 1787, location: "Aliağa anchorage",
-    price: "$1.1M", priceType: "Reserve",
-    saleType: "judicial",
-    tags: [{ label: "Auction Jul 3", type: "urgent" }, { label: "Judicial", type: "judicial" }],
-    urgent: true,
-  },
-  {
-    id: 7, imo: "9078098", name: "VANNA", flag: "Malta",
-    type: "Chemical Tanker", group: "Tankers",
-    built: 1994, dwt: 8256, ldt: 1404, location: "Gadani",
-    price: "$0.9M", priceType: "Asking",
-    saleType: "distressed",
-    tags: [{ label: "Lay-up", type: "idle" }],
-    urgent: false,
-  },
-  {
-    id: 8, imo: "9004231", name: "MSC ESHA F", flag: "Panama",
-    type: "Container Ship", group: "Dry Cargo",
-    built: 1993, dwt: 12854, ldt: 2185, location: "Karachi",
-    price: "$1.6M", priceType: "Asking",
-    saleType: "voluntary",
-    tags: [{ label: "AIS Dark", type: "bank" }],
-    urgent: false,
-  },
-];
 
 const TAG_STYLES: Record<string, { color: string; bg: string; border: string }> = {
   urgent:    { color: "#F04438", bg: "#FEF3F2", border: "#FECDCA" },
@@ -116,21 +42,31 @@ const TYPE_CODE: Record<string, string> = {
 };
 
 export default function SNPPage() {
+  const [listings, setListings]           = useState<any[]>([]);
+  const [loading, setLoading]             = useState(true);
   const [saleType, setSaleType]           = useState("all");
   const [selectedType, setSelectedType]   = useState("All");
   const [ageFilter, setAgeFilter]         = useState("Any age");
   const [dwtFilter, setDwtFilter]         = useState("Any DWT");
   const [showTypeMenu, setShowTypeMenu]   = useState(false);
 
-  const filtered = LISTINGS.filter(l => {
+  useEffect(() => {
+    fetch("/api/snp")
+      .then(r => r.json())
+      .then(d => { setListings(d.listings || []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const year = new Date().getFullYear();
+  const filtered = listings.filter(l => {
     if (saleType !== "all" && l.saleType !== saleType) return false;
-    if (selectedType !== "All" && l.type !== selectedType) return false;
+    if (selectedType !== "All" && (l.type || "").toLowerCase() !== selectedType.toLowerCase()) return false;
     if (ageFilter !== "Any age") {
-      const age = 2026 - l.built;
-      if (ageFilter === "0–10y"  && age > 10)              return false;
+      const age = year - l.built;
+      if (ageFilter === "0–10y"  && age > 10)               return false;
       if (ageFilter === "10–20y" && (age < 10 || age > 20)) return false;
       if (ageFilter === "20–25y" && (age < 20 || age > 25)) return false;
-      if (ageFilter === "25y+"   && age < 25)              return false;
+      if (ageFilter === "25y+"   && age < 25)               return false;
     }
     return true;
   });
@@ -175,10 +111,10 @@ export default function SNPPage() {
       {/* STATS */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 1, background: "#EAECF0", borderBottom: "1px solid #EAECF0" }}>
         {[
-          { val: "847",  unit: "vessels", label: "Active listings",      sub: "+23 this week",          subColor: "#1D9E75" },
-          { val: "34",   unit: "",        label: "Distressed / urgent",   sub: "3 auctions this week",   subColor: "#F04438" },
-          { val: "$2.4", unit: "B",       label: "Total listed value",    sub: "Avg. $2.8M / vessel",    subColor: "#98A2B3" },
-          { val: "18",   unit: "days",    label: "Avg. time to close",    sub: "4d faster than market",  subColor: "#1D9E75" },
+          { val: loading ? "—" : String(listings.length),                                                          unit: "vessels", label: "Active listings",    sub: "Live from Datalastic",   subColor: "#1D9E75" },
+          { val: loading ? "—" : String(listings.filter(l => l.saleType === "distressed" || l.urgent).length),    unit: "",        label: "Distressed / urgent", sub: "Scrap score 85+",        subColor: "#F04438" },
+          { val: loading ? "—" : `$${(listings.reduce((s, l) => s + parseFloat((l.price || "$0").replace(/[$M]/g, "")), 0)).toFixed(1)}`, unit: "M", label: "Total est. value", sub: "Based on LDT × market", subColor: "#98A2B3" },
+          { val: loading ? "—" : String(listings.filter(l => l.score >= 88).length),                              unit: "urgent",  label: "Action required",     sub: "Age 30y+ vessels",       subColor: "#DC6803" },
         ].map(s => (
           <div key={s.label} style={{ background: "#fff", padding: "16px 24px" }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: "#101828", letterSpacing: -0.8, lineHeight: 1 }}>
@@ -273,7 +209,7 @@ export default function SNPPage() {
       <div style={{ padding: "20px 28px 40px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 14 }}>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#101828" }}>{filtered.length} vessels found</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#101828" }}>{loading ? "Loading..." : `${filtered.length} vessels found`}</div>
             <div style={{ fontSize: 12, color: "#98A2B3", marginTop: 2 }}>
               {saleType === "all" ? "All sale types" : SALE_TYPES.find(t => t.id === saleType)?.label}
               {selectedType !== "All" ? ` · ${selectedType}` : ""}
@@ -285,8 +221,13 @@ export default function SNPPage() {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {loading && (
+            <div style={{ textAlign: "center", padding: "48px", color: "#98A2B3", fontSize: 13 }}>
+              Datalastic&apos;ten canlı veri çekiliyor...
+            </div>
+          )}
           {filtered.map(v => {
-            const age = 2026 - v.built;
+            const age = year - v.built;
             const code = TYPE_CODE[v.type] || "VS";
             return (
               <div key={v.id} style={{
@@ -333,7 +274,7 @@ export default function SNPPage() {
 
                 {/* Tags */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
-                  {v.tags.map(tag => {
+                  {v.tags.map((tag: { label: string; type: string }) => {
                     const ts = TAG_STYLES[tag.type] || TAG_STYLES.motivated;
                     return (
                       <span key={tag.label} style={{ fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 5, color: ts.color, background: ts.bg, border: `1px solid ${ts.border}`, whiteSpace: "nowrap" as const }}>

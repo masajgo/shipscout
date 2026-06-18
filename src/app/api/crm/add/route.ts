@@ -2,39 +2,51 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
-const STORE_PATH = path.join(process.cwd(), "scraper/data/crm_vessels.json");
+const CRM_PATH = path.join(process.cwd(), "scraper/data/crm_vessels.json");
 
-function load(): { vessels: any[] } {
-  if (!fs.existsSync(STORE_PATH)) return { vessels: [] };
-  return JSON.parse(fs.readFileSync(STORE_PATH, "utf8"));
+function loadCRM() {
+  try {
+    if (!fs.existsSync(CRM_PATH)) return [];
+    return JSON.parse(fs.readFileSync(CRM_PATH, "utf8"));
+  } catch {
+    return [];
+  }
 }
 
-function save(store: object) {
-  fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2));
+function saveCRM(data: any[]) {
+  const dir = path.dirname(CRM_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(CRM_PATH, JSON.stringify(data, null, 2));
 }
 
 export async function POST(req: NextRequest) {
-  const { imo, name, score, status } = await req.json();
-  if (!imo) return NextResponse.json({ error: "IMO required" }, { status: 400 });
+  try {
+    const body = await req.json();
+    const { imo, name, score, stage } = body;
 
-  const store = load();
-  const idx = store.vessels.findIndex((v) => v.imo === imo);
+    if (!imo) return NextResponse.json({ error: "IMO required" }, { status: 400 });
 
-  const entry = {
-    imo,
-    name: name || `Vessel ${imo}`,
-    score: score ?? null,
-    status: status || null,
-    addedAt: new Date().toISOString(),
-    stage: "new",
-  };
+    const crm = loadCRM();
+    const existingIndex = crm.findIndex((v: any) => v.imo === imo);
 
-  if (idx !== -1) {
-    store.vessels[idx] = { ...store.vessels[idx], ...entry };
-  } else {
-    store.vessels.push(entry);
+    const entry = {
+      imo,
+      name: name || `IMO ${imo}`,
+      score: score || 0,
+      stage: stage || "lead",
+      addedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (existingIndex >= 0) {
+      crm[existingIndex] = { ...crm[existingIndex], ...entry, updatedAt: new Date().toISOString() };
+    } else {
+      crm.push(entry);
+    }
+
+    saveCRM(crm);
+    return NextResponse.json({ success: true, entry });
+  } catch {
+    return NextResponse.json({ error: "Failed to save" }, { status: 500 });
   }
-
-  save(store);
-  return NextResponse.json({ status: "added", vessel: entry });
 }

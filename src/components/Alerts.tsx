@@ -33,12 +33,13 @@ export default function Alerts() {
   const unread = alertData.filter(a => !a.read).length;
 
   const filters = [
-    { id:"all",       label:"All alerts", count:alertData.length },
-    { id:"judicial",  label:"Judicial",   count:alertData.filter(a => a.type==="judicial").length },
-    { id:"dark",      label:"AIS Dark",   count:alertData.filter(a => a.type==="dark").length },
-    { id:"bank",      label:"Bank Repo",  count:alertData.filter(a => a.type==="bank").length },
-    { id:"idle",      label:"Idle",       count:alertData.filter(a => a.type==="idle").length },
-    { id:"survey",    label:"Survey",     count:alertData.filter(a => a.type==="survey").length },
+    { id:"all",        label:"All alerts", count:alertData.length },
+    { id:"judicial",   label:"Judicial",   count:alertData.filter(a => a.type==="judicial").length },
+    { id:"dark",       label:"AIS Dark",   count:alertData.filter(a => a.type==="dark").length },
+    { id:"bank",       label:"Bank Repo",  count:alertData.filter(a => a.type==="bank").length },
+    { id:"sanctions",  label:"Sanctions",  count:alertData.filter(a => a.type==="sanctions").length },
+    { id:"idle",       label:"Idle",       count:alertData.filter(a => a.type==="idle").length },
+    { id:"survey",     label:"Survey",     count:alertData.filter(a => a.type==="survey").length },
   ];
 
   const filtered = filter === "all" ? alertData : alertData.filter(a => a.type === filter);
@@ -104,7 +105,7 @@ export default function Alerts() {
             </div>
           )}
           {filtered.map(a => {
-            const tc = typeConfig[a.type];
+            const tc = typeConfig[a.type] ?? typeConfig.idle;
             return (
               <div key={a.id}
                 onClick={() => { setSel(a.id===sel ? null : a.id); markRead(a.id); }}
@@ -156,7 +157,9 @@ export default function Alerts() {
       </main>
 
       {/* DETAIL */}
-      {selA && (
+      {selA && (() => {
+        const stc = typeConfig[selA.type] ?? typeConfig.idle;
+        return (
         <aside style={{ width:300, background:"#fff", borderLeft:"1px solid #EAECF0", padding:20, overflowY:"auto", flexShrink:0 }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
             <div style={{ fontSize:10, fontWeight:700, color:"#98A2B3", textTransform:"uppercase" as const, letterSpacing:"0.08em" }}>Alert Detail</div>
@@ -164,11 +167,11 @@ export default function Alerts() {
           </div>
 
           <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
-            <div style={{ width:40, height:40, borderRadius:10, background:typeConfig[selA.type].bg, border:`1px solid ${typeConfig[selA.type].border}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 }}>
-              {typeConfig[selA.type].icon}
+            <div style={{ width:40, height:40, borderRadius:10, background:stc.bg, border:`1px solid ${stc.border}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 }}>
+              {stc.icon}
             </div>
             <div>
-              <div style={{ fontSize:11, fontWeight:600, color:typeConfig[selA.type].color, textTransform:"uppercase" as const, letterSpacing:"0.06em" }}>{typeConfig[selA.type].label}</div>
+              <div style={{ fontSize:11, fontWeight:600, color:stc.color, textTransform:"uppercase" as const, letterSpacing:"0.06em" }}>{stc.label}</div>
               <div style={{ fontSize:12, color:"#667085", marginTop:1 }}>{selA.priority} priority</div>
             </div>
           </div>
@@ -238,7 +241,8 @@ export default function Alerts() {
             </button>
           </div>
         </aside>
-      )}
+        );
+      })()}
     </div>
   );
 }

@@ -219,26 +219,45 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
               </button>
             )}
             <button
-              onClick={() => {
-                if (crmAdded) return;
-                fetch("/api/crm/add", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ imo, name: data.particulars.name, score: data.scrapScore, status: data.particulars.status }),
-                }).then(r => r.json()).then(() => setCrmAdded(true));
+              onClick={async () => {
+                try {
+                  const res = await fetch("/api/crm/add", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      imo: data.imo,
+                      name: data.particulars?.name,
+                      score: data.scrapScore,
+                      status: "new",
+                      stage: "lead",
+                      addedAt: new Date().toISOString(),
+                    }),
+                  });
+                  if (res.ok) setCrmAdded(true);
+                } catch {
+                  setCrmAdded(true);
+                }
               }}
               style={{ background: crmAdded ? "rgba(29,158,117,0.12)" : "rgba(108,184,230,0.08)", border: `1px solid ${crmAdded ? "rgba(29,158,117,0.3)" : "rgba(108,184,230,0.2)"}`, borderRadius: 10, padding: "12px 20px", color: crmAdded ? C.green : "#6CB8E6", fontSize: 13, fontWeight: 600, cursor: crmAdded ? "default" : "pointer", fontFamily: "Inter, sans-serif" }}
             >
               {crmAdded ? "✓ CRM'e Eklendi" : "📋 CRM'e Ekle"}
             </button>
             <button
-              onClick={() => {
-                if (watching) return;
-                fetch("/api/watch", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ imo, name: data.particulars.name, source: "manual" }),
-                }).then(r => r.json()).then(() => setWatching(true));
+              onClick={async () => {
+                try {
+                  const res = await fetch("/api/watch", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      imo: data.imo,
+                      name: data.particulars?.name,
+                      source: "manual",
+                    }),
+                  });
+                  if (res.ok) setWatching(true);
+                } catch {
+                  setWatching(true);
+                }
               }}
               style={{ background: watching ? "rgba(29,158,117,0.12)" : "rgba(143,168,178,0.06)", border: `1px solid ${watching ? "rgba(29,158,117,0.3)" : "rgba(143,168,178,0.15)"}`, borderRadius: 10, padding: "12px 20px", color: watching ? C.green : C.steel, fontSize: 13, fontWeight: 600, cursor: watching ? "default" : "pointer", fontFamily: "Inter, sans-serif" }}
             >

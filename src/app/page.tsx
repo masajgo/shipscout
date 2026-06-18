@@ -45,36 +45,60 @@ export default function Home() {
     <div style={{ background: "#F9FAFB", minHeight: "100vh" }}>
 
       {/* HERO */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #EAECF0", padding: "32px 28px 28px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 40 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-              <div style={{ width: 20, height: 1.5, background: "#1D9E75" }} />
-              <span style={{ fontSize: 11, fontWeight: 600, color: "#1D9E75", letterSpacing: "0.12em", textTransform: "uppercase" as const }}>
-                Vessel Intelligence Platform
-              </span>
-            </div>
-            <h1 style={{ fontSize: 30, fontWeight: 800, color: "#101828", letterSpacing: -1, lineHeight: 1.1, margin: "0 0 12px", fontFamily: "Inter, sans-serif" }}>
-              Find scrap-eligible vessels<br />
-              <span style={{ color: "#1D9E75" }}>before anyone else does.</span>
-            </h1>
-            <p style={{ fontSize: 13, color: "#667085", lineHeight: 1.7, maxWidth: 420, margin: 0 }}>
-              Real-time detention signals, AIS dark events, and PSC inspection data unified into one actionable score. Trusted by recycling yards across Aliağa, Alang, Chittagong, and Gadani.
-            </p>
-          </div>
+      <div style={{ background: "linear-gradient(180deg, #F0FBF6 0%, #FCFCFD 100%)", borderBottom: "1px solid #E4E7EC", padding: "52px 32px 40px", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)", width: 700, height: 300, background: "radial-gradient(ellipse, rgba(29,158,117,0.1), transparent 70%)" }} />
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, background: "#EAECF0", border: "1px solid #EAECF0", borderRadius: 12, overflow: "hidden", flexShrink: 0, width: 240 }}>
+        <div style={{ position: "relative", zIndex: 2, textAlign: "center", maxWidth: 760, margin: "0 auto" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid #A9EFC5", borderRadius: 100, padding: "6px 14px 6px 8px", marginBottom: 22 }}>
+            <span style={{ fontSize: 9, fontWeight: 700, color: "#fff", background: "#1D9E75", padding: "2px 9px", borderRadius: 100, letterSpacing: "0.06em" }}>HKC READY</span>
+            <span style={{ fontSize: 11, color: "#027A48", fontWeight: 600 }}>Aligned with the Hong Kong Convention, in force since June 2025</span>
+          </div>
+          <h1 style={{ fontSize: 44, fontWeight: 800, color: "#101828", letterSpacing: "-1.8px", lineHeight: 1.05, margin: "0 0 16px" }}>
+            Find it. Scout it. <span style={{ color: "#1D9E75" }}>Close it.</span>
+          </h1>
+          <p style={{ fontSize: 15, color: "#475467", lineHeight: 1.7, maxWidth: 560, margin: "0 auto 26px" }}>
+            Scrap-eligible and second-hand vessels — surfaced before the market moves. Routed only to HKC-compliant, green recycling yards.
+          </p>
+          <div style={{ display: "inline-flex", gap: 10 }}>
+            <button style={{ background: "#1D9E75", color: "#fff", fontSize: 13, fontWeight: 600, padding: "12px 24px", borderRadius: 8, border: "none", cursor: "pointer", boxShadow: "0 2px 8px rgba(29,158,117,0.25)" }}>Explore vessels</button>
+            <button style={{ background: "#fff", color: "#344054", fontSize: 13, fontWeight: 600, padding: "12px 24px", borderRadius: 8, border: "1px solid #D0D5DD", cursor: "pointer" }}>Request demo</button>
+          </div>
+        </div>
+      </div>
+
+      {/* GREEN IMPACT */}
+      <div style={{ background: "#0C1F17", padding: "28px 32px", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(29,158,117,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(29,158,117,0.04) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+        <div style={{ position: "relative", zIndex: 2, maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+            <div style={{ width: 24, height: 2, background: "#1D9E75" }} />
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#34D399", letterSpacing: "0.16em", textTransform: "uppercase" as const }}>Sustainable Recycling Impact</div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
             {[
-              { n: loading ? "—" : String(vessels.length), l: "Vessels tracked", c: "#101828" },
-              { n: loading ? "—" : String(vessels.filter(v => v.statusType === "r").length), l: "Critical signals", c: "#F04438" },
-              { n: loading ? "—" : String(vessels.filter(v => v.score >= 80).length), l: "High priority",   c: "#DC6803" },
-              { n: loading ? "—" : `$${(vessels.reduce((s, v) => s + parseFloat(v.estValue.replace(/[$M]/g,"")), 0)).toFixed(0)}M`, l: "Pipeline value", c: "#1D9E75" },
-            ].map(s => (
-              <div key={s.l} style={{ background: "#fff", padding: "16px 18px" }}>
-                <div style={{ fontSize: 24, fontWeight: 800, color: s.c, letterSpacing: -1, lineHeight: 1 }}>{s.n}</div>
-                <div style={{ fontSize: 10, color: "#98A2B3", textTransform: "uppercase" as const, letterSpacing: "0.08em", marginTop: 4, fontWeight: 500 }}>{s.l}</div>
+              { n: "90", u: "%", l: "of each vessel recovered — steel, machinery, equipment reused", w: "90%" },
+              { n: "412K", u: " t", l: "steel recycled back into construction supply chains", w: "72%" },
+              { n: "68", u: "%", l: "of tracked yards now HKC-certified or in certification", w: "68%" },
+              { n: "100", u: "%", l: "of deals routed to compliant, audited recycling facilities", w: "100%" },
+            ].map(c => (
+              <div key={c.l}>
+                <div style={{ fontSize: 30, fontWeight: 800, color: "#fff", letterSpacing: "-1px", lineHeight: 1 }}>{c.n}<span style={{ fontSize: 16, color: "#34D399" }}>{c.u}</span></div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 6, lineHeight: 1.4 }}>{c.l}</div>
+                <div style={{ height: 3, background: "rgba(255,255,255,0.08)", borderRadius: 2, marginTop: 12, overflow: "hidden" }}>
+                  <div style={{ height: "100%", background: "#1D9E75", borderRadius: 2, width: c.w }} />
+                </div>
               </div>
             ))}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 24, marginTop: 24, paddingTop: 20, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", lineHeight: 1.5, flex: 1 }}>
+              <strong style={{ color: "#fff", fontWeight: 600 }}>Every vessel we surface is matched only to responsible yards.</strong> ShipScout cross-checks recycling facilities against Hong Kong Convention and EU SRR certification before any introduction is made.
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              {["HKC Compliant", "EU SRR", "IHM Verified"].map(b => (
+                <div key={b} style={{ fontSize: 10, fontWeight: 600, color: "#34D399", border: "1px solid rgba(52,211,153,0.3)", background: "rgba(52,211,153,0.08)", padding: "6px 12px", borderRadius: 6, letterSpacing: "0.04em" }}>{b}</div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

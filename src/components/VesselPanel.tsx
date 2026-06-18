@@ -238,7 +238,7 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
                   setCrmAdded(true);
                 }
               }}
-              style={{ background: crmAdded ? "rgba(29,158,117,0.12)" : "rgba(108,184,230,0.08)", border: `1px solid ${crmAdded ? "rgba(29,158,117,0.3)" : "rgba(108,184,230,0.2)"}`, borderRadius: 10, padding: "12px 20px", color: crmAdded ? C.green : "#6CB8E6", fontSize: 13, fontWeight: 600, cursor: crmAdded ? "default" : "pointer", fontFamily: "Inter, sans-serif" }}
+              style={{ background: crmAdded ? "#1D9E75" : "rgba(108,184,230,0.08)", border: `1px solid ${crmAdded ? "#1D9E75" : "rgba(108,184,230,0.2)"}`, borderRadius: 10, padding: "12px 20px", color: crmAdded ? "#fff" : "#6CB8E6", fontSize: 13, fontWeight: 600, cursor: crmAdded ? "default" : "pointer", fontFamily: "Inter, sans-serif" }}
             >
               {crmAdded ? "✓ CRM'e Eklendi" : "📋 CRM'e Ekle"}
             </button>
@@ -259,7 +259,7 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
                   setWatching(true);
                 }
               }}
-              style={{ background: watching ? "rgba(29,158,117,0.12)" : "rgba(143,168,178,0.06)", border: `1px solid ${watching ? "rgba(29,158,117,0.3)" : "rgba(143,168,178,0.15)"}`, borderRadius: 10, padding: "12px 20px", color: watching ? C.green : C.steel, fontSize: 13, fontWeight: 600, cursor: watching ? "default" : "pointer", fontFamily: "Inter, sans-serif" }}
+              style={{ background: watching ? "#1D9E75" : "rgba(143,168,178,0.06)", border: `1px solid ${watching ? "#1D9E75" : "rgba(143,168,178,0.15)"}`, borderRadius: 10, padding: "12px 20px", color: watching ? "#fff" : C.steel, fontSize: 13, fontWeight: 600, cursor: watching ? "default" : "pointer", fontFamily: "Inter, sans-serif" }}
             >
               {watching ? "✓ İzleniyor" : "👁 İzlemeye Al"}
             </button>

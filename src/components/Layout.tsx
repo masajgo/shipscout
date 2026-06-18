@@ -83,38 +83,26 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </nav>
 
       {/* TICKER */}
-      <div style={{
-        background: "#fff",
-        borderBottom: "1px solid #EAECF0",
-        padding: "0 28px",
-        display: "flex",
-        alignItems: "stretch",
-      }}>
+      <div style={{ background: "#101828", display: "flex", padding: "0 32px" }}>
         {TICKER.map((t, i) => (
           <div key={t.port} style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 14,
-            padding: "10px 24px",
-            borderRight: "1px solid #EAECF0",
+            padding: "12px 26px",
+            borderRight: "1px solid rgba(255,255,255,0.1)",
+            display: "flex", flexDirection: "column", gap: 3,
             ...(i === 0 ? { paddingLeft: 0 } : {}),
           }}>
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 600, color: "#98A2B3", letterSpacing: "0.08em", textTransform: "uppercase" as const }}>
-                {t.port} · {t.country}
-              </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: "#101828", letterSpacing: "-0.5px", lineHeight: 1 }}>
-                {t.price}
-              </div>
+            <div style={{ fontSize: 9, color: "rgba(255,255,255,0.55)", letterSpacing: "0.12em", textTransform: "uppercase" as const, fontWeight: 600 }}>
+              {t.port} · {t.country}
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              <div style={{ fontSize: 9, color: "#98A2B3", letterSpacing: "0.08em", textTransform: "uppercase" as const }}>$/LDT</div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: t.up ? "#1D9E75" : "#F04438" }}>{t.delta}</div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: "#FFFFFF" }}>{t.price}</div>
+              <div style={{ fontSize: 8, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" as const }}>$/LDT</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: t.up ? "#34D399" : "#FB7185" }}>{t.delta}</div>
             </div>
           </div>
         ))}
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center" }}>
-          <span style={{ fontSize: 10, color: "#C8CDD6" }}>Updated 2h ago</span>
+        <div style={{ marginLeft: "auto", alignSelf: "center" }}>
+          <span style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", letterSpacing: "0.1em", textTransform: "uppercase" as const }}>Updated 2h ago</span>
         </div>
       </div>
 

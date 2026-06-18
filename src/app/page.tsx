@@ -60,7 +60,7 @@ export default function Home() {
             Scrap-eligible and second-hand vessels — surfaced before the market moves. Routed only to HKC-compliant, green recycling yards.
           </p>
           <div style={{ display: "inline-flex", gap: 10 }}>
-            <button onClick={() => document.getElementById("vessel-list")?.scrollIntoView({ behavior: "smooth" })} style={{ background: "#1D9E75", color: "#fff", fontSize: 13, fontWeight: 600, padding: "12px 24px", borderRadius: 8, border: "none", cursor: "pointer", boxShadow: "0 2px 8px rgba(29,158,117,0.25)" }}>Explore vessels</button>
+            <button onClick={() => document.getElementById("vessels")?.scrollIntoView({ behavior: "smooth" })} style={{ background: "#1D9E75", color: "#fff", fontSize: 13, fontWeight: 600, padding: "12px 24px", borderRadius: 8, border: "none", cursor: "pointer", boxShadow: "0 2px 8px rgba(29,158,117,0.25)" }}>Explore vessels</button>
             <button style={{ background: "#fff", color: "#344054", fontSize: 13, fontWeight: 600, padding: "12px 24px", borderRadius: 8, border: "1px solid #D0D5DD", cursor: "pointer" }}>Request demo</button>
           </div>
         </div>
@@ -129,7 +129,7 @@ export default function Home() {
       </div>
 
       {/* VESSEL LIST */}
-      <div id="vessel-list" style={{ padding: "20px 28px 40px" }}>
+      <div id="vessels" style={{ padding: "20px 28px 40px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 14 }}>
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: "#101828" }}>

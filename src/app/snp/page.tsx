@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import VesselPanel from "@/components/VesselPanel";
 
 const SHIP_TYPES = [
   { group: "Dry Cargo",          types: ["Bulk Carrier", "General Cargo", "Container Ship"] },
@@ -49,6 +50,7 @@ export default function SNPPage() {
   const [ageFilter, setAgeFilter]         = useState("Any age");
   const [dwtFilter, setDwtFilter]         = useState("Any DWT");
   const [showTypeMenu, setShowTypeMenu]   = useState(false);
+  const [selectedIMO, setSelectedIMO]     = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/snp")
@@ -223,14 +225,14 @@ export default function SNPPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {loading && (
             <div style={{ textAlign: "center", padding: "48px", color: "#98A2B3", fontSize: 13 }}>
-              Datalastic&apos;ten canlı veri çekiliyor...
+              Loading live vessel data...
             </div>
           )}
           {filtered.map(v => {
             const age = year - v.built;
             const code = TYPE_CODE[v.type] || "VS";
             return (
-              <div key={v.id} style={{
+              <div key={v.id} onClick={() => setSelectedIMO(v.imo)} style={{
                 background: "#fff",
                 border: "1px solid #EAECF0",
                 borderLeft: v.urgent ? "3px solid #F04438" : "1px solid #EAECF0",
@@ -239,10 +241,10 @@ export default function SNPPage() {
                 display: "flex", alignItems: "center", gap: 16,
                 cursor: "pointer",
                 boxShadow: "0 1px 2px rgba(16,24,40,0.04)",
-                transition: "box-shadow 0.15s",
+                transition: "box-shadow 0.15s, border-color 0.15s",
               }}
-              onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 4px 12px rgba(16,24,40,0.08)"; }}
-              onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 1px 2px rgba(16,24,40,0.04)"; }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 4px 12px rgba(16,24,40,0.08)"; e.currentTarget.style.borderColor = "#1D9E75"; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 1px 2px rgba(16,24,40,0.04)"; e.currentTarget.style.borderColor = v.urgent ? "#F04438" : "#EAECF0"; }}
               >
                 {/* Type code */}
                 <div style={{ width: 44, height: 44, borderRadius: 10, background: "#F9FAFB", border: "1px solid #EAECF0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -302,6 +304,10 @@ export default function SNPPage() {
           )}
         </div>
       </div>
+
+      {selectedIMO && (
+        <VesselPanel imo={selectedIMO} onClose={() => setSelectedIMO(null)} />
+      )}
     </div>
   );
 }

@@ -218,7 +218,9 @@ export default function MapView() {
             ))}
           </div>
 
-          <button style={{ width: "100%", background: S.green, border: "none", borderRadius: 6, padding: "10px", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}>
+          <button
+            onClick={() => window.location.href = `mailto:ardavcioglu@gmail.com?subject=Vessel%20Inquiry%20%E2%80%94%20${encodeURIComponent(selected.name)}&body=MMSI%3A%20${selected.mmsi}%0AType%3A%20${selected.typeLabel}%0AScrap%20Score%3A%20${selected.score}%2F100%0A%0AWe%20are%20interested%20in%20this%20vessel.%20Please%20advise%20on%20availability.`}
+            style={{ width: "100%", background: S.green, border: "none", borderRadius: 6, padding: "10px", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}>
             DRAFT OFFER EMAIL →
           </button>
         </aside>

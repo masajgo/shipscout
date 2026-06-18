@@ -69,7 +69,7 @@ export function useAISStream() {
           setMessageCount(msgCountRef.current);
         }
       } catch {
-        if (!destroyed) { setConnected(false); setError("AIS bağlantı hatası"); }
+        if (!destroyed) { setConnected(false); setError("AIS connection error"); }
       }
     };
 

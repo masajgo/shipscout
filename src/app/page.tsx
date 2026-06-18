@@ -24,22 +24,30 @@ const SHIP_TYPE_ICONS: Record<string, string> = {
 export default function Home() {
   const [vessels, setVessels]       = useState<any[]>([]);
   const [loading, setLoading]       = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [typeFilter, setTypeFilter] = useState("All");
   const [signalFilter, setSignalFilter] = useState("All Signals");
   const [selectedIMO, setSelectedIMO]  = useState<string | null>(null);
+  const [sortBy, setSortBy]             = useState<"score"|"age"|"value">("score");
 
   useEffect(() => {
     fetch("/api/vessels")
       .then(r => r.json())
       .then(d => { setVessels(d.vessels || []); setLoading(false); })
-      .catch(() => setLoading(false));
+      .catch(() => { setFetchError(true); setLoading(false); });
   }, []);
 
-  const filtered = vessels.filter(v => {
-    if (typeFilter !== "All" && !(v.type || "").toLowerCase().includes(typeFilter.toLowerCase())) return false;
-    if (signalFilter !== "All Signals" && !(v.status || "").includes(signalFilter)) return false;
-    return true;
-  });
+  const filtered = vessels
+    .filter(v => {
+      if (typeFilter !== "All" && !(v.type || "").toLowerCase().includes(typeFilter.toLowerCase())) return false;
+      if (signalFilter !== "All Signals" && !(v.status || "").includes(signalFilter)) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === "age") return (new Date().getFullYear() - a.built) < (new Date().getFullYear() - b.built) ? 1 : -1;
+      if (sortBy === "value") return parseFloat(b.estValue) - parseFloat(a.estValue);
+      return b.score - a.score;
+    });
 
   return (
     <div style={{ background: "#F9FAFB", minHeight: "100vh" }}>
@@ -61,7 +69,7 @@ export default function Home() {
           </p>
           <div style={{ display: "inline-flex", gap: 10 }}>
             <button onClick={() => document.getElementById("vessels")?.scrollIntoView({ behavior: "smooth" })} style={{ background: "#1D9E75", color: "#fff", fontSize: 13, fontWeight: 600, padding: "12px 24px", borderRadius: 8, border: "none", cursor: "pointer", boxShadow: "0 2px 8px rgba(29,158,117,0.25)" }}>Explore vessels</button>
-            <button style={{ background: "#fff", color: "#344054", fontSize: 13, fontWeight: 600, padding: "12px 24px", borderRadius: 8, border: "1px solid #D0D5DD", cursor: "pointer" }}>Request demo</button>
+            <button onClick={() => window.location.href = "mailto:ardavcioglu@gmail.com?subject=ShipScout%20Demo%20Request&body=Hello%2C%20I'd%20like%20to%20request%20a%20demo%20of%20ShipScout."} style={{ background: "#fff", color: "#344054", fontSize: 13, fontWeight: 600, padding: "12px 24px", borderRadius: 8, border: "1px solid #D0D5DD", cursor: "pointer" }}>Request demo</button>
           </div>
         </div>
       </div>
@@ -137,14 +145,23 @@ export default function Home() {
             </div>
             <div style={{ fontSize: 12, color: "#98A2B3", marginTop: 2 }}>Sorted by scrap score — highest opportunity first</div>
           </div>
-          <button style={{ fontSize: 12, color: "#667085", border: "1px solid #EAECF0", padding: "6px 14px", borderRadius: 7, background: "#fff", cursor: "pointer" }}>
-            Sort: Score ▾
-          </button>
+          <div style={{ display: "flex", gap: 4 }}>
+            {(["score","age","value"] as const).map(s => (
+              <button key={s} onClick={() => setSortBy(s)} style={{ fontSize: 12, color: sortBy===s ? "#101828" : "#667085", border: `1px solid ${sortBy===s ? "#101828" : "#EAECF0"}`, padding: "6px 14px", borderRadius: 7, background: sortBy===s ? "#F2F4F7" : "#fff", cursor: "pointer", fontFamily: "Inter, sans-serif", textTransform: "capitalize" }}>
+                {s === "score" ? "Score ▾" : s === "age" ? "Age ▾" : "Value ▾"}
+              </button>
+            ))}
+          </div>
         </div>
 
         {loading && (
           <div style={{ textAlign: "center", padding: "48px", color: "#98A2B3", fontSize: 13 }}>
-            Datalastic&apos;ten canlı veri çekiliyor...
+            Loading live vessel data from Datalastic...
+          </div>
+        )}
+        {fetchError && (
+          <div style={{ textAlign: "center", padding: "48px", color: "#F87171", fontSize: 13 }}>
+            Failed to load vessel data. Please refresh the page.
           </div>
         )}
 
@@ -155,7 +172,7 @@ export default function Home() {
             const typeCode = SHIP_TYPE_ICONS[v.type] || "VS";
             return (
               <div key={v.imo}
-                onClick={() => { console.log("[ShipScout] IMO:", v.imo); setSelectedIMO(v.imo); }}
+                onClick={() => setSelectedIMO(v.imo)}
                 style={{
                   background: "#fff",
                   border: "1px solid #EAECF0",

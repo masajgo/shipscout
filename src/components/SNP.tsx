@@ -28,6 +28,8 @@ export default function SNP() {
   const [selected, setSelected] = useState<typeof listings[0] | null>(null);
   const [showEmail, setShowEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [crmAdded, setCrmAdded]   = useState<Record<number,boolean>>({});
+  const [escrowMsg, setEscrowMsg] = useState(false);
 
   const filtered = listings.filter(v =>
     (region === "All Regions" || v.region === region) &&
@@ -159,8 +161,11 @@ ShipScout Maritime`}
               <div style={{fontSize:12, color:"#8FA8B2", marginTop:2}}>{filtered.length} vessels for sale · sorted by S&P score</div>
             </div>
             <div style={{display:"flex", gap:8}}>
-              <button style={{background:"rgba(108,184,230,0.08)", border:"1px solid rgba(108,184,230,0.2)", borderRadius:8, padding:"8px 16px", color:"#6CB8E6", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif"}}>↓ Export list</button>
-              <button style={{background:"#185FA5", border:"none", borderRadius:8, padding:"8px 16px", color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif"}}>+ List vessel</button>
+              <button onClick={() => {
+                const csv = ["Name,Type,Flag,Year,DWT,LDT,Price,Status,Port,Owner,Email", ...filtered.map(v => `${v.name},${v.type},${v.flag},${v.year},${v.dwt},${v.ldt},${v.price},${v.status},${v.port},${v.owner},${v.email}`)].join("\n");
+                const a = document.createElement("a"); a.href = "data:text/csv;charset=utf-8,"+encodeURIComponent(csv); a.download = "snp-listings.csv"; a.click();
+              }} style={{background:"rgba(108,184,230,0.08)", border:"1px solid rgba(108,184,230,0.2)", borderRadius:8, padding:"8px 16px", color:"#6CB8E6", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif"}}>↓ Export list</button>
+              <button onClick={() => window.location.href = "mailto:ardavcioglu@gmail.com?subject=List%20My%20Vessel%20on%20ShipScout%20S%26P&body=Vessel%20name%3A%0AIMO%3A%0AType%3A%0ABuilt%3A%0ADWT%3A%0AAsk%20price%3A%0A"} style={{background:"#185FA5", border:"none", borderRadius:8, padding:"8px 16px", color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif"}}>+ List vessel</button>
             </div>
           </div>
 
@@ -289,13 +294,15 @@ ShipScout Maritime`}
                 style={{background:"#185FA5", border:"none", borderRadius:10, padding:11, color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif"}}>
                 ✉️ Make offer →
               </button>
-              <button onClick={()=>router.push("/crm")}
-                style={{background:"rgba(108,184,230,0.08)", border:"1px solid rgba(108,184,230,0.2)", borderRadius:10, padding:11, color:"#6CB8E6", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif"}}>
-                📋 Add to CRM
+              <button onClick={async () => {
+                await fetch("/api/crm/add", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ imo: String(selected.id), name: selected.name, score: selected.score, stage: "lead" }) }).catch(()=>{});
+                setCrmAdded(p => ({...p, [selected.id]: true}));
+              }} style={{background: crmAdded[selected.id] ? "rgba(29,158,117,0.12)" : "rgba(108,184,230,0.08)", border: crmAdded[selected.id] ? "1px solid rgba(29,158,117,0.3)" : "1px solid rgba(108,184,230,0.2)", borderRadius:10, padding:11, color: crmAdded[selected.id] ? "#1D9E75" : "#6CB8E6", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif"}}>
+                {crmAdded[selected.id] ? "✓ Added to CRM" : "📋 Add to CRM"}
               </button>
-              <button
-                style={{background:"rgba(29,158,117,0.08)", border:"1px solid rgba(29,158,117,0.2)", borderRadius:10, padding:11, color:"#1D9E75", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif"}}>
-                🔒 Open escrow
+              <button onClick={() => { setEscrowMsg(true); setTimeout(() => setEscrowMsg(false), 3000); }}
+                style={{background: escrowMsg ? "rgba(29,158,117,0.12)" : "rgba(29,158,117,0.08)", border: escrowMsg ? "1px solid rgba(29,158,117,0.3)" : "1px solid rgba(29,158,117,0.2)", borderRadius:10, padding:11, color:"#1D9E75", fontSize:12, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif"}}>
+                {escrowMsg ? "✓ Contact broker to proceed" : "🔒 Open escrow"}
               </button>
             </div>
           </aside>

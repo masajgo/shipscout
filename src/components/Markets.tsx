@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const markets = [
   { id:"aliaga", name:"Aliağa", country:"Turkey", flag:"🇹🇷", price:332, low:320, high:345, change:4, steel:485, volume:12, hkc:true, yours:true, tide:"Jun 18", yards:22, history:[298,305,310,318,322,315,320,328,332] },
@@ -35,6 +36,7 @@ function Spark({ data, color }: { data: number[]; color: string }) {
 }
 
 export default function Markets() {
+  const router = useRouter();
   const [cur, setCur] = useState("USD");
   const [sel, setSel] = useState<string|null>(null);
   const [ldt, setLdt] = useState(8000);
@@ -276,7 +278,7 @@ export default function Markets() {
               </div>
             ))}
 
-            <button style={{ width:"100%", background:"#1D9E75", border:"none", borderRadius:10, padding:11, color:"#fff", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif", marginTop:12 }}>
+            <button onClick={() => router.push("/")} style={{ width:"100%", background:"#1D9E75", border:"none", borderRadius:10, padding:11, color:"#fff", fontSize:13, fontWeight:600, cursor:"pointer", fontFamily:"Inter, sans-serif", marginTop:12 }}>
               Find vessels for {selM.name} →
             </button>
           </aside>

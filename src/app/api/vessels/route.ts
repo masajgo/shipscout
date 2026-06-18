@@ -11,6 +11,12 @@ const TRACKED_IMOS = [
   "9065572", // WHITE SHARK    — Bulk Carrier,     Saint Kitts, 1993
   "9074705", // HONG LI        — Bulk Carrier,     Panama,     1995
   "9200811", // ISTANBUL BRIDGE— Container Ship,   Liberia,    2000
+  "9081413", // Bulk Carrier,  1994
+  "9070522", // Bulk Carrier,  1994
+  "9095073", // Tanker,        1996
+  "9057654", // Bulk Carrier,  1995
+  "9108565", // General Cargo, 1995
+  "9129852", // Container,     1996
 ];
 
 // $/LDT prices per market (updated Jun 2026)

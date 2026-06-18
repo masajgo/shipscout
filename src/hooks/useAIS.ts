@@ -57,7 +57,7 @@ export function useAIS() {
     };
 
     es.onerror = () => {
-      setError('AIS bağlantısı kesildi');
+      setError('AIS connection lost');
       setConnected(false);
     };
 

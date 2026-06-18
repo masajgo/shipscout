@@ -106,7 +106,7 @@ export default function HotNews() {
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
         </svg>
-        Feed&apos;ler taranıyor...
+        Scanning feeds...
       </div>
     );
   }
@@ -208,8 +208,8 @@ export default function HotNews() {
                   )}
                   <span className="text-slate-500 text-[11px]">{timeAgo(item.pubDate)}</span>
                   <span className="text-slate-500 text-[11px]">{item.source}</span>
-                  <span className="text-slate-500 text-[11px]" title={`AI güven skoru: %${item.confidence}`}>
-                    %{item.confidence}
+                  <span className="text-slate-500 text-[11px]" title={`AI confidence: ${item.confidence}%`}>
+                    {item.confidence}%
                   </span>
                 </div>
 

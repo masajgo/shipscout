@@ -156,7 +156,7 @@ export default function CRM() {
             <div style={{ textAlign:"center", padding:"64px 20px", color:"#98A2B3" }}>
               <div style={{ fontSize:32, marginBottom:12 }}>📋</div>
               <div style={{ fontSize:14, fontWeight:600, color:"#344054", marginBottom:6 }}>No deals yet</div>
-              <div style={{ fontSize:13 }}>Add vessels from the Vessels page using the &quot;CRM&apos;e Ekle&quot; button.</div>
+              <div style={{ fontSize:13 }}>Add vessels from the Vessels page using the &quot;Add to CRM&quot; button.</div>
             </div>
           )}
           {/* KANBAN */}
@@ -261,8 +261,12 @@ export default function CRM() {
             </div>
 
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-              <button style={{ background:"#101828", border:"none", borderRadius:10, padding:"10px", color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer" }}>Send follow-up →</button>
-              <button style={{ background:"#ECFDF3", border:"1px solid #A9EFC5", borderRadius:10, padding:"10px", color:"#1D9E75", fontSize:12, fontWeight:600, cursor:"pointer" }}>Open escrow</button>
+              <button
+                onClick={() => window.location.href = `mailto:${selD.email !== "—" ? selD.email : ""}?subject=Follow-up%20%E2%80%94%20${encodeURIComponent(selD.vessel)}&body=Dear%20Owner%2C%0A%0AWe%20are%20following%20up%20on%20the%20acquisition%20of%20${encodeURIComponent(selD.vessel)}.%0A%0APlease%20let%20us%20know%20your%20availability%20for%20further%20discussion.%0A%0ABest%20regards`}
+                style={{ background:"#101828", border:"none", borderRadius:10, padding:"10px", color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer" }}>Send follow-up →</button>
+              <button
+                onClick={() => alert("Escrow feature — contact your broker to initiate the escrow process for " + selD.vessel)}
+                style={{ background:"#ECFDF3", border:"1px solid #A9EFC5", borderRadius:10, padding:"10px", color:"#1D9E75", fontSize:12, fontWeight:600, cursor:"pointer" }}>Open escrow</button>
             </div>
           </aside>
         )}

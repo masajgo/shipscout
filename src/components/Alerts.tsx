@@ -19,6 +19,8 @@ export default function Alerts() {
   const [filter, setFilter]       = useState("all");
   const [alertData, setAlertData] = useState<any[]>([]);
   const [loading, setLoading]     = useState(true);
+  const [crmAdded, setCrmAdded]   = useState<Record<number, boolean>>({});
+  const [reminder, setReminder]   = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     fetch("/api/alerts")
@@ -98,7 +100,7 @@ export default function Alerts() {
         <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
           {loading && (
             <div style={{ textAlign:"center", padding:"48px", color:"#98A2B3", fontSize:13 }}>
-              Datalastic&apos;ten canlı veri çekiliyor...
+              Loading live vessel data...
             </div>
           )}
           {filtered.map(a => {
@@ -216,14 +218,23 @@ export default function Alerts() {
           )}
 
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-            <button style={{ background:"#101828", border:"none", borderRadius:10, padding:"10px", color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer" }}>
+            <button
+              onClick={() => window.location.href = `mailto:ardavcioglu@gmail.com?subject=Bid%20Inquiry%20%E2%80%94%20${encodeURIComponent(selA.vessel)}&body=IMO%3A%20${selA.imo}%0AEstimated%20value%3A%20%24${(selA.value/1000000).toFixed(2)}M`}
+              style={{ background:"#101828", border:"none", borderRadius:10, padding:"10px", color:"#fff", fontSize:12, fontWeight:600, cursor:"pointer" }}>
               Contact / Submit bid →
             </button>
-            <button style={{ background:"#ECFDF3", border:"1px solid #A9EFC5", borderRadius:10, padding:"10px", color:"#1D9E75", fontSize:12, fontWeight:600, cursor:"pointer" }}>
-              Add to CRM
+            <button
+              onClick={async () => {
+                await fetch("/api/crm/add", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ imo: selA.imo, name: selA.vessel, score: selA.score || 80, stage: "lead" }) }).catch(()=>{});
+                setCrmAdded(p => ({...p, [selA.id]: true}));
+              }}
+              style={{ background: crmAdded[selA.id] ? "#ECFDF3" : "#ECFDF3", border: crmAdded[selA.id] ? "1px solid #1D9E75" : "1px solid #A9EFC5", borderRadius:10, padding:"10px", color:"#1D9E75", fontSize:12, fontWeight:600, cursor:"pointer" }}>
+              {crmAdded[selA.id] ? "✓ Added to CRM" : "Add to CRM"}
             </button>
-            <button style={{ background:"#F9FAFB", border:"1px solid #EAECF0", borderRadius:10, padding:"10px", color:"#667085", fontSize:12, fontWeight:600, cursor:"pointer" }}>
-              Set reminder
+            <button
+              onClick={() => { setReminder(p => ({...p, [selA.id]: true})); setTimeout(() => setReminder(p => ({...p, [selA.id]: false})), 3000); }}
+              style={{ background: reminder[selA.id] ? "#ECFDF3" : "#F9FAFB", border: reminder[selA.id] ? "1px solid #A9EFC5" : "1px solid #EAECF0", borderRadius:10, padding:"10px", color: reminder[selA.id] ? "#1D9E75" : "#667085", fontSize:12, fontWeight:600, cursor:"pointer" }}>
+              {reminder[selA.id] ? "✓ Reminder set" : "Set reminder"}
             </button>
           </div>
         </aside>

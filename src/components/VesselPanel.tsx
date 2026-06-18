@@ -95,7 +95,7 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
       <div style={{ padding: "16px 20px", borderBottom: "1px solid rgba(143,168,178,0.12)", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, background: C.mid, zIndex: 10 }}>
         <div>
           <div style={{ fontSize: 16, fontWeight: 700, color: C.fg, fontFamily: "Space Grotesk, sans-serif" }}>
-            {loading ? "Yükleniyor..." : data?.particulars?.name || `IMO ${imo}`}
+            {loading ? "Loading..." : data?.particulars?.name || `IMO ${imo}`}
           </div>
           <div style={{ fontSize: 11, color: C.steel, marginTop: 2 }}>IMO {imo}</div>
         </div>
@@ -105,7 +105,7 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
       {loading && (
         <div style={{ padding: 40, textAlign: "center", color: C.steel, fontSize: 13 }}>
           <div style={{ fontSize: 24, marginBottom: 8 }}>⚓</div>
-          Datalastic&apos;ten veri çekiliyor...
+          Loading vessel data...
         </div>
       )}
 
@@ -116,16 +116,16 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
       {data && !loading && (
         <div style={{ padding: 20 }}>
 
-          {/* Scrap Score + Özet */}
+          {/* Scrap Score */}
           <div style={{ background: C.navy, borderRadius: 12, padding: 16, marginBottom: 20, display: "flex", alignItems: "center", gap: 16 }}>
             <ScoreRing score={data.scrapScore} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 11, color: C.steel, marginBottom: 4 }}>SCRAP SCORE</div>
               <div style={{ fontSize: 13, fontWeight: 600, color: data.scrapScore >= 70 ? "#E24B4A" : data.scrapScore >= 50 ? "#FB923C" : C.green }}>
-                {data.scrapScore >= 70 ? "Yüksek Öncelik" : data.scrapScore >= 50 ? "Takibe Al" : "Düşük Risk"}
+                {data.scrapScore >= 70 ? "High Priority" : data.scrapScore >= 50 ? "Watch" : "Low Risk"}
               </div>
               <div style={{ fontSize: 11, color: C.steel, marginTop: 2 }}>
-                {data.age ? `${data.age} yaşında` : ""} · {data.detentions.length} detention
+                {data.age ? `${data.age} yrs old` : ""} · {data.detentions.length} detention
               </div>
             </div>
             {data.scrapScore >= 50 && (
@@ -137,11 +137,11 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
 
           {/* Ship Particulars */}
           <Section title="Ship Particulars">
-            <Row label="Gemi Adı"    value={data.particulars.name} />
-            <Row label="Bayrak"      value={data.particulars.flag} />
-            <Row label="Tip"         value={data.particulars.type} />
-            <Row label="İnşa Yılı"   value={data.particulars.builtYear} />
-            <Row label="İnşa Yeri"   value={data.particulars.builtAt} />
+            <Row label="Name"        value={data.particulars.name} />
+            <Row label="Flag"        value={data.particulars.flag} />
+            <Row label="Type"        value={data.particulars.type} />
+            <Row label="Built"       value={data.particulars.builtYear} />
+            <Row label="Built At"    value={data.particulars.builtAt} />
             <Row label="DWT"         value={data.particulars.dwt ? `${data.particulars.dwt.toLocaleString()} t` : null} highlight />
             <Row label="LDT"         value={data.particulars.ldt ? `${data.particulars.ldt.toLocaleString()} t` : null} highlight />
             <Row label="GRT"         value={data.particulars.grt ? `${data.particulars.grt.toLocaleString()} t` : null} />
@@ -151,12 +151,12 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
             <Row label="Call Sign"   value={data.particulars.callSign} mono />
             <Row label="MMSI"        value={data.particulars.mmsi} mono />
             <Row label="Class"       value={data.particulars.classSociety} />
-            <Row label="Durum"       value={data.particulars.status} />
+            <Row label="Status"      value={data.particulars.status} />
           </Section>
 
-          {/* Tahmini Scrap Değeri */}
+          {/* Estimated Scrap Value */}
           {data.particulars.ldt && (
-            <Section title="Tahmini Scrap Değeri">
+            <Section title="Estimated Scrap Value">
               {[
                 { market: "Alang 🇮🇳",      price: 510 },
                 { market: "Chittagong 🇧🇩", price: 560 },
@@ -176,8 +176,8 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
 
           {/* Survey / Dry Dock */}
           <Section title="Survey & Dry Dock">
-            <Row label="Son Dry Dock"  value={data.surveys.lastDryDock} />
-            <Row label="Sonraki DD"    value={data.surveys.nextDryDock} highlight />
+            <Row label="Last Dry Dock" value={data.surveys.lastDryDock} />
+            <Row label="Next DD"       value={data.surveys.nextDryDock} highlight />
             <Row label="Class Expiry"  value={data.surveys.classExpiry} />
           </Section>
 
@@ -187,35 +187,39 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
               {data.detentions.slice(0, 5).map((d: any, i: number) => (
                 <div key={i} style={{ background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.15)", borderRadius: 8, padding: "8px 12px", marginBottom: 6 }}>
                   <div style={{ fontSize: 11, fontWeight: 600, color: "#F87171" }}>{d.port} · {d.date}</div>
-                  <div style={{ fontSize: 11, color: C.steel, marginTop: 2 }}>{d.authority} · {d.deficiencies} eksiklik</div>
+                  <div style={{ fontSize: 11, color: C.steel, marginTop: 2 }}>{d.authority} · {d.deficiencies} deficiencies</div>
                 </div>
               ))}
             </Section>
           )}
 
-          {/* Sahip Bilgisi */}
-          {data.owner?.name && (
-            <Section title="Sahip Bilgisi">
-              <Row label="Sahip"        value={data.owner.name} highlight />
-              <Row label="Email"        value={data.owner.email} mono />
-              <Row label="Telefon"      value={data.owner.phone} mono />
-              <Row label="Adres"        value={data.owner.address} />
-              <Row label="Ülke"         value={data.owner.country} />
-              <Row label="Manager"      value={data.owner.managerName} />
-              <Row label="Mgr. Email"   value={data.owner.managerEmail} mono />
+          {/* Owner Info */}
+          {data.owner?.name ? (
+            <Section title="Owner Info">
+              <Row label="Owner"         value={data.owner.name} highlight />
+              <Row label="Email"         value={data.owner.email} mono />
+              <Row label="Phone"         value={data.owner.phone} mono />
+              <Row label="Address"       value={data.owner.address} />
+              <Row label="Country"       value={data.owner.country} />
+              <Row label="Manager"       value={data.owner.managerName} />
+              <Row label="Mgr. Email"    value={data.owner.managerEmail} mono />
+            </Section>
+          ) : (
+            <Section title="Owner Info">
+              <div style={{ fontSize: 12, color: C.steel, padding: "8px 0", fontStyle: "italic" }}>
+                Owner data requires maritime reports subscription.
+              </div>
             </Section>
           )}
 
           {/* Action Buttons */}
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-            {data.owner?.email && (
-              <button
-                onClick={() => setEmailDraft(true)}
-                style={{ background: C.green, border: "none", borderRadius: 10, padding: "12px 20px", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "Inter, sans-serif" }}
-              >
-                ✉️ Teklif Emaili Yaz
-              </button>
-            )}
+            <button
+              onClick={() => setEmailDraft(true)}
+              style={{ background: C.green, border: "none", borderRadius: 10, padding: "12px 20px", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "Inter, sans-serif" }}
+            >
+              ✉️ Draft Offer Email
+            </button>
             <button
               onClick={async () => {
                 try {
@@ -238,7 +242,7 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
               }}
               style={{ background: crmAdded ? "#1D9E75" : "rgba(108,184,230,0.08)", border: `1px solid ${crmAdded ? "#1D9E75" : "rgba(108,184,230,0.2)"}`, borderRadius: 10, padding: "12px 20px", color: crmAdded ? "#fff" : "#6CB8E6", fontSize: 13, fontWeight: 600, cursor: crmAdded ? "default" : "pointer", fontFamily: "Inter, sans-serif" }}
             >
-              {crmAdded ? "✓ CRM'e Eklendi" : "📋 CRM'e Ekle"}
+              {crmAdded ? "✓ Added to CRM" : "📋 Add to CRM"}
             </button>
             <button
               onClick={async () => {
@@ -259,24 +263,24 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
               }}
               style={{ background: watching ? "#1D9E75" : "rgba(143,168,178,0.06)", border: `1px solid ${watching ? "#1D9E75" : "rgba(143,168,178,0.15)"}`, borderRadius: 10, padding: "12px 20px", color: watching ? "#fff" : C.steel, fontSize: 13, fontWeight: 600, cursor: watching ? "default" : "pointer", fontFamily: "Inter, sans-serif" }}
             >
-              {watching ? "✓ İzleniyor" : "👁 İzlemeye Al"}
+              {watching ? "✓ Watching" : "👁 Watch Vessel"}
             </button>
           </div>
 
           {/* Email Draft */}
-          {emailDraft && data.owner?.email && (
+          {emailDraft && (
             <div style={{ marginTop: 20, background: C.navy, borderRadius: 12, padding: 16 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: C.steel, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Email Draft</div>
               <textarea
-                defaultValue={`Dear ${data.owner.name},\n\nWe are interested in acquiring MV ${data.particulars.name} (IMO ${imo}) for recycling purposes.\n\nBased on our assessment, we can offer competitive terms for immediate demolition sale. Our team is ready to discuss further at your earliest convenience.\n\nBest regards,\nShipScout Team`}
+                defaultValue={`Dear ${data.owner?.name || "Vessel Owner"},\n\nWe are interested in acquiring MV ${data.particulars.name} (IMO ${imo}) for recycling purposes.\n\nBased on our assessment, we can offer competitive terms for immediate demolition sale. Our team is ready to discuss further at your earliest convenience.\n\nBest regards,\nShipScout Team`}
                 style={{ width: "100%", background: "rgba(143,168,178,0.06)", border: "1px solid rgba(143,168,178,0.15)", borderRadius: 8, padding: 12, color: C.fg, fontSize: 12, lineHeight: 1.6, fontFamily: "Inter, sans-serif", resize: "vertical", minHeight: 180, boxSizing: "border-box" }}
               />
               <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                 <button style={{ flex: 1, background: C.green, border: "none", borderRadius: 8, padding: "10px", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                  📤 Gönder
+                  📤 Send
                 </button>
                 <button onClick={() => setEmailDraft(false)} style={{ background: "none", border: "1px solid rgba(143,168,178,0.2)", borderRadius: 8, padding: "10px 16px", color: C.steel, fontSize: 12, cursor: "pointer" }}>
-                  İptal
+                  Cancel
                 </button>
               </div>
             </div>

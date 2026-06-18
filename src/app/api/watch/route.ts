@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
-const STORE_PATH = path.join(process.cwd(), "scraper/data/watched_vessels.json");
+const STORE_PATH = path.join("/tmp", "watched_vessels.json");
 
 function loadStore() {
   if (!fs.existsSync(STORE_PATH)) return { vessels: [], ownerQueue: [], emailQueue: [] };

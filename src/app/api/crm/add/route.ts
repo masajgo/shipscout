@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
-const CRM_PATH = path.join(process.cwd(), "scraper/data/crm_vessels.json");
+const CRM_PATH = path.join("/tmp", "crm_vessels.json");
 
 function loadCRM() {
   try {

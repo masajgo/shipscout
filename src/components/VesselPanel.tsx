@@ -76,7 +76,7 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
 
   useEffect(() => {
     console.log("[VesselPanel] Fetching /api/owner/" + imo);
-    fetch(`/api/owner/${imo}`)
+    fetch(`/api/vessel/${imo}`)
       .then(r => r.json())
       .then(d => {
         console.log("[VesselPanel] Response:", d);

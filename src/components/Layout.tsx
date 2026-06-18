@@ -110,7 +110,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </div>
         ))}
         <div style={{ marginLeft: "auto", alignSelf: "center" }}>
-          <span style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", letterSpacing: "0.1em", textTransform: "uppercase" as const }}>Updated 2h ago</span>
+          <span style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", letterSpacing: "0.1em", textTransform: "uppercase" as const }}>
+            Jun 2026 · $/LDT benchmark
+          </span>
         </div>
       </div>
 

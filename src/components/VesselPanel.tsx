@@ -86,6 +86,12 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
       .catch(() => { setError("Network error"); setLoading(false); });
   }, [imo]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
   return (
     <div style={{
       position: "fixed", right: 0, top: 0, bottom: 0, width: 420,
@@ -98,9 +104,16 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
           <div style={{ fontSize: 16, fontWeight: 700, color: C.fg, fontFamily: "Space Grotesk, sans-serif" }}>
             {loading ? "Loading..." : data?.particulars?.name || `IMO ${imo}`}
           </div>
-          <div style={{ fontSize: 11, color: C.steel, marginTop: 2 }}>IMO {imo}</div>
+          <div style={{ fontSize: 11, color: C.steel, marginTop: 2, display: "flex", alignItems: "center", gap: 6 }}>
+            IMO {imo}
+            <button
+              onClick={() => { navigator.clipboard.writeText(imo).catch(() => {}); }}
+              style={{ background: "none", border: "none", color: C.steel, cursor: "pointer", fontSize: 10, padding: 0, opacity: 0.6 }}
+              title="Copy IMO"
+            >⎘</button>
+          </div>
         </div>
-        <button onClick={onClose} style={{ background: "none", border: "none", color: C.steel, fontSize: 20, cursor: "pointer", padding: "4px 8px" }}>×</button>
+        <button onClick={onClose} title="Close (Esc)" style={{ background: "none", border: "none", color: C.steel, fontSize: 20, cursor: "pointer", padding: "4px 8px" }}>×</button>
       </div>
 
       {loading && (

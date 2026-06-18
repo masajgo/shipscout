@@ -46,7 +46,7 @@ export default function Home() {
     })
     .sort((a, b) => {
       if (sortBy === "age")   return (currentYear - a.built) < (currentYear - b.built) ? 1 : -1;
-      if (sortBy === "value") return parseFloat(b.estValue) - parseFloat(a.estValue);
+      if (sortBy === "value") return parseFloat(b.estValue.replace(/[$M]/g, "")) - parseFloat(a.estValue.replace(/[$M]/g, ""));
       return b.score - a.score;
     });
 
@@ -143,6 +143,11 @@ export default function Home() {
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: "#101828" }}>
               {loading ? "Loading vessels..." : `${filtered.length} vessels found`}
+              {!loading && filtered.length > 0 && (
+                <span style={{ fontSize: 12, fontWeight: 500, color: "#1D9E75", marginLeft: 10 }}>
+                  · ${filtered.reduce((sum, v) => sum + parseFloat(v.estValue.replace(/[$M]/g, "")), 0).toFixed(1)}M total est. value
+                </span>
+              )}
             </div>
             <div style={{ fontSize: 12, color: "#98A2B3", marginTop: 2 }}>
               {sortBy === "score" ? "Sorted by scrap score — highest opportunity first" : sortBy === "age" ? "Sorted by age — oldest first" : "Sorted by estimated value — highest first"}

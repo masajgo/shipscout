@@ -196,11 +196,19 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
           )}
 
           {/* Survey / Dry Dock */}
-          <Section title="Survey & Dry Dock">
-            <Row label="Last Dry Dock" value={data.surveys.lastDryDock} />
-            <Row label="Next DD"       value={data.surveys.nextDryDock} highlight />
-            <Row label="Class Expiry"  value={data.surveys.classExpiry} />
-          </Section>
+          {(data.surveys.lastDryDock || data.surveys.nextDryDock || data.surveys.classExpiry) ? (
+            <Section title="Survey & Dry Dock">
+              <Row label="Last Dry Dock" value={data.surveys.lastDryDock} />
+              <Row label="Next DD"       value={data.surveys.nextDryDock} highlight />
+              <Row label="Class Expiry"  value={data.surveys.classExpiry} />
+            </Section>
+          ) : (
+            <Section title="Survey & Dry Dock">
+              <div style={{ fontSize: 12, color: C.steel, padding: "8px 0", fontStyle: "italic" }}>
+                Survey data requires maritime reports subscription.
+              </div>
+            </Section>
+          )}
 
           {/* PSC Detentions */}
           {data.detentions.length > 0 && (

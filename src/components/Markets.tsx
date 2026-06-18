@@ -3,10 +3,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 const markets = [
-  { id:"aliaga", name:"Aliağa", country:"Turkey", flag:"🇹🇷", price:332, low:320, high:345, change:4, steel:485, volume:12, hkc:true, yours:true, tide:"Jun 18", yards:22, history:[298,305,310,318,322,315,320,328,332] },
-  { id:"alang", name:"Alang", country:"India", flag:"🇮🇳", price:501, low:490, high:515, change:-3, steel:620, volume:31, hkc:true, yours:false, tide:"Jun 20", yards:180, history:[465,470,480,488,495,492,498,504,501] },
-  { id:"chittagong", name:"Chittagong", country:"Bangladesh", flag:"🇧🇩", price:541, low:530, high:555, change:8, steel:680, volume:18, hkc:false, yours:false, tide:"Jun 16", yards:65, history:[498,505,512,518,525,530,533,538,541] },
-  { id:"gadani", name:"Gadani", country:"Pakistan", flag:"🇵🇰", price:511, low:500, high:525, change:2, steel:645, volume:8, hkc:false, yours:false, tide:"Jun 19", yards:40, history:[472,478,485,490,495,498,502,508,511] },
+  { id:"aliaga", name:"Aliağa", country:"Turkey", flag:"🇹🇷", price:332, low:320, high:345, change:4, steel:485, volume:12, hkc:true, yours:true, tide:"Jun 22", yards:22, history:[298,305,310,318,322,315,320,328,332] },
+  { id:"alang", name:"Alang", country:"India", flag:"🇮🇳", price:501, low:490, high:515, change:-3, steel:620, volume:31, hkc:true, yours:false, tide:"Jun 24", yards:180, history:[465,470,480,488,495,492,498,504,501] },
+  { id:"chittagong", name:"Chittagong", country:"Bangladesh", flag:"🇧🇩", price:541, low:530, high:555, change:8, steel:680, volume:18, hkc:false, yours:false, tide:"Jun 20", yards:65, history:[498,505,512,518,525,530,533,538,541] },
+  { id:"gadani", name:"Gadani", country:"Pakistan", flag:"🇵🇰", price:511, low:500, high:525, change:2, steel:645, volume:8, hkc:false, yours:false, tide:"Jun 23", yards:40, history:[472,478,485,490,495,498,502,508,511] },
 ];
 
 const currencies = [
@@ -59,7 +59,7 @@ export default function Markets() {
             <span style={{ fontSize:11, fontWeight:600, color:"#1D9E75", letterSpacing:"0.12em", textTransform:"uppercase" as const }}>Scrap Markets</span>
           </div>
           <h1 style={{ fontSize:22, fontWeight:800, letterSpacing:-0.5, margin:0, color:"#101828" }}>Scrap Price Markets</h1>
-          <div style={{ fontSize:12, color:"#667085", marginTop:4 }}>Live $/LDT prices · Updated weekly · Jun 14, 2026 <span style={{ color:"#1D9E75", marginLeft:8 }}>● Live</span></div>
+          <div style={{ fontSize:12, color:"#667085", marginTop:4 }}>Live $/LDT prices · Updated weekly · Jun 18, 2026 <span style={{ color:"#1D9E75", marginLeft:8 }}>● Live</span></div>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:6 }}>
           <span style={{ fontSize:11, color:"#667085", marginRight:4 }}>Currency:</span>

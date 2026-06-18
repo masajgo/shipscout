@@ -71,6 +71,7 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [emailDraft, setEmailDraft] = useState(false);
+  const [emailBody, setEmailBody]   = useState("");
   const [crmAdded, setCrmAdded]     = useState(false);
   const [watching, setWatching]     = useState(false);
 
@@ -215,7 +216,7 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
           {/* Action Buttons */}
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
             <button
-              onClick={() => setEmailDraft(true)}
+              onClick={() => { const draft = `Dear ${data.owner?.name || "Vessel Owner"},\n\nWe are interested in acquiring MV ${data.particulars.name} (IMO ${imo}) for recycling purposes.\n\nBased on our assessment, we can offer competitive terms for immediate demolition sale. Our team is ready to discuss further at your earliest convenience.\n\nBest regards,\nShipScout Team`; setEmailBody(draft); setEmailDraft(true); }}
               style={{ background: C.green, border: "none", borderRadius: 10, padding: "12px 20px", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "Inter, sans-serif" }}
             >
               ✉️ Draft Offer Email
@@ -272,11 +273,14 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
             <div style={{ marginTop: 20, background: C.navy, borderRadius: 12, padding: 16 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: C.steel, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Email Draft</div>
               <textarea
-                defaultValue={`Dear ${data.owner?.name || "Vessel Owner"},\n\nWe are interested in acquiring MV ${data.particulars.name} (IMO ${imo}) for recycling purposes.\n\nBased on our assessment, we can offer competitive terms for immediate demolition sale. Our team is ready to discuss further at your earliest convenience.\n\nBest regards,\nShipScout Team`}
+                value={emailBody}
+                onChange={e => setEmailBody(e.target.value)}
                 style={{ width: "100%", background: "rgba(143,168,178,0.06)", border: "1px solid rgba(143,168,178,0.15)", borderRadius: 8, padding: 12, color: C.fg, fontSize: 12, lineHeight: 1.6, fontFamily: "Inter, sans-serif", resize: "vertical", minHeight: 180, boxSizing: "border-box" }}
               />
               <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                <button style={{ flex: 1, background: C.green, border: "none", borderRadius: 8, padding: "10px", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                <button
+                  onClick={() => { const to = data.owner?.email || ""; window.location.href = `mailto:${to}?subject=${encodeURIComponent(`Acquisition Inquiry — MV ${data.particulars.name}`)}&body=${encodeURIComponent(emailBody)}`; }}
+                  style={{ flex: 1, background: C.green, border: "none", borderRadius: 8, padding: "10px", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                   📤 Send
                 </button>
                 <button onClick={() => setEmailDraft(false)} style={{ background: "none", border: "1px solid rgba(143,168,178,0.2)", borderRadius: 8, padding: "10px 16px", color: C.steel, fontSize: 12, cursor: "pointer" }}>

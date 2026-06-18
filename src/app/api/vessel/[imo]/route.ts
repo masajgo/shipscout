@@ -47,7 +47,7 @@ export async function GET(
     return Math.max(30, 40 + a);
   }
 
-  let scrapScore = age ? scoreFromAge(age) : 30;
+  let scrapScore = age ? Math.min(99, scoreFromAge(age)) : 30;
   if (inspect?.data?.length >= 3) scrapScore = Math.min(99, scrapScore + 5);
   if (drydock?.data?.next_dry_dock) {
     const monthsLeft = (new Date(drydock.data.next_dry_dock).getTime() - Date.now()) / (1000 * 60 * 60 * 24 * 30);

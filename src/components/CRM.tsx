@@ -139,8 +139,8 @@ export default function CRM() {
               ["Pipeline",    "$"+Math.round(totalValue/1000000*10)/10+"M",  "#1D9E75"],
               ["Closed",      "$"+Math.round(closedValue/1000000*10)/10+"M", "#1D9E75"],
               ["Active",      dealData.filter(d => d.status!=="closed").length, "#2563EB"],
-              ["Replies",     dealData.filter(d => ["reply","negotiating","offer"].includes(d.status)).length, "#DC6803"],
-              ["Closed",      dealData.filter(d => d.status==="closed").length, "#7C3AED"],
+              ["In Progress", dealData.filter(d => ["contacted","negotiating","offer"].includes(d.status)).length, "#DC6803"],
+              ["Won",         dealData.filter(d => d.status==="closed").length, "#7C3AED"],
             ].map(([l, v, c], i) => (
               <div key={i} style={{ background:"#fff", border:"1px solid #EAECF0", borderRadius:10, padding:"12px 16px", boxShadow:"0 1px 2px rgba(16,24,40,0.04)" }}>
                 <div style={{ fontSize:10, fontWeight:600, color:"#98A2B3", textTransform:"uppercase" as const, letterSpacing:"0.08em", marginBottom:6 }}>{l}</div>

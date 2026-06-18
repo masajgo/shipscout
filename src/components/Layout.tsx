@@ -1,6 +1,7 @@
 "use client";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { useState, useEffect } from "react";
 
 const NAV = [
   { href: "/",        label: "Vessels"  },
@@ -20,6 +21,13 @@ const TICKER = [
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const path = usePathname();
+  const [aisCount, setAisCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("/api/ais").then(r => r.json()).then(d => {
+      if (Array.isArray(d.vessels)) setAisCount(d.vessels.length);
+    }).catch(() => {});
+  }, []);
 
   return (
     <div style={{ minHeight: "100vh", background: "#F9FAFB" }}>
@@ -74,7 +82,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#98A2B3" }}>
             <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#1D9E75", animation: "pulse-dot 2s infinite" }} />
-            Live · 5,314 vessels
+            Live · {aisCount !== null ? `${aisCount.toLocaleString()} vessels` : "connecting..."}
           </div>
           <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#1D9E75", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff" }}>
             A

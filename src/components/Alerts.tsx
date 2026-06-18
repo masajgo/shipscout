@@ -53,7 +53,7 @@ export default function Alerts() {
       <aside style={{ width:220, background:"#fff", borderRight:"1px solid #EAECF0", padding:20, flexShrink:0, overflowY:"auto" }}>
         <div style={{ fontSize:10, fontWeight:700, color:"#98A2B3", textTransform:"uppercase" as const, letterSpacing:"0.1em", marginBottom:16 }}>Alert types</div>
         {filters.map(f => (
-          <button key={f.id} onClick={() => setFilter(f.id)} style={{
+          <button key={f.id} onClick={() => { setFilter(f.id); setSel(null); }} style={{
             display:"flex", justifyContent:"space-between", alignItems:"center",
             width:"100%", textAlign:"left" as const,
             background: filter===f.id ? "#ECFDF3" : "none",

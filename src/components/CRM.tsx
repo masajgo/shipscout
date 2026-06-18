@@ -15,6 +15,46 @@ const statusColor: Record<string, string> = {
 
 const scoreColor = (s: number) => s >= 90 ? "#F04438" : s >= 80 ? "#DC6803" : "#2563EB";
 
+function DealCard({ d, sel, onSelect, onDragStart, onDragEnd }: {
+  d: any; sel: string | null;
+  onSelect: (id: string) => void;
+  onDragStart: (id: string) => void;
+  onDragEnd: () => void;
+}) {
+  return (
+    <div
+      draggable
+      onDragStart={() => onDragStart(d.id)}
+      onDragEnd={onDragEnd}
+      onClick={() => onSelect(d.id)}
+      style={{
+        background: sel === d.id ? "#F9FAFB" : "#fff",
+        border: sel === d.id ? "1px solid #101828" : "1px solid #EAECF0",
+        borderRadius:10, padding:12, marginBottom:8, cursor:"pointer",
+        transition:"all 0.15s", boxShadow:"0 1px 2px rgba(16,24,40,0.04)",
+      }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
+        <div style={{ fontSize:12, fontWeight:700, color:"#101828", lineHeight:1.3, flex:1, marginRight:8 }}>
+          {d.flag} {d.vessel}
+        </div>
+        <div style={{ fontSize:11, fontWeight:700, color:"#1D9E75", whiteSpace:"nowrap" }}>
+          ${(d.value/1000000).toFixed(1)}M
+        </div>
+      </div>
+      <div style={{ fontSize:11, color:"#667085", marginBottom:4 }}>{d.type} · {d.ldt.toLocaleString()} LDT</div>
+      <div style={{ fontSize:11, color:"#667085", marginBottom:8 }}>{d.owner}</div>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <div style={{ fontSize:10, color:"#98A2B3", fontFamily:"monospace" }}>{d.lastActivity}</div>
+        <div style={{ fontSize:10, fontWeight:700, padding:"1px 6px", borderRadius:4,
+          background: d.score>=90 ? "#FEF3F2" : d.score>=80 ? "#FFFAEB" : "#EFF8FF",
+          color: scoreColor(d.score), fontFamily:"monospace" }}>
+          {d.score}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CRM() {
   const [sel, setSel]           = useState<string|null>(null);
   const [drag, setDrag]         = useState<string|null>(null);
@@ -66,40 +106,6 @@ export default function CRM() {
       body: JSON.stringify({ imo: dealId, stage: newStatus }),
     }).catch(() => {});
   };
-
-  const DealCard = ({ d }: { d: any }) => (
-    <div
-      draggable
-      onDragStart={() => setDrag(d.id)}
-      onDragEnd={() => setDrag(null)}
-      onClick={() => setSel(d.id === sel ? null : d.id)}
-      style={{
-        background: sel === d.id ? "#F9FAFB" : "#fff",
-        border: sel === d.id ? "1px solid #101828" : "1px solid #EAECF0",
-        borderRadius:10, padding:12, marginBottom:8, cursor:"pointer",
-        transition:"all 0.15s", boxShadow:"0 1px 2px rgba(16,24,40,0.04)",
-      }}>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:8 }}>
-        <div style={{ fontSize:12, fontWeight:700, color:"#101828", lineHeight:1.3, flex:1, marginRight:8 }}>
-          {d.flag} {d.vessel}
-        </div>
-        <div style={{ fontSize:11, fontWeight:700, color:"#1D9E75", whiteSpace:"nowrap" }}>
-          ${(d.value/1000000).toFixed(1)}M
-        </div>
-      </div>
-      <div style={{ fontSize:11, color:"#667085", marginBottom:4 }}>{d.type} · {d.ldt.toLocaleString()} LDT</div>
-      <div style={{ fontSize:11, color:"#667085", marginBottom:8 }}>{d.owner}</div>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-        <div style={{ fontSize:10, color:"#98A2B3", fontFamily:"monospace" }}>{d.lastActivity}</div>
-        <div style={{ fontSize:10, fontWeight:700, padding:"1px 6px", borderRadius:4,
-          background: d.score>=90 ? "#FEF3F2" : d.score>=80 ? "#FFFAEB" : "#EFF8FF",
-          color: scoreColor(d.score),
-          fontFamily:"monospace" }}>
-          {d.score}
-        </div>
-      </div>
-    </div>
-  );
 
   return (
     <div style={{ fontFamily:"Inter, sans-serif", background:"#F9FAFB", color:"#101828", display:"flex", flexDirection:"column", height:"calc(100vh - 94px)" }}>
@@ -174,7 +180,13 @@ export default function CRM() {
                       {dealData.filter(d => d.status === col.id).length}
                     </div>
                   </div>
-                  {dealData.filter(d => d.status === col.id).map(d => <DealCard key={d.id} d={d} />)}
+                  {dealData.filter(d => d.status === col.id).map(d => (
+                    <DealCard key={d.id} d={d} sel={sel}
+                      onSelect={id => setSel(id === sel ? null : id)}
+                      onDragStart={id => setDrag(id)}
+                      onDragEnd={() => setDrag(null)}
+                    />
+                  ))}
                 </div>
               ))}
             </div>

@@ -76,6 +76,13 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
   const [watching, setWatching]     = useState(false);
 
   useEffect(() => {
+    setData(null);
+    setLoading(true);
+    setError(null);
+    setEmailDraft(false);
+    setEmailBody("");
+    setCrmAdded(false);
+    setWatching(false);
     fetch(`/api/vessel/${imo}`)
       .then(r => r.json())
       .then(d => {

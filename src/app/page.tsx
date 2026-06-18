@@ -37,6 +37,7 @@ export default function Home() {
       .catch(() => { setFetchError(true); setLoading(false); });
   }, []);
 
+  const currentYear = new Date().getFullYear();
   const filtered = vessels
     .filter(v => {
       if (typeFilter !== "All" && !(v.type || "").toLowerCase().includes(typeFilter.toLowerCase())) return false;
@@ -44,7 +45,7 @@ export default function Home() {
       return true;
     })
     .sort((a, b) => {
-      if (sortBy === "age") return (new Date().getFullYear() - a.built) < (new Date().getFullYear() - b.built) ? 1 : -1;
+      if (sortBy === "age")   return (currentYear - a.built) < (currentYear - b.built) ? 1 : -1;
       if (sortBy === "value") return parseFloat(b.estValue) - parseFloat(a.estValue);
       return b.score - a.score;
     });
@@ -177,7 +178,7 @@ export default function Home() {
             </div>
           )}
           {filtered.map(v => {
-            const age      = new Date().getFullYear() - v.built;
+            const age      = currentYear - v.built;
             const sc       = STATUS_COLORS[v.statusType] ?? STATUS_COLORS.g;
             const typeCode = SHIP_TYPE_ICONS[v.type] || "VS";
             return (

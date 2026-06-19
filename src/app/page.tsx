@@ -46,7 +46,7 @@ export default function Home() {
     })
     .sort((a, b) => {
       if (sortBy === "age")   return (currentYear - a.built) < (currentYear - b.built) ? 1 : -1;
-      if (sortBy === "value") return parseFloat(b.estValue.replace(/[$M]/g, "")) - parseFloat(a.estValue.replace(/[$M]/g, ""));
+      if (sortBy === "value") return parseFloat((b.estValue || "$0").replace(/[$M]/g, "")) - parseFloat((a.estValue || "$0").replace(/[$M]/g, ""));
       return b.score - a.score;
     });
 
@@ -145,7 +145,7 @@ export default function Home() {
               {loading ? "Loading vessels..." : `${filtered.length} vessels found`}
               {!loading && filtered.length > 0 && (
                 <span style={{ fontSize: 12, fontWeight: 500, color: "#1D9E75", marginLeft: 10 }}>
-                  · ${filtered.reduce((sum, v) => sum + parseFloat(v.estValue.replace(/[$M]/g, "")), 0).toFixed(1)}M total est. value
+                  · ${filtered.reduce((sum, v) => sum + parseFloat((v.estValue || "$0").replace(/[$M]/g, "")), 0).toFixed(1)}M total est. value
                 </span>
               )}
             </div>
@@ -223,8 +223,8 @@ export default function Home() {
                     {[
                       { label: "Type",     val: v.type },
                       { label: "Built",    val: `${v.built} · ${age}y` },
-                      { label: "DWT",      val: `${v.dwt.toLocaleString()} t` },
-                      { label: "LDT",      val: `${v.ldt.toLocaleString()} t` },
+                      v.dwt ? { label: "DWT", val: `${(v.dwt || 0).toLocaleString()} t` } : null,
+                      v.ldt ? { label: "LDT", val: `${(v.ldt || 0).toLocaleString()} t` } : null,
                       v.location && v.location !== "—" ? { label: "Location", val: v.location } : null,
                       { label: "Flag",     val: v.flag },
                     ].filter(Boolean).map(s => s && (

@@ -104,6 +104,15 @@ export default function Alerts() {
               Loading live vessel data...
             </div>
           )}
+          {!loading && filtered.length === 0 && (
+            <div style={{ textAlign:"center", padding:"48px 20px", color:"#98A2B3" }}>
+              <div style={{ fontSize:32, marginBottom:12 }}>📭</div>
+              <div style={{ fontSize:13, fontWeight:600, color:"#344054", marginBottom:6 }}>No alerts in this category</div>
+              <button onClick={() => setFilter("all")} style={{ fontSize:12, fontWeight:600, color:"#1D9E75", border:"1px solid #A9EFC5", background:"#ECFDF3", padding:"7px 16px", borderRadius:7, cursor:"pointer" }}>
+                Show all alerts
+              </button>
+            </div>
+          )}
           {filtered.map(a => {
             const tc = typeConfig[a.type] ?? typeConfig.idle;
             return (
@@ -135,7 +144,7 @@ export default function Alerts() {
                   <div style={{ display:"flex", gap:16, fontSize:11, color:"#98A2B3" }}>
                     <span>{a.flag} {a.vessel}</span>
                     <span>·</span>
-                    <span>{a.ldt.toLocaleString()} LDT</span>
+                    <span>{(a.ldt || 0).toLocaleString()} LDT</span>
                     <span>·</span>
                     <span style={{ color:"#1D9E75", fontWeight:600 }}>${(a.value/1000000).toFixed(1)}M est. value</span>
                     {a.daysLeft && <><span>·</span><span style={{ color:"#F04438", fontWeight:600 }}>⏱ {a.daysLeft}d left</span></>}
@@ -182,7 +191,7 @@ export default function Alerts() {
           <div style={{ background:"#ECFDF3", border:"1px solid #A9EFC5", borderRadius:10, padding:14, marginBottom:12, textAlign:"center" as const }}>
             <div style={{ fontSize:9, fontWeight:700, color:"#98A2B3", textTransform:"uppercase" as const, letterSpacing:"0.08em", marginBottom:4 }}>Estimated scrap value</div>
             <div style={{ fontSize:26, fontWeight:800, color:"#1D9E75", letterSpacing:-1 }}>${(selA.value/1000000).toFixed(2)}M</div>
-            <div style={{ fontSize:11, color:"#667085", marginTop:2 }}>{selA.ldt.toLocaleString()} LDT · {selA.market}</div>
+            <div style={{ fontSize:11, color:"#667085", marginTop:2 }}>{(selA.ldt || 0).toLocaleString()} LDT · {selA.market}</div>
             {selA.reservePrice && (
               <div style={{ marginTop:8, fontSize:12, color:"#DC6803", fontWeight:600 }}>Reserve: ${(selA.reservePrice/1000000).toFixed(1)}M</div>
             )}

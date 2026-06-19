@@ -92,7 +92,7 @@ export default function SNPPage() {
     }
     return true;
   }).sort((a, b) => {
-    if (sortBy === "value") return parseFloat(b.price.replace(/[$M]/g, "")) - parseFloat(a.price.replace(/[$M]/g, ""));
+    if (sortBy === "value") return parseFloat((b.price || "$0").replace(/[$M]/g, "")) - parseFloat((a.price || "$0").replace(/[$M]/g, ""));
     if (sortBy === "age")   return (year - a.built) < (year - b.built) ? 1 : -1;
     return b.score - a.score; // urgency = score
   });
@@ -291,7 +291,7 @@ export default function SNPPage() {
                       { label: "Type",     val: v.type },
                       { label: "Built",    val: `${v.built} · ${age}y` },
                       v.dwt ? { label: "DWT", val: `${v.dwt.toLocaleString()} t` } : null,
-                      { label: "LDT",      val: `${v.ldt.toLocaleString()} t` },
+                      v.ldt ? { label: "LDT", val: `${(v.ldt || 0).toLocaleString()} t` } : null,
                       { label: "Location", val: v.location },
                     ].filter(Boolean).map(s => s && (
                       <div key={s.label}>
@@ -304,10 +304,10 @@ export default function SNPPage() {
 
                 {/* Tags */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
-                  {v.tags.map((tag: { label: string; type: string }) => {
+                  {(v.tags || []).map((tag: { label: string; type: string }, ti: number) => {
                     const ts = TAG_STYLES[tag.type] || TAG_STYLES.motivated;
                     return (
-                      <span key={tag.label} style={{ fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 5, color: ts.color, background: ts.bg, border: `1px solid ${ts.border}`, whiteSpace: "nowrap" as const }}>
+                      <span key={`${tag.label}-${ti}`} style={{ fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 5, color: ts.color, background: ts.bg, border: `1px solid ${ts.border}`, whiteSpace: "nowrap" as const }}>
                         {tag.label}
                       </span>
                     );
@@ -327,10 +327,16 @@ export default function SNPPage() {
 
           {filtered.length === 0 && !loading && (
             <div style={{ textAlign: "center", padding: "48px 20px", color: "#98A2B3" }}>
-              <div style={{ fontSize: 13, marginBottom: 10 }}>No vessels match your current filters.</div>
-              <button onClick={() => { setSaleType("all"); setSelectedType("All"); setAgeFilter("Any age"); setDwtFilter("Any DWT"); }} style={{ fontSize: 12, fontWeight: 600, color: "#1D9E75", border: "1px solid #A9EFC5", background: "#ECFDF3", padding: "7px 16px", borderRadius: 7, cursor: "pointer" }}>
-                Clear filters
-              </button>
+              <div style={{ fontSize: 13, marginBottom: 10 }}>
+                {listings.length === 0
+                  ? "No vessel data available — check API connection."
+                  : "No vessels match your current filters."}
+              </div>
+              {listings.length > 0 && (
+                <button onClick={() => { setSaleType("all"); setSelectedType("All"); setAgeFilter("Any age"); setDwtFilter("Any DWT"); }} style={{ fontSize: 12, fontWeight: 600, color: "#1D9E75", border: "1px solid #A9EFC5", background: "#ECFDF3", padding: "7px 16px", borderRadius: 7, cursor: "pointer" }}>
+                  Clear filters
+                </button>
+              )}
             </div>
           )}
         </div>

@@ -107,18 +107,76 @@ function extractAddress(html: string): string | null {
     .replace(/<style[\s\S]*?<\/style>/gi, "")
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ");
-  const m = text.match(/address[:\s]+([A-Z][^.]{10,120})/i);
-  return m ? m[1].trim() : null;
+
+  // Look for street-name + number patterns (e.g. "Boltonvej 7", "Main Street 123")
+  // Street name must be at least 4 characters before the suffix keyword
+  const streetRe = /\b([A-ZÆØÅ][a-zæøåÆØÅüöä]{3,}(?:[a-zæøåA-ZÆØÅ\-]*\s+)?(?:vej|gade|allé|boulevard|street|avenue|road|lane|drive|way|plads|square|str\.?))\s+(\d{1,5}[A-Za-z]?(?:[, ]+(?:[A-Z]{2}-?)?\d{4,5}[A-Za-z\s,]{0,50})?)/gi;
+
+  const candidates: { pos: number; text: string }[] = [];
+  let m: RegExpExecArray | null;
+  // eslint-disable-next-line no-cond-assign
+  while ((m = streetRe.exec(text)) !== null) {
+    const val = `${m[1].trim()} ${m[2].trim()}`;
+    // Grab a bit more context after the match for city name
+    const extra = text.slice(m.index + m[0].length, m.index + m[0].length + 60)
+      .replace(/\s*(Tel|Phone|Email|Fax|Finance|Administration|Manager|Director|Chief|Copyright|All rights|\+\d).*/i, "")
+      .trim();
+    // Also clean noise from the captured group itself
+    const clean = (val + " " + extra)
+      .replace(/\s*(Tel|Phone|Email|Fax|Finance|Administration|\+\d).*/i, "")
+      .trim()
+      .slice(0, 100);
+    if (clean.length > 8) candidates.push({ pos: m.index, text: clean });
+  }
+
+  // Fallback: postal-code anchor (e.g. "DK-2300 Copenhagen S")
+  const pcRe = /\b([A-Z]{2}-\d{4,5}\s+[A-Za-zæøåÆØÅ\s]{3,30})/g;
+  // eslint-disable-next-line no-cond-assign
+  while ((m = pcRe.exec(text)) !== null) {
+    candidates.push({ pos: m.index, text: m[1].trim() });
+  }
+
+  if (!candidates.length) return null;
+  candidates.sort((a, b) => a.pos - b.pos);
+  return candidates[0].text.trim();
+}
+
+// Common role-based email prefixes (not personal name patterns)
+const ROLE_LOCALS = new Set([
+  "info","contact","hello","support","sales","admin","office","mail","noreply",
+  "service","enquiries","enquiry","marketing","finance","hr","crew","crewing",
+  "commercial","operations","compliance","charter","technical","accounts",
+]);
+
+async function detectEmailFormat(domain: string): Promise<string | null> {
+  for (const path of ["/team", "/about", "/our-team", "/people", "/management", "/staff"]) {
+    const html = await get(`https://www.${domain}${path}`);
+    if (!html) continue;
+    const emails = [...html.matchAll(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g)]
+      .map(m => m[0].toLowerCase())
+      .filter(e => e.includes(domain.split(".")[0]) && !PERSONAL.test(e));
+    for (const e of emails) {
+      const local = e.split("@")[0];
+      if (ROLE_LOCALS.has(local)) continue;
+      if (/^[a-z]\.[a-z]{3,}$/.test(local))     return `first_initial.last@${domain}`;
+      if (/^[a-z]{3,}\.[a-z]{3,}$/.test(local)) return `first.last@${domain}`;
+      if (/^[a-z]-[a-z]{3,}$/.test(local))      return `first_initial-last@${domain}`;
+      if (/^[a-z]{5,10}$/.test(local))           return `firstlast@${domain}`;
+    }
+  }
+  return null;
 }
 
 function guessEmailFormat(emails: string[], domain: string): string | null {
   const own = emails.filter(e => e.includes(domain.split(".")[0]));
-  if (!own.length) return null;
-  const local = own[0].split("@")[0];
-  if (/^[a-z]\.[a-z]+$/.test(local))  return `first_initial.last@${domain}`;
-  if (/^[a-z]+\.[a-z]+$/.test(local)) return `first.last@${domain}`;
-  if (local.includes("-"))             return `first-last@${domain}`;
-  return `role@${domain}`;
+  for (const e of own) {
+    const local = e.split("@")[0];
+    if (ROLE_LOCALS.has(local)) continue;
+    if (/^[a-z]\.[a-z]{3,}$/.test(local))     return `first_initial.last@${domain}`;
+    if (/^[a-z]{3,}\.[a-z]{3,}$/.test(local)) return `first.last@${domain}`;
+    if (local.includes("-"))                    return `first-last@${domain}`;
+  }
+  return null;
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -169,7 +227,9 @@ export async function enrichCompanyContact(companyName: string): Promise<Contact
   result.emails      = extractEmails(found.html);
   result.phones      = extractPhones(found.html);
   result.address     = extractAddress(found.html);
-  result.emailFormat = guessEmailFormat(result.emails, result.website);
+  // Try static guess first; if role-only, probe /team /about for named emails
+  result.emailFormat = guessEmailFormat(result.emails, result.website)
+    ?? await detectEmailFormat(result.website);
 
   return result;
 }

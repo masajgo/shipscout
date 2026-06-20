@@ -47,6 +47,20 @@ Bu otonom sprint (~24 dakika, 69 tool use) şunları tamamladı ve yarım bırak
 
 ---
 
+## ✅ Sprint 2 Tamamlandılar (2026-06-20)
+
+- [x] 4 uncommitted dosya commit & push edildi
+- [x] contactEnrichment domain heuristics fix: `carriers`, `ocean`, `transportation` strip words; bare core + hyphenated-shipmanagement candidates sıralandı
+- [x] Maritime validation threshold ≥2 → ≥4 (e-commerce false positives önlendi)
+- [x] 5-şirket test PASS: SunStone✅ Bernhard Schulte✅ Columbia✅ Oldendorff✅ Cargill✅
+- [x] S&P OCEAN ENDEAVOUR (7625811) eklendi — TRACKED_IMOS + hardcoded fallback
+- [x] Track route: vessel_tracks tablosu yoksa 503 yerine graceful empty dönüyor
+- [x] Railway Dockerfile mevcut ve hazır (`worker/Dockerfile`)
+- [x] Tüm route curl testi — 6/7 ✅, contact ⚠️ (Equasis scraper bekleniyor)
+- [x] Production deploy: shipscout.io güncel
+
+---
+
 ## ⚠️ YARIDA KALDI / EKSİK
 
 ### 1. Git Commit — KRİTİK

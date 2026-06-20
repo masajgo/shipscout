@@ -29,18 +29,21 @@ require("dotenv").config({ path: path.join(__dirname, "../.env.local") });
 const EMAIL    = process.env.EQUASIS_EMAIL;
 const PASSWORD = process.env.EQUASIS_PASSWORD;
 
-// The login form lives on the public HomePage and POSTs to /authen/HomePage.
 const EQUASIS_HOME  = "https://www.equasis.org/EquasisWeb/public/HomePage?fs=HomePage";
 const EQUASIS_LOGIN_ACTION = "https://www.equasis.org/EquasisWeb/authen/HomePage?fs=HomePage";
-// Ship search endpoint (POST, available once logged in)
 const EQUASIS_SHIP_SEARCH = "https://www.equasis.org/EquasisWeb/restricted/Search?fs=Search";
 
-const DELAY_MIN_MS = 3000;
-const DELAY_MAX_MS = 5000;
+// 5-8 sn rastgele aralık (bot gibi görünmesin)
+const DELAY_MIN_MS = 5000;
+const DELAY_MAX_MS = 8000;
 
-const DATA_DIR   = path.join(__dirname, "data");
+// Günlük güvenli limit (Equasis 300-500 arası, 250 ile güvende kalıyoruz)
+const DAILY_LIMIT = 250;
+
+const DATA_DIR    = path.join(__dirname, "data");
 const OWNERS_FILE = path.join(DATA_DIR, "owners.json");
-const DEBUG_DIR  = path.join(DATA_DIR, "equasis_debug");
+const USAGE_FILE  = path.join(DATA_DIR, "equasis_usage.json");
+const DEBUG_DIR   = path.join(DATA_DIR, "equasis_debug");
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -65,19 +68,54 @@ function saveDebugHtml(name, html) {
   fs.writeFileSync(path.join(DEBUG_DIR, `${name}.html`), html);
 }
 
+// ─── Günlük kullanım takibi ──────────────────────────────────────────────────
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10); // "2026-06-20"
+}
+
+function loadUsage() {
+  if (!fs.existsSync(USAGE_FILE)) return { date: todayStr(), count: 0 };
+  try {
+    const u = JSON.parse(fs.readFileSync(USAGE_FILE, "utf8"));
+    // Gün değişmişse sıfırla
+    if (u.date !== todayStr()) return { date: todayStr(), count: 0 };
+    return u;
+  } catch { return { date: todayStr(), count: 0 }; }
+}
+
+function saveUsage(usage) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(USAGE_FILE, JSON.stringify(usage, null, 2));
+}
+
+function incrementUsage() {
+  const usage = loadUsage();
+  usage.count++;
+  saveUsage(usage);
+  return usage;
+}
+
+// ─── Equasis blok / limit tespiti ────────────────────────────────────────────
+
+function detectBlock(html) {
+  const lower = html.toLowerCase();
+  return (
+    /limit|blocked|too many request|maximum number|quota|exceeded/i.test(html) ||
+    // Login sayfasına geri atılma: restricted sayfada login formu görünmesi
+    (lower.includes("j_password") && lower.includes("j_email") && !lower.includes("logout"))
+  );
+}
+
 // ─── Login ────────────────────────────────────────────────────────────────────
 
 async function login(page) {
   console.log("[equasis] Navigating to home page…");
   await page.goto(EQUASIS_HOME, { waitUntil: "domcontentloaded", timeout: 30000 });
 
-  // Multiple login forms exist (mobile collapsed + header + access section).
-  // The #home-login / #home-password pair in <section id="access"> is reliably
-  // visible. Fall back to evaluate() if Playwright considers all hidden.
   await page.waitForSelector('input[name="j_email"]', { timeout: 15000, state: "attached" });
 
   const filled = await page.evaluate(({ email, pwd }) => {
-    // Prefer the access-section form, else the first form containing j_email
     const candidates = [
       document.querySelector('#home-login')?.closest('form'),
       document.querySelector('#entete-email')?.closest('form'),
@@ -98,8 +136,6 @@ async function login(page) {
   if (!filled) throw new Error("No login form found on home page");
 
   await page.waitForLoadState("domcontentloaded");
-
-  // Give it a beat then verify.
   await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
 
   const html = await page.content();
@@ -107,7 +143,6 @@ async function login(page) {
     saveDebugHtml("login_failed", html);
     throw new Error("Login failed — check credentials or selector (saved login_failed.html).");
   }
-  // Successful login redirects to a 'restricted' URL or shows "Logout" link
   if (!/logout/i.test(html) && !page.url().includes("restricted") && !page.url().includes("authen")) {
     saveDebugHtml("login_unknown", html);
     console.warn("[equasis] Login state unclear; continuing optimistically.");
@@ -120,15 +155,12 @@ async function login(page) {
 async function getOwner(page, imo) {
   console.log(`[equasis] Fetching IMO ${imo}…`);
 
-  // Equasis ship lookup: simulate filling the search form on home then submit.
   await page.goto(EQUASIS_HOME, { waitUntil: "domcontentloaded", timeout: 30000 });
 
-  // Fill the IMO/name search bar
   const searchInput = page.locator('input[placeholder*="IMO"]').first();
   await searchInput.waitFor({ state: "visible", timeout: 15000 });
   await searchInput.fill(String(imo));
 
-  // Ensure "Ship" checkbox is checked
   const shipCb = page.locator('input#checkbox-ship');
   if (await shipCb.count() > 0) {
     if (!(await shipCb.isChecked().catch(() => false))) {
@@ -136,19 +168,20 @@ async function getOwner(page, imo) {
     }
   }
 
-  // Submit the surrounding form
   await Promise.all([
     page.waitForLoadState("domcontentloaded"),
     searchInput.press("Enter"),
   ]);
   await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
 
-  // Sometimes we land on a results list — drill into ShipInfo via the formShip POST.
   let html = await page.content();
   saveDebugHtml(`${imo}_search`, html);
 
-  // Equasis results page has a hidden form `formShip` with action ShipInfo and
-  // `<a onclick="document.formShip.P_IMO.value='IMO';document.formShip.submit();">`
+  // Blok kontrolü (arama sonuç sayfasında)
+  if (detectBlock(html)) {
+    throw new Error("EQUASIS_BLOCK: limit veya blok algılandı");
+  }
+
   const hasShipForm = await page.evaluate(() => !!document.forms.formShip);
   if (hasShipForm) {
     const submitted = await page.evaluate((imoStr) => {
@@ -160,16 +193,21 @@ async function getOwner(page, imo) {
       return true;
     }, String(imo));
     if (submitted) {
-      await page.waitForURL(/ShipInfo/, { timeout: 20000 }).catch(() => {});
+      await page.waitForURL(/restricted\/ShipInfo/, { timeout: 20000 }).catch(() => {});
       await page.waitForLoadState("domcontentloaded").catch(() => {});
       await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
     }
   }
 
-  // Tiny grace period for any post-load DOM updates
   await sleep(500);
   html = await page.content();
   saveDebugHtml(String(imo), html);
+
+  // Blok kontrolü (gemi detay sayfasında)
+  if (detectBlock(html)) {
+    throw new Error("EQUASIS_BLOCK: limit veya blok algılandı");
+  }
+
   console.log(`[equasis]   HTML saved → equasis_debug/${imo}.html (${html.length} bytes)`);
 
   const parsed = parseShipPage(html);
@@ -182,18 +220,6 @@ async function getOwner(page, imo) {
 
 // ─── Parser ───────────────────────────────────────────────────────────────────
 
-/**
- * Equasis ShipInfo page parser.
- *
- * Page structure (verified against IMO 9321483):
- *   • Ship basic info — pairs of <b>Label</b> / <div class="col">value</div>
- *     inside the first access-body section. Labels: Flag, Call Sign, MMSI,
- *     Gross tonnage, DWT, Type of ship, Year of build, Status…
- *   • Management table — <table> with thead columns
- *     [IMO, Role, Name of company, Address, Date of effect, Details].
- *     Rows enumerate: Registered owner, ISM Manager, Ship manager/Commercial manager,
- *     Document of Compliance company, Bareboat charterer, etc.
- */
 function parseShipPage(html) {
   const $ = cheerio.load(html);
   const out = {
@@ -204,8 +230,6 @@ function parseShipPage(html) {
     docCompanyName: null, docCompanyAddress: null,
   };
 
-  // Ship name lives in the page heading: <h4><b>SHIP NAME</b> - IMO n° <b>NNNNNNN</b></h4>
-  // Strategy: find the h4 that mentions "IMO n°" and take its first <b>.
   $('h4').each((_, el) => {
     const txt = $(el).text();
     if (/IMO\s*n[°o]/.test(txt) && !out.shipName) {
@@ -214,26 +238,20 @@ function parseShipPage(html) {
     }
   });
 
-  // Basic info: walk <b>Label</b> elements and grab next sibling .col text.
   $('b').each((_, el) => {
     const label = $(el).text().trim().replace(/\s+/g, " ").replace(/:$/, "");
     if (!label) return;
-    // The value sits in the next sibling column (next .col-* div).
     let valueEl = $(el).parent().next('div');
     let value = valueEl.text().trim().replace(/\s+/g, " ");
-    // If empty (image-only flag), use parent's row + look for following columns
     if (!value) {
       value = $(el).closest('.row').find('.col-lg-4, .col-md-4, .col-sm-6, .col-xs-6')
         .filter((_, c) => !$(c).find('b').length)
         .first().text().trim().replace(/\s+/g, " ");
     }
-    // Cap length to prevent runaway captures
     if (value && value.length > 200) value = value.slice(0, 200);
 
     const L = label.toLowerCase();
     if (L === "flag") {
-      // Flag has 3 columns: label, flag <img>, then "(Country)".
-      // The image alt may be empty; the visible "(Country)" sibling is the source of truth.
       const row = $(el).closest('.row');
       const countryDiv = row.children('div').filter((_, c) =>
         /\([A-Za-z][A-Za-z\s]+\)/.test($(c).text())
@@ -252,18 +270,14 @@ function parseShipPage(html) {
     else if (L === "status")             out.status     = value || null;
   });
 
-  // Management table — find rows in the management section.
-  // Identified by <th data-field="Role">.
   const roleTable = $('th[data-field="Role"]').closest('table');
   if (roleTable.length) {
     roleTable.find('tbody tr').each((_, tr) => {
       const tds = $(tr).find('td').map((_, td) => $(td).text().trim().replace(/\s+/g, " ")).get();
       if (tds.length < 4) return;
-      // [IMO_company, Role, Name, Address, Date, (icon)]
       const [companyImo, role, name, address, since] = tds;
       if (!role) return;
-      const key = role;
-      out.companies[key] = {
+      out.companies[role] = {
         companyImo: companyImo || null,
         name: name || null,
         address: address || null,
@@ -272,7 +286,6 @@ function parseShipPage(html) {
     });
   }
 
-  // Flatten primary roles for convenience.
   const owner = out.companies["Registered owner"];
   if (owner) { out.ownerName = owner.name; out.ownerAddress = owner.address; }
 
@@ -298,7 +311,6 @@ async function main() {
     process.exit(1);
   }
 
-  // Determine IMO list
   let imos = process.argv.slice(2).map(Number).filter(Boolean);
 
   if (imos.length === 0) {
@@ -318,7 +330,31 @@ async function main() {
     return;
   }
 
-  console.log(`[equasis] Will fetch ${imos.length} IMO(s): ${imos.slice(0, 5).join(", ")}${imos.length > 5 ? "…" : ""}`);
+  // Checkpoint: zaten işlenmiş IMO'ları atla
+  const owners = loadOwners();
+  const pending = imos.filter(imo => !owners[String(imo)]);
+  const skipped = imos.length - pending.length;
+  if (skipped > 0) console.log(`[equasis] ${skipped} IMO zaten işlenmiş, atlandı.`);
+
+  if (pending.length === 0) {
+    console.log("[equasis] Tüm IMO'lar zaten owners.json'da. Çıkılıyor.");
+    return;
+  }
+
+  // Günlük limit kontrolü
+  const usage = loadUsage();
+  const remaining = DAILY_LIMIT - usage.count;
+  if (remaining <= 0) {
+    console.error(`[equasis] Günlük limit doldu (${usage.count}/${DAILY_LIMIT}). Yarın devam.`);
+    process.exit(1);
+  }
+  const toFetch = pending.slice(0, remaining);
+  if (toFetch.length < pending.length) {
+    console.warn(`[equasis] Bugün sadece ${toFetch.length}/${pending.length} IMO işlenebilir (günlük limit: ${DAILY_LIMIT}, kullanılan: ${usage.count}).`);
+  }
+
+  console.log(`[equasis] İşlenecek: ${toFetch.length} IMO, bugün kullanılan: ${usage.count}/${DAILY_LIMIT}`);
+  console.log(`[equasis] İlk 5: ${toFetch.slice(0, 5).join(", ")}${toFetch.length > 5 ? "…" : ""}`);
 
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
@@ -326,23 +362,38 @@ async function main() {
   });
   const page = await context.newPage();
 
-  const owners = loadOwners();
   let fetched = 0;
   let failed  = 0;
+  let blocked = false;
 
   try {
     await login(page);
 
-    for (const imo of imos) {
+    for (let i = 0; i < toFetch.length; i++) {
+      const imo = toFetch[i];
+      const currentUsage = loadUsage();
+      const kalan = DAILY_LIMIT - currentUsage.count;
+
       try {
         await randomDelay();
         const result = owners[String(imo)] = await getOwner(page, imo);
-        fetched++;
-        console.log(`[equasis]   ✓ ${imo} — owner=${result.ownerName || "?"}, manager=${result.managerName || "?"}, flag=${result.flag || "?"}`);
+
+        // Her IMO işlendikten hemen sonra kaydet (checkpoint)
         saveOwners(owners);
+        const u = incrementUsage();
+        fetched++;
+
+        console.log(`[equasis] [${i + 1}/${toFetch.length}] ✓ IMO ${imo} — owner=${result.ownerName || "?"}, manager=${result.managerName || "?"}, flag=${result.flag || "?"} | bugün: ${u.count}/${DAILY_LIMIT} (kalan: ${DAILY_LIMIT - u.count})`);
+
       } catch (err) {
+        if (err.message.startsWith("EQUASIS_BLOCK")) {
+          console.error(`\n[equasis] ⚠️  EQUASIS BLOK ALGILANDI — ${err.message}`);
+          console.error(`[equasis] ${fetched} gemi kaydedildi. Bir süre bekleyip tekrar dene.`);
+          blocked = true;
+          break;
+        }
         failed++;
-        console.error(`[equasis]   ✗ ${imo} — ${err.message}`);
+        console.error(`[equasis]   ✗ IMO ${imo} — ${err.message}`);
         owners[String(imo)] = { imo: String(imo), error: err.message, fetchedAt: new Date().toISOString() };
         saveOwners(owners);
       }
@@ -351,7 +402,13 @@ async function main() {
     await browser.close();
   }
 
-  console.log(`\n[equasis] Done — ${fetched} fetched, ${failed} failed → ${OWNERS_FILE}`);
+  const finalUsage = loadUsage();
+  if (blocked) {
+    console.log(`\n[equasis] Blok nedeniyle duruldu — ${fetched} başarılı, ${failed} hata | Toplam bugün: ${finalUsage.count}/${DAILY_LIMIT}`);
+  } else {
+    console.log(`\n[equasis] Tamamlandı — ${fetched} başarılı, ${failed} hata | Toplam bugün: ${finalUsage.count}/${DAILY_LIMIT} (kalan: ${DAILY_LIMIT - finalUsage.count})`);
+  }
+  console.log(`[equasis] Sonuçlar: ${OWNERS_FILE}`);
 }
 
 if (require.main === module) {

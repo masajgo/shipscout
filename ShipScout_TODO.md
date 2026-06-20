@@ -126,6 +126,17 @@ Commit edilmemiş 4 dosya Vercel'de yok. Owner enrichment paneli production'da g
 
 ---
 
+## 🗓️ YARIN YAPILACAKLAR (2026-06-21)
+
+1. **Equasis enrichment devam (taze limit, modern IMO'lar)**
+   - `equasis_usage.json` gün değişince otomatik sıfırlanır (2026-06-21 → count=0)
+   - `9xxxxxxx` formatında 120 IMO ile başlat: `node scraper/equasisOwner.js [IMO listesi]`
+   - 2982 critical/high + manager_name=NULL gemiden 1450'si `9xxxxxxx` — asıl hedef bunlar
+   - Sonra `node scraper/syncManagerName.js` ile Supabase'e yaz
+   - Doğrula: `SELECT COUNT(*) FROM vessels WHERE scrap_category IN ('critical','high') AND manager_name IS NOT NULL`
+
+---
+
 ## 📋 SONRAKI ADIMLAR (Öncelik Sırasıyla)
 
 1. **Commit & push** — 4 uncommitted dosyayı commit et

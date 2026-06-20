@@ -1,62 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
-import { enrichCompanyContact, type ContactResult } from "@/lib/contactEnricher";
-import fs from "fs";
-import path from "path";
+import type { ContactResult } from "@/lib/contactEnricher";
 
 export const runtime     = "nodejs";
-export const maxDuration = 30;
-
-// ─── File-backed cache (scraper/data/owners.json) ─────────────────────────────
-// Shared with the Node scraper so manual scraper runs and live API hits both
-// build/use the same artifact.
-
-const OWNERS_CACHE_FILE = path.join(process.cwd(), "scraper", "data", "owners.json");
-
-type OwnerCacheEntry = ContactResult & {
-  cachedAt: string;
-  // legacy fields that may exist from the equasis side
-  managerName?: string;
-};
-
-function readOwnersCache(): Record<string, OwnerCacheEntry> {
-  try {
-    if (!fs.existsSync(OWNERS_CACHE_FILE)) return {};
-    return JSON.parse(fs.readFileSync(OWNERS_CACHE_FILE, "utf8"));
-  } catch {
-    return {};
-  }
-}
-
-function writeOwnersCache(cache: Record<string, OwnerCacheEntry>) {
-  try {
-    fs.mkdirSync(path.dirname(OWNERS_CACHE_FILE), { recursive: true });
-    fs.writeFileSync(OWNERS_CACHE_FILE, JSON.stringify(cache, null, 2));
-  } catch {
-    // non-fatal — on Vercel /var/task is read-only; we still have in-memory cache
-  }
-}
-
-// ─── In-memory cache (per server instance) ────────────────────────────────────
-
-const memCache = new Map<string, { result: ContactResult; expiresAt: number }>();
-const MEM_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
-
-function memGet(key: string): ContactResult | null {
-  const hit = memCache.get(key);
-  if (!hit) return null;
-  if (Date.now() > hit.expiresAt) { memCache.delete(key); return null; }
-  return hit.result;
-}
-
-function memSet(key: string, result: ContactResult) {
-  memCache.set(key, { result, expiresAt: Date.now() + MEM_TTL_MS });
-}
-
-// ─── Route ────────────────────────────────────────────────────────────────────
+export const maxDuration = 10;
 
 // GET /api/vessels/:mmsi/contact
-// Pipeline: manager_name (from DB, written by Equasis scraper) → cache → contactEnricher
+// Pipeline: owners tablo (Supabase) → 404 (cron yarın dolduracak)
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ mmsi: string }> },
@@ -67,17 +17,14 @@ export async function GET(
     return NextResponse.json({ error: "invalid mmsi" }, { status: 400 });
   }
 
-  // 1. Read imo + manager_name from DB (manager_name populated by Equasis scraper)
-  let imo:         string | null = null;
-  let managerName: string | null = null;
-
+  // 1. Gemi IMO'sunu vessels tablosundan al
+  let imo: string | null = null;
   try {
     const { rows } = await pool.query(
-      "SELECT imo::text, manager_name FROM vessels WHERE mmsi = $1::bigint",
+      "SELECT imo::text FROM vessels WHERE mmsi = $1::bigint",
       [mmsi],
     );
-    imo         = rows[0]?.imo          ?? null;
-    managerName = rows[0]?.manager_name ?? null;
+    imo = rows[0]?.imo ?? null;
   } catch {
     return NextResponse.json({ error: "db error" }, { status: 503 });
   }
@@ -86,46 +33,51 @@ export async function GET(
     return NextResponse.json({ error: "vessel not found" }, { status: 404 });
   }
 
-  if (!managerName) {
+  // 2. owners tablosundan kendi DB'mize bak
+  let ownerRow: Record<string, unknown> | null = null;
+  try {
+    const { rows } = await pool.query(
+      `SELECT imo::text, vessel_name, owner_name, manager_name, ism_manager,
+              website, emails, phones, address, email_format, linkedin_url
+       FROM owners WHERE imo = $1::bigint`,
+      [imo],
+    );
+    ownerRow = rows[0] ?? null;
+  } catch {
+    return NextResponse.json({ error: "db error" }, { status: 503 });
+  }
+
+  if (!ownerRow) {
     return NextResponse.json(
-      { error: "manager_name not yet available — run Equasis scraper first", imo },
+      { error: "owner not yet enriched — daily scan will process this vessel", imo },
       { status: 404 },
     );
   }
 
-  const cacheKey = managerName.toLowerCase().trim();
+  // 3. owners satırını ContactResult'a dönüştür
+  const company = (ownerRow.manager_name || ownerRow.owner_name || "") as string;
+  const linkedinSearchUrl = (ownerRow.linkedin_url as string | null) ||
+    `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(company)}`;
 
-  // 2a. Memory cache (instant)
-  const memHit = memGet(cacheKey);
-  if (memHit) {
-    return NextResponse.json(
-      { imo, ownerName: managerName, contact: memHit, cached: "mem" },
-      { headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=3600" } },
-    );
-  }
-
-  // 2b. File cache (cross-process, populated by enrichWithCache & this route)
-  const fileCache = readOwnersCache();
-  if (fileCache[cacheKey]) {
-    const { cachedAt, ...rest } = fileCache[cacheKey];
-    void cachedAt;
-    memSet(cacheKey, rest as ContactResult);
-    return NextResponse.json(
-      { imo, ownerName: managerName, contact: rest, cached: "file" },
-      { headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=3600" } },
-    );
-  }
-
-  // 3. Live enrichment
-  const contact = await enrichCompanyContact(managerName);
-  memSet(cacheKey, contact);
-
-  // Persist back to file cache for next process
-  fileCache[cacheKey] = { ...contact, cachedAt: new Date().toISOString() };
-  writeOwnersCache(fileCache);
+  const contact: ContactResult = {
+    company,
+    website:          (ownerRow.website      as string | null) ?? null,
+    emails:           (ownerRow.emails       as string[] | null) ?? [],
+    phones:           (ownerRow.phones       as string[] | null) ?? [],
+    address:          (ownerRow.address      as string | null) ?? null,
+    emailFormat:      (ownerRow.email_format as string | null) ?? null,
+    linkedinSearchUrl,
+    contactPath:      null,
+  };
 
   return NextResponse.json(
-    { imo, ownerName: managerName, contact, cached: "miss" },
+    {
+      imo,
+      ownerName:   ownerRow.owner_name   as string | null,
+      managerName: ownerRow.manager_name as string | null,
+      contact,
+      cached: "db",
+    },
     { headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=3600" } },
   );
 }

@@ -74,6 +74,10 @@ export async function GET(
       { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } },
     );
   } catch (err: any) {
+    // vessel_tracks table may not exist yet — return empty track gracefully
+    if (err.message?.includes("vessel_tracks")) {
+      return NextResponse.json({ mmsi, points: [], geojson: null, count: 0 });
+    }
     return NextResponse.json({ error: "database error", detail: err.message }, { status: 503 });
   }
 }

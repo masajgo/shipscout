@@ -7,6 +7,7 @@ const BASE    = "https://api.datalastic.com/api/v0";
 const TRACKED_IMOS = [
   "9038828", "9038749", "9248904", "9065572", "9074705", "9200811",
   "9038880", "8912522", "9108128", "9015101", "9083940", "9040089",
+  "7625811", // OCEAN ENDEAVOUR — Equasis verified, 1982 Passenger, mgr: Sunstone Ships Inc
 ];
 
 const MARKET_PRICES: Record<string, number> = {
@@ -141,7 +142,29 @@ export async function GET() {
       .filter(Boolean);
   }
 
-  const listings = [...datalasticListings, ...grsVessels]
+  // Hardcoded verified listings (Equasis-sourced) — appear when Datalastic misses them
+  const hardcoded: any[] = [];
+  const hasOceanEndeavour = [...datalasticListings, ...grsVessels].some(l => l?.imo === "7625811");
+  if (!hasOceanEndeavour) {
+    const age = year - 1982;
+    const score = Math.min(99, 90 + Math.min(9, age - 32));
+    hardcoded.push({
+      id: 7625811, imo: "7625811", name: "OCEAN ENDEAVOUR",
+      flag: "Portugal", type: "Passenger",
+      group: "Passenger", built: 1982, dwt: 1762, ldt: 3100,
+      location: "Funchal, Madeira",
+      price: `$${((3100 * 332) / 1_000_000).toFixed(1)}M`,
+      priceType: "Asking",
+      saleType: "voluntary",
+      tags: [{ label: `${age}y old`, type: "urgent" }, { label: "Survey Due", type: "idle" }],
+      urgent: true, score,
+      owner: "ENDEAVOUR PARTNERS UNIPESSOAL",
+      manager: "SUNSTONE SHIPS INC",
+      source: "equasis",
+    });
+  }
+
+  const listings = [...datalasticListings, ...grsVessels, ...hardcoded]
     .sort((a, b) => (b?.score ?? 0) - (a?.score ?? 0));
 
   if (listings.length === 0) {

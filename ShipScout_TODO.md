@@ -128,12 +128,37 @@ Commit edilmemiş 4 dosya Vercel'de yok. Owner enrichment paneli production'da g
 
 ## 🗓️ YARIN YAPILACAKLAR (2026-06-21)
 
-1. **Equasis enrichment devam (taze limit, modern IMO'lar)**
-   - `equasis_usage.json` gün değişince otomatik sıfırlanır (2026-06-21 → count=0)
-   - `9xxxxxxx` formatında 120 IMO ile başlat: `node scraper/equasisOwner.js [IMO listesi]`
-   - 2982 critical/high + manager_name=NULL gemiden 1450'si `9xxxxxxx` — asıl hedef bunlar
-   - Sonra `node scraper/syncManagerName.js` ile Supabase'e yaz
-   - Doğrula: `SELECT COUNT(*) FROM vessels WHERE scrap_category IN ('critical','high') AND manager_name IS NOT NULL`
+### 1. Equasis Owner Enrichment (Otomatik — launchd 09:00)
+- `com.shipscout.ownerscan` launchd job 09:00'da otomatik çalışır
+- `equasis_usage.json` tarihi 2026-06-21'e geçince count=0 sıfırlanır
+- 2441 gemi kuyrukta (critical/high, IMO≥8M, score DESC)
+- Günde 50 gemi × 7sn ≈ 6dk → owners tablosuna UPSERT
+- Doğrulama: `SELECT COUNT(*) FROM owners` (yarın akşam kontrol)
+
+### 2. Railway AIS Worker Deploy (Beraber yapılacak)
+Railway deploy için adımlar — **ENV VARS ve hesap gerekiyor**:
+```bash
+# 1. Railway CLI kur (bir kez)
+npm install -g @railway/cli
+
+# 2. Login
+railway login
+
+# 3. Proje oluştur (ilk kez)
+railway init            # "shipscout-worker" adı ver
+
+# 4. Env vars ayarla (Railway dashboard veya CLI)
+railway variables set DATABASE_URL="postgresql://..."
+railway variables set AISSTREAM_API_KEY="..."
+railway variables set DATALASTIC_API_KEY="..."   # varsa
+
+# 5. Deploy (railway.toml + worker/Dockerfile kullanır)
+railway up
+
+# 6. Logları izle
+railway logs
+```
+**Dockerfile notu:** `scraper/` dizini de kopyalanıyor (aisWorker → builtYearEnrichment).
 
 ---
 

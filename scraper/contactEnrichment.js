@@ -32,9 +32,10 @@ const STRIP_WORDS = [
   "shipmanagement", "shipping", "ship", "ships",
   "marine services", "marine", "maritime",
   "navigation", "offshore", "vessel", "fleet", "tankers", "tanker",
-  "bulk", "cargo", "logistics", "transport", "group", "holding",
-  "holdings", "international", "intl", "global", "ltd", "limited",
-  "inc", "llc", "sa", "as", "ab", "bv", "gmbh", "oy",
+  "bulk", "cargo", "logistics", "transportation", "transport",
+  "carriers", "carrier", "ocean", "sea", "port",
+  "group", "holding", "holdings", "international", "intl", "global",
+  "ltd", "limited", "inc", "llc", "sa", "as", "ab", "bv", "gmbh", "oy",
   "company", "co",
 ];
 
@@ -81,7 +82,8 @@ function generateDomainCandidates(companyName) {
     raw.includes("shipp") ? "shipping" :
     raw.includes("marine") ? "marine" : "ships";
 
-  // Ordered: most-specific (with maritime suffix) first, generic bare domain last
+  // Ordered: most-specific first. Bare core domain is tried early (before initials
+  // guesses) so "oldendorff.com" beats "ocmarine.com".
   const initials = leadingAcronym && leadingAcronym.length >= 2 ? leadingAcronym : null;
   const ordered = [
     `${coreNoSpace}${maritimeSuffix}.com`,
@@ -89,6 +91,16 @@ function generateDomainCandidates(companyName) {
     `${coreNoSpace}ships.com`,
     `${coreNoSpace}marine.com`,
     `${coreNoSpace}maritime.com`,
+    `${coreNoSpace}-shipmanagement.com`, // hyphenated — catches "columbia-shipmanagement.com"
+    `${coreNoSpace}.com`,              // bare core — catches "oldendorff.com", "cargill.com"
+    `${coreHyphen}.com`,
+    `${coreNoSpace}group.com`,
+    `${coreNoSpace}group.org`,
+    `${firstWord}${maritimeSuffix}.com`,
+    `${firstWord}ships.com`,
+    `${firstWord}shipping.com`,
+    `${firstWord}marine.com`,
+    `${firstWord}.com`,
     // Initials-style maritime domains (e.g. "Bernhard Schulte" → "bs-shipmanagement.com")
     initials ? `${initials}-shipmanagement.com` : null,
     initials ? `${initials}shipmanagement.com` : null,
@@ -96,18 +108,11 @@ function generateDomainCandidates(companyName) {
     initials ? `${initials}ships.com` : null,
     initials ? `${initials}shipping.com` : null,
     initials ? `${initials}marine.com` : null,
-    `${firstWord}${maritimeSuffix}.com`,
-    `${firstWord}ships.com`,
-    `${firstWord}shipping.com`,
-    `${firstWord}marine.com`,
-    `${coreNoSpace}group.com`,
-    `${coreHyphen}.com`,
+    initials ? `${initials}.com` : null,
     `${acronym}ships.com`,
     `${acronym}shipping.com`,
     `${acronym}marine.com`,
-    initials ? `${initials}.com` : null,
     `${slugNoSpace}.com`,
-    `${coreNoSpace}.com`,      // generic bare domain — last resort
     `${coreNoSpace}mgmt.com`,
     `${coreNoSpace}.net`,
     `${coreNoSpace}.org`,
@@ -175,8 +180,10 @@ async function validateMaritime(baseUrl) {
   const html = await fetchPage(baseUrl);
   if (!html) return false;
   const text = html.toLowerCase();
+  // Require ≥4 matches to avoid e-commerce sites ("free shipping", "cargo pants",
+  // "sea blue" colors) triggering as maritime companies.
   const hits = MARITIME_KEYWORDS.filter(k => text.includes(k)).length;
-  return hits >= 2;
+  return hits >= 4;
 }
 
 async function fetchContactHtml(baseUrl) {

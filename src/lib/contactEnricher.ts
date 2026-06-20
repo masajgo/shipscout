@@ -11,8 +11,9 @@ const STRIP_WORDS = [
   "ship management","shipping company","shipping co","shipping",
   "ship","ships","marine services","marine","maritime",
   "navigation","offshore","vessel","fleet","tankers","tanker",
-  "bulk","cargo","logistics","transport","group","holding",
-  "holdings","international","intl","global","ltd","limited",
+  "bulk","cargo","logistics","transportation","transport",
+  "carriers","carrier","ocean","sea","port",
+  "group","holding","holdings","international","intl","global","ltd","limited",
   "inc","llc","sa","as","ab","bv","gmbh","oy","company","co",
 ];
 

@@ -647,16 +647,14 @@ export default function MapView() {
               <div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: S.text, marginBottom: 8 }}>{contact.company}</div>
                 {contact.website && (
-                  <a href={`https://${contact.website}`} target="_blank" rel="noreferrer"
-                    style={{ display: "block", fontSize: 10, color: S.green, marginBottom: 6, textDecoration: "none" }}>
-                    🌐 {contact.website}
-                  </a>
+                  <div style={{ fontSize: 10, color: "#94A3B8", marginBottom: 6, fontFamily: "monospace" }}>
+                    {contact.website}
+                  </div>
                 )}
-                {contact.emails.slice(0, 2).map(e => (
-                  <a key={e} href={`mailto:${e}`}
-                    style={{ display: "block", fontSize: 10, color: "#94A3B8", marginBottom: 4, textDecoration: "none" }}>
+                {contact.emails.slice(0, 3).map(e => (
+                  <div key={e} style={{ fontSize: 10, color: "#94A3B8", marginBottom: 4 }}>
                     ✉ {e}
-                  </a>
+                  </div>
                 ))}
                 {contact.phones.slice(0, 2).map(p => (
                   <div key={p} style={{ fontSize: 10, color: "#94A3B8", marginBottom: 4 }}>
@@ -668,10 +666,40 @@ export default function MapView() {
                     format: {contact.emailFormat}
                   </div>
                 )}
-                <a href={contact.linkedinSearchUrl} target="_blank" rel="noreferrer"
-                  style={{ display: "inline-block", marginTop: 8, fontSize: 10, fontWeight: 600, color: "#60A5FA", textDecoration: "none" }}>
-                  LinkedIn →
-                </a>
+
+                {/* Action buttons */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 }}>
+                  <a
+                    href={contact.linkedinSearchUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: "block", textAlign: "center" as const,
+                      background: "rgba(96,165,250,0.10)",
+                      border: "1px solid rgba(96,165,250,0.30)",
+                      borderRadius: 6, padding: "7px 10px",
+                      color: "#60A5FA", fontSize: 10, fontWeight: 600,
+                      textDecoration: "none", letterSpacing: "0.04em",
+                    }}
+                  >
+                    LinkedIn'de ara →
+                  </a>
+                  {contact.emails.length > 0 && (
+                    <a
+                      href={buildOfferMailto(contact, detail, selected)}
+                      style={{
+                        display: "block", textAlign: "center" as const,
+                        background: "rgba(29,158,117,0.10)",
+                        border: "1px solid rgba(29,158,117,0.30)",
+                        borderRadius: 6, padding: "7px 10px",
+                        color: S.green, fontSize: 10, fontWeight: 600,
+                        textDecoration: "none", letterSpacing: "0.04em",
+                      }}
+                    >
+                      ✉ Teklif emaili yaz
+                    </a>
+                  )}
+                </div>
               </div>
             ) : (
               <div style={{ fontSize: 10, color: S.muted }}>No owner data available</div>
@@ -693,3 +721,46 @@ export default function MapView() {
 
 function clamp(n: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, n)); }
 function fmtCount(n: number) { return n > 9999 ? `${(n / 1000).toFixed(0)}k` : n > 999 ? `${(n / 1000).toFixed(1)}k` : String(n); }
+
+function buildOfferMailto(
+  contact: ContactResult,
+  detail: VesselDetail | null,
+  selected: ApiVessel | null,
+): string {
+  const to = contact.emails[0] || "";
+  const name      = detail?.name || selected?.name || "Vessel";
+  const imo       = detail?.imo || "—";
+  const mmsi      = detail?.mmsi || selected?.mmsi || "—";
+  const builtYr   = detail?.builtYear || "—";
+  const ageStr    = detail?.builtYear ? ` (${new Date().getFullYear() - detail.builtYear}y)` : "";
+  const type      = detail?.type || selected?.type || "—";
+  const length    = detail?.length ? `${detail.length} m` : "—";
+  const draught   = detail?.draught ? `${detail.draught} m` : "—";
+  const dest      = detail?.destination || "—";
+
+  const subject = `Re: ${name} (IMO ${imo}) — Sale/Purchase Inquiry`;
+  const body =
+`Dear ${contact.company} team,
+
+We are reaching out via ShipScout regarding the vessel below, currently under your management.
+
+  Vessel:       ${name}
+  IMO:          ${imo}
+  MMSI:         ${mmsi}
+  Type:         ${type}
+  Built:        ${builtYr}${ageStr}
+  Length:       ${length}
+  Draught:      ${draught}
+  Destination:  ${dest}
+
+We have a buyer interested in discussing a sale/purchase opportunity for this vessel.
+
+Could you confirm whether the vessel is potentially available, and share the appropriate commercial contact?
+
+Best regards,
+ShipScout — Maritime Intelligence
+https://shipscout.io
+`;
+
+  return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}

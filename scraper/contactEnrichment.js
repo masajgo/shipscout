@@ -25,15 +25,27 @@ const PERSONAL_EMAIL_DOMAINS = /gmail|hotmail|yahoo|outlook|icloud|proton|aol|li
 const AGGREGATOR_DOMAINS = /linkedin|facebook|bloomberg|crunchbase|dnb\.com|zoominfo|rocketreach|leadiq|equasis|marinetraffic|vesseltracker|fleetmon|shipfinder|yellowpages|yelp|trustpilot|glassdoor|indeed|twitter|instagram/i;
 
 // Maritime / generic suffixes to strip when deriving domain slug
+// IMPORTANT: maritime-specific compound words must come FIRST so they are
+// stripped before the shorter bare words ("ship", "shipping") match.
 const STRIP_WORDS = [
-  "ship management", "shipping company", "shipping co", "shipping",
-  "ship", "ships", "marine services", "marine", "maritime",
+  "ship management", "shipping company", "shipping co",
+  "shipmanagement", "shipping", "ship", "ships",
+  "marine services", "marine", "maritime",
   "navigation", "offshore", "vessel", "fleet", "tankers", "tanker",
   "bulk", "cargo", "logistics", "transport", "group", "holding",
   "holdings", "international", "intl", "global", "ltd", "limited",
   "inc", "llc", "sa", "as", "ab", "bv", "gmbh", "oy",
   "company", "co",
 ];
+
+// Common role-based email locals — used to filter when detecting personal
+// email format (we want a NAMED person, not info@/contact@/…)
+const ROLE_LOCALS = new Set([
+  "info","contact","hello","support","sales","admin","office","mail","noreply",
+  "service","enquiries","enquiry","marketing","finance","hr","crew","crewing",
+  "commercial","operations","compliance","charter","technical","accounts",
+  "reception","press","media","careers","jobs","recruitment","welcome",
+]);
 
 // ─── Domain candidate generator ───────────────────────────────────────────────
 
@@ -55,6 +67,11 @@ function generateDomainCandidates(companyName) {
   const coreHyphen  = core.replace(/\s/g, "-");
   const words       = slug.split(/\s+/).filter(w => w.length > 2).slice(0, 3);
   const acronym     = words.map(w => w[0]).join("");
+  // "Bernhard Schulte Shipmanagement" → leadingAcronym = "bs"
+  // (only the proper-noun part, excluding maritime descriptors and corporate suffixes)
+  const skipRe = /^(ship|ships|shipping|shipmanagement|marine|maritime|navigation|offshore|vessel|fleet|tanker|tankers|bulk|cargo|sea|ocean|port|group|holding|holdings|international|intl|global|ltd|limited|inc|llc|sa|as|ab|bv|gmbh|oy|company|co|management|services?|trading)$/i;
+  const leadingWords = slug.split(/\s+/).filter(w => w.length > 1 && !skipRe.test(w));
+  const leadingAcronym = leadingWords.map(w => w[0].toLowerCase()).join("");
   const firstWord   = words[0] || coreNoSpace;
 
   // Detect if original name had a maritime keyword — use it as suffix hint
@@ -65,12 +82,20 @@ function generateDomainCandidates(companyName) {
     raw.includes("marine") ? "marine" : "ships";
 
   // Ordered: most-specific (with maritime suffix) first, generic bare domain last
+  const initials = leadingAcronym && leadingAcronym.length >= 2 ? leadingAcronym : null;
   const ordered = [
     `${coreNoSpace}${maritimeSuffix}.com`,
     `${coreNoSpace}shipping.com`,
     `${coreNoSpace}ships.com`,
     `${coreNoSpace}marine.com`,
     `${coreNoSpace}maritime.com`,
+    // Initials-style maritime domains (e.g. "Bernhard Schulte" → "bs-shipmanagement.com")
+    initials ? `${initials}-shipmanagement.com` : null,
+    initials ? `${initials}shipmanagement.com` : null,
+    initials ? `${initials}-shipping.com` : null,
+    initials ? `${initials}ships.com` : null,
+    initials ? `${initials}shipping.com` : null,
+    initials ? `${initials}marine.com` : null,
     `${firstWord}${maritimeSuffix}.com`,
     `${firstWord}ships.com`,
     `${firstWord}shipping.com`,
@@ -80,12 +105,13 @@ function generateDomainCandidates(companyName) {
     `${acronym}ships.com`,
     `${acronym}shipping.com`,
     `${acronym}marine.com`,
+    initials ? `${initials}.com` : null,
     `${slugNoSpace}.com`,
     `${coreNoSpace}.com`,      // generic bare domain — last resort
     `${coreNoSpace}mgmt.com`,
     `${coreNoSpace}.net`,
     `${coreNoSpace}.org`,
-  ];
+  ].filter(Boolean);
 
   return [...new Set(ordered)].filter(d => d.length > 5 && !d.startsWith("."));
 }
@@ -164,9 +190,18 @@ async function fetchContactHtml(baseUrl) {
 
 // ─── Extractors ───────────────────────────────────────────────────────────────
 
+// Image-file extensions that the email regex accidentally matches (e.g. "flag@2x.png")
+const IMAGE_EXT_RE = /\.(png|jpe?g|gif|webp|svg|ico|bmp|tiff?|woff2?|ttf|eot|otf|css|js|map)$/i;
+
 function extractEmails(html) {
   const raw = [...html.matchAll(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g)]
-    .map(m => m[0].toLowerCase());
+    .map(m => m[0].toLowerCase())
+    // strip pseudo-emails that are really image filenames (sprite@2x.png, etc.)
+    .filter(e => !IMAGE_EXT_RE.test(e))
+    // strip obvious placeholders
+    .filter(e => !/^(example|test|email|user|name|youremail|domain)@/i.test(e))
+    // require a non-numeric local part of at least 2 chars
+    .filter(e => /^[a-z][a-z0-9._%+\-]{1,}@/.test(e));
   return [...new Set(raw.filter(e => !PERSONAL_EMAIL_DOMAINS.test(e)))];
 }
 
@@ -175,31 +210,77 @@ function extractPhones(html) {
   return [...new Set(raw)].slice(0, 6);
 }
 
+// Address extraction: street name + number, fallback to postal-code anchor.
+// Prefer the FIRST address found (HQ is usually listed first in contact pages).
 function extractAddress(html) {
-  const stripped = html
+  const text = html
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/<style[\s\S]*?<\/style>/gi, "")
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ");
 
-  const addrMatch = stripped.match(/address[:\s]+([A-Z][^.]{10,120})/i);
-  if (addrMatch) return addrMatch[1].trim();
+  // Look for street-name + number patterns (e.g. "Boltonvej 7", "Main Street 123")
+  // Street name must be at least 4 characters before the suffix keyword
+  const streetRe = /\b([A-ZÆØÅ][a-zæøåÆØÅüöä]{3,}(?:[a-zæøåA-ZÆØÅ\-]*\s+)?(?:vej|gade|allé|boulevard|street|avenue|road|lane|drive|way|plads|square|str\.?))\s+(\d{1,5}[A-Za-z]?(?:[, ]+(?:[A-Z]{2}-?)?\d{4,5}[A-Za-z\s,]{0,50})?)/gi;
 
-  const pcMatch = stripped.match(/[A-Z][a-zA-Z\s,]{5,50}\d{4,5}[A-Z\s,]{0,20}/);
-  if (pcMatch) return pcMatch[0].trim();
+  const candidates = [];
+  let m;
+  while ((m = streetRe.exec(text)) !== null) {
+    const val = `${m[1].trim()} ${m[2].trim()}`;
+    const extra = text.slice(m.index + m[0].length, m.index + m[0].length + 60)
+      .replace(/\s*(Tel|Phone|Email|Fax|Finance|Administration|Manager|Director|Chief|Copyright|All rights|\+\d).*/i, "")
+      .trim();
+    const clean = (val + " " + extra)
+      .replace(/\s*(Tel|Phone|Email|Fax|Finance|Administration|\+\d).*/i, "")
+      .trim()
+      .slice(0, 100);
+    if (clean.length > 8) candidates.push({ pos: m.index, text: clean });
+  }
 
-  return null;
+  // Fallback: postal-code anchor (e.g. "DK-2300 Copenhagen S")
+  const pcRe = /\b([A-Z]{2}-\d{4,5}\s+[A-Za-zæøåÆØÅ\s]{3,30})/g;
+  while ((m = pcRe.exec(text)) !== null) {
+    candidates.push({ pos: m.index, text: m[1].trim() });
+  }
+
+  if (!candidates.length) return null;
+  // Sort by position — prefer the FIRST address (HQ), not the last (footer / branch)
+  candidates.sort((a, b) => a.pos - b.pos);
+  return candidates[0].text.trim();
 }
 
+// Static guess from emails already on the contact page — skips role locals.
 function guessEmailFormat(emails, domain) {
   if (!domain || emails.length === 0) return null;
   const own = emails.filter(e => e.includes(domain.split(".")[0]));
-  if (own.length === 0) return null;
-  const local = own[0].split("@")[0];
-  if (/^[a-z]\.[a-z]+$/.test(local))  return `first_initial.last@${domain}`;
-  if (/^[a-z]+\.[a-z]+$/.test(local)) return `first.last@${domain}`;
-  if (/^[a-z]{2,5}$/.test(local))     return `role@${domain}`;
-  if (local.includes("-"))             return `first-last@${domain}`;
+  for (const e of own) {
+    const local = e.split("@")[0];
+    if (ROLE_LOCALS.has(local)) continue;
+    if (/^[a-z]\.[a-z]{3,}$/.test(local))     return `first_initial.last@${domain}`;
+    if (/^[a-z]{3,}\.[a-z]{3,}$/.test(local)) return `first.last@${domain}`;
+    if (/^[a-z]-[a-z]{3,}$/.test(local))      return `first_initial-last@${domain}`;
+    if (local.includes("-"))                  return `first-last@${domain}`;
+  }
+  return null;
+}
+
+// If we couldn't find a named-individual email on /contact, probe /team /about etc.
+async function detectEmailFormat(domain) {
+  for (const p of ["/team", "/about", "/our-team", "/people", "/management", "/staff"]) {
+    const html = await fetchPage(`https://www.${domain}${p}`);
+    if (!html) continue;
+    const emails = [...html.matchAll(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g)]
+      .map(m => m[0].toLowerCase())
+      .filter(e => e.includes(domain.split(".")[0]) && !PERSONAL_EMAIL_DOMAINS.test(e));
+    for (const e of emails) {
+      const local = e.split("@")[0];
+      if (ROLE_LOCALS.has(local)) continue;
+      if (/^[a-z]\.[a-z]{3,}$/.test(local))     return `first_initial.last@${domain}`;
+      if (/^[a-z]{3,}\.[a-z]{3,}$/.test(local)) return `first.last@${domain}`;
+      if (/^[a-z]-[a-z]{3,}$/.test(local))      return `first_initial-last@${domain}`;
+      if (/^[a-z]{5,10}$/.test(local))          return `firstlast@${domain}`;
+    }
+  }
   return null;
 }
 
@@ -241,7 +322,9 @@ async function enrichCompanyContact(companyName) {
   result.emails  = extractEmails(found.html);
   result.phones  = extractPhones(found.html);
   result.address = extractAddress(found.html);
-  result.emailFormat = guessEmailFormat(result.emails, result.website);
+  // Try static guess first; if no named pattern found, probe /team /about etc.
+  result.emailFormat = guessEmailFormat(result.emails, result.website)
+    || await detectEmailFormat(result.website);
 
   console.log(`[contactEnrichment]   emails: ${result.emails.slice(0, 3).join(", ") || "none"}`);
   console.log(`[contactEnrichment]   phones: ${result.phones.slice(0, 2).join(", ") || "none"}`);
@@ -255,7 +338,7 @@ const CACHE_FILE = path.join(__dirname, "data", "contact_cache.json");
 
 function loadCache() {
   if (!fs.existsSync(CACHE_FILE)) return {};
-  return JSON.parse(fs.readFileSync(CACHE_FILE, "utf8"));
+  try { return JSON.parse(fs.readFileSync(CACHE_FILE, "utf8")); } catch { return {}; }
 }
 
 function saveCache(cache) {

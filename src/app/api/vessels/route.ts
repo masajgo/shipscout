@@ -1,123 +1,133 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import pool from "@/lib/db";
 
-const API_KEY = process.env.DATALASTIC_API_KEY;
-const BASE    = "https://api.datalastic.com/api/v0";
+// GET /api/vessels?bbox=minLon,minLat,maxLon,maxLat&zoom=8
 
-// Tracked IMOs — Datalastic verified
-const TRACKED_IMOS = [
-  "9038828", // ZEUS           — Crude Oil Tanker, Panama,     1992
-  "9038749", // ENERGY 5       — Crude Oil Tanker, Saint Kitts, 1994
-  "9248904", // CFL DEXING     — Bulk Carrier,     Panama,     2001
-  "9065572", // WHITE SHARK    — Bulk Carrier,     Saint Kitts, 1993
-  "9074705", // HONG LI        — Bulk Carrier,     Panama,     1995
-  "9200811", // ISTANBUL BRIDGE— Container Ship,   Liberia,    2000
-  "9038880", // Additional verified vessel
-  "8912522", // Additional verified vessel
-  "9108128", // Additional verified vessel
-  "9015101", // Additional verified vessel
-  "9083940", // Additional verified vessel
-  "9040089", // Additional verified vessel
-];
+const CLUSTER_ZOOM = 12;
+const MAX_RESULTS  = 2000;
 
-// $/LDT prices per market (Jun 2026, aligned with Markets page)
-const MARKET_PRICES: Record<string, number> = {
-  Alang: 501, Chittagong: 541, Gadani: 511, "Aliağa": 332,
-};
-
-function bestMarket(type: string): string {
-  if (type?.toLowerCase().includes("tanker")) return "Alang";
-  if (type?.toLowerCase().includes("bulk"))   return "Chittagong";
-  if (type?.toLowerCase().includes("container")) return "Alang";
-  return "Gadani";
+function gridDeg(zoom: number): number {
+  if (zoom <=  4) return 8;
+  if (zoom <=  6) return 2;
+  if (zoom <=  8) return 0.5;
+  if (zoom <= 10) return 0.15;
+  return 0.05;
 }
 
-function scoreFromAge(age: number): number {
-  if (age >= 32) return 90 + Math.min(9, age - 32);
-  if (age >= 28) return 82 + (age - 28);
-  if (age >= 24) return 72 + (age - 24) * 2;
-  if (age >= 20) return 60 + (age - 20) * 3;
-  return Math.max(30, 40 + age);
+interface RawVessel {
+  mmsi:           string;
+  name:           string;
+  type:           string;
+  speed:          string;
+  course:         string;
+  nav:            string;
+  lat:            string;
+  lon:            string;
+  scrap_score:    string;
+  scrap_category: string;
+  ts:             string;
 }
 
-function statusFromScore(score: number): { status: string; statusType: string } {
-  if (score >= 90) return { status: "P&I Withdrawn", statusType: "r" };
-  if (score >= 85) return { status: "Detained",      statusType: "r" };
-  if (score >= 78) return { status: "AIS Dark",      statusType: "b" };
-  if (score >= 70) return { status: "Survey Due",    statusType: "a" };
-  if (score >= 60) return { status: "Lay-up",        statusType: "a" };
-  return               { status: "94d Idle",         statusType: "a" };
+async function fromSupabase(
+  minLon: number, minLat: number,
+  maxLon: number, maxLat: number,
+  scrapFilter?: string[],
+): Promise<RawVessel[]> {
+  const params: (number | string | string[])[] = [minLon, minLat, maxLon, maxLat, MAX_RESULTS];
+  const scrapClause = scrapFilter && scrapFilter.length > 0
+    ? `AND scrap_category = ANY($6::text[])`
+    : "";
+  if (scrapFilter && scrapFilter.length > 0) params.push(scrapFilter);
+
+  const { rows } = await pool.query(
+    `SELECT
+       mmsi::text,
+       COALESCE(name, '')              AS name,
+       COALESCE(type, '')              AS type,
+       COALESCE(speed,      0)::text   AS speed,
+       COALESCE(course,     0)::text   AS course,
+       COALESCE(nav_status, 0)::text   AS nav,
+       lat::text,
+       lon::text,
+       COALESCE(scrap_score, 0)::text  AS scrap_score,
+       COALESCE(scrap_category, 'low') AS scrap_category,
+       updated_at::text                AS ts
+     FROM vessels
+     WHERE lat BETWEEN $2 AND $4
+       AND lon BETWEEN $1 AND $3
+       ${scrapClause}
+     ORDER BY scrap_score DESC NULLS LAST
+     LIMIT $5`,
+    params,
+  );
+  return rows as RawVessel[];
 }
 
-function typeLabel(raw: string): string {
-  if (!raw) return "General Cargo";
-  const r = raw.toLowerCase();
-  if (r.includes("bulk"))      return "Bulk Carrier";
-  if (r.includes("crude") || r.includes("oil tanker")) return "Tanker";
-  if (r.includes("tanker"))    return "Tanker";
-  if (r.includes("container")) return "Container";
-  if (r.includes("cargo"))     return "General Cargo";
-  return raw;
+interface Cluster {
+  lon:           number;
+  lat:           number;
+  count:         number;
+  mmsis:         string[];
+  maxScrapScore: number;
 }
 
-async function fetchVessel(imo: string) {
+function clusterVessels(vessels: RawVessel[], cellDeg: number): Cluster[] {
+  const cells = new Map<string, Cluster>();
+
+  for (const v of vessels) {
+    const lon   = parseFloat(v.lon);
+    const lat   = parseFloat(v.lat);
+    const score = parseInt(v.scrap_score) || 0;
+    const cx    = Math.floor(lon / cellDeg) * cellDeg + cellDeg / 2;
+    const cy    = Math.floor(lat / cellDeg) * cellDeg + cellDeg / 2;
+    const key   = `${cx.toFixed(6)},${cy.toFixed(6)}`;
+
+    const cell = cells.get(key);
+    if (cell) {
+      cell.lon   = (cell.lon * cell.count + lon) / (cell.count + 1);
+      cell.lat   = (cell.lat * cell.count + lat) / (cell.count + 1);
+      cell.count++;
+      if (cell.mmsis.length < 10) cell.mmsis.push(v.mmsi);
+      if (score > cell.maxScrapScore) cell.maxScrapScore = score;
+    } else {
+      cells.set(key, { lon, lat, count: 1, mmsis: [v.mmsi], maxScrapScore: score });
+    }
+  }
+
+  return [...cells.values()];
+}
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const bboxParam  = searchParams.get("bbox");
+  const zoom       = parseInt(searchParams.get("zoom") ?? "8", 10);
+  const scrapParam = searchParams.get("scrap");
+  const scrapFilter = scrapParam ? scrapParam.split(",").map(s => s.trim()).filter(Boolean) : undefined;
+
+  if (!bboxParam) {
+    return NextResponse.json({ error: "bbox required: minLon,minLat,maxLon,maxLat" }, { status: 400 });
+  }
+
+  const parts = bboxParam.split(",").map(Number);
+  if (parts.length !== 4 || parts.some(isNaN)) {
+    return NextResponse.json({ error: "invalid bbox" }, { status: 400 });
+  }
+  const [minLon, minLat, maxLon, maxLat] = parts;
+
+  let vessels: RawVessel[];
   try {
-    const res = await fetch(
-      `${BASE}/vessel_info?imo=${imo}&api-key=${API_KEY}`,
-      { next: { revalidate: 3600 } }
-    );
-    if (!res.ok) return null;
-    const json = await res.json();
-    return json?.data ?? null;
-  } catch {
-    return null;
-  }
-}
-
-export async function GET() {
-  if (!API_KEY) {
-    return NextResponse.json({ error: "API key missing" }, { status: 500 });
+    vessels = await fromSupabase(minLon, minLat, maxLon, maxLat, scrapFilter);
+  } catch (err: any) {
+    return NextResponse.json({ error: "database unavailable", detail: err.message }, { status: 503 });
   }
 
-  const results = await Promise.all(TRACKED_IMOS.map(fetchVessel));
-  const year = new Date().getFullYear();
-
-  const vessels = results
-    .map((d, i) => {
-      if (!d) return null;
-      const imo      = TRACKED_IMOS[i];
-      const built    = parseInt(d.year_built) || 2000;
-      const age      = year - built;
-      const dwt      = d.deadweight   || 0;
-      const ldt      = d.lightship    || Math.round(dwt * 0.17);
-      const type     = typeLabel(d.type_specific);
-      const market   = bestMarket(d.type_specific);
-      const price    = MARKET_PRICES[market] ?? 500;
-      const estUSD   = ldt * price;
-      const score    = Math.min(99, scoreFromAge(age));
-      const { status, statusType } = statusFromScore(score);
-
-      return {
-        imo,
-        name:       d.name        || `Vessel ${imo}`,
-        flag:       d.country_name || "Unknown",
-        type,
-        built,
-        dwt,
-        ldt,
-        location:   d.last_port   || d.home_port || null,
-        score,
-        status,
-        statusType,
-        estValue:   `$${(estUSD / 1_000_000).toFixed(2)}M`,
-        market,
-        deadline:   null,
-      };
-    })
-    .filter(Boolean)
-    .sort((a, b) => b!.score - a!.score);
+  const payload =
+    zoom < CLUSTER_ZOOM
+      ? { type: "clusters" as const, source: "postgis", clusters: clusterVessels(vessels, gridDeg(zoom)), total: vessels.length }
+      : { type: "vessels"  as const, source: "postgis", vessels,  total: vessels.length };
 
   return NextResponse.json(
-    { vessels, updatedAt: new Date().toISOString() },
-    { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200" } }
+    payload,
+    { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" } },
   );
 }

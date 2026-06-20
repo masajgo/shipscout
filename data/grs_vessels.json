@@ -1,0 +1,5581 @@
+{
+  "vessels": [
+    {
+      "id": 10000000,
+      "imo": "GRS-1048823",
+      "name": "76M PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 2000,
+      "dwt": 889,
+      "ldt": 151,
+      "length": 75.8,
+      "speed": null,
+      "pax": null,
+      "classCode": "",
+      "location": "—",
+      "price": "$3.1M",
+      "priceEUR": 2900000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "26y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        }
+      ],
+      "urgent": false,
+      "score": 76,
+      "source": "GRS",
+      "grsId": "1048823",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/76m-passenger-roro-ship-for-sale-1048823",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000001,
+      "imo": "GRS-1139889",
+      "name": "49M PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 2008,
+      "dwt": 160,
+      "ldt": 27,
+      "length": 48.895,
+      "speed": null,
+      "pax": null,
+      "classCode": "IV",
+      "location": "—",
+      "price": "$6.6M",
+      "priceEUR": 6100000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "18y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        }
+      ],
+      "urgent": false,
+      "score": 58,
+      "source": "GRS",
+      "grsId": "1139889",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/49m-passenger-roro-ship-for-sale-1139889",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000002,
+      "imo": "GRS-1144230",
+      "name": "70M LANDING CRAFT",
+      "flag": "Unknown",
+      "type": "Landing Craft",
+      "group": "Ferry & Cruise",
+      "built": 2016,
+      "dwt": 0,
+      "ldt": 1407,
+      "length": 70.35,
+      "speed": 17,
+      "pax": 565,
+      "classCode": "KO",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "10y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "565 pax",
+          "type": "idle"
+        }
+      ],
+      "urgent": false,
+      "score": 50,
+      "source": "GRS",
+      "grsId": "1144230",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/70m-landing-craft-for-sale-1144230",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000003,
+      "imo": "GRS-1139769",
+      "name": "47M 380 PAX ACCOMODATION VESSEL",
+      "flag": "Unknown",
+      "type": "Accommodation Vessel",
+      "group": "Ferry & Cruise",
+      "built": 1970,
+      "dwt": 0,
+      "ldt": 937,
+      "length": 46.86,
+      "speed": null,
+      "pax": 380,
+      "classCode": "",
+      "location": "—",
+      "price": "$1.8M",
+      "priceEUR": 1650000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "56y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "380 pax",
+          "type": "idle"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1139769",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/47m-380-pax-accomodation-vessel-for-sale-1139769",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000004,
+      "imo": "GRS-1103725",
+      "name": "115M 160 PAX CRUISE SHIP",
+      "flag": "Unknown",
+      "type": "Cruise Ship",
+      "group": "Ferry & Cruise",
+      "built": 2025,
+      "dwt": 0,
+      "ldt": 2300,
+      "length": 115,
+      "speed": 13,
+      "pax": 160,
+      "classCode": "BV",
+      "location": "—",
+      "price": "$36.7M",
+      "priceEUR": 34000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "1y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "160 pax",
+          "type": "idle"
+        }
+      ],
+      "urgent": false,
+      "score": 41,
+      "source": "GRS",
+      "grsId": "1103725",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/115m-160-pax-cruise-ship-for-sale-1103725",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000005,
+      "imo": "GRS-1047525",
+      "name": "77M 600 PAX PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 1999,
+      "dwt": 394,
+      "ldt": 67,
+      "length": 77,
+      "speed": 13,
+      "pax": null,
+      "classCode": "IR",
+      "location": "—",
+      "price": "$5.5M",
+      "priceEUR": 5125000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "27y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        }
+      ],
+      "urgent": false,
+      "score": 78,
+      "source": "GRS",
+      "grsId": "1047525",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/77m-600-pax-passenger-roro-ship-for-sale-1047525",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000006,
+      "imo": "GRS-1057418",
+      "name": "35M 147 PAX PASSENGER SHIP",
+      "flag": "Unknown",
+      "type": "Passenger Ship",
+      "group": "Ferry & Cruise",
+      "built": 1996,
+      "dwt": 15,
+      "ldt": 3,
+      "length": 34.5,
+      "speed": 34,
+      "pax": null,
+      "classCode": "CA",
+      "location": "—",
+      "price": "$0.7M",
+      "priceEUR": 650000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "30y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        }
+      ],
+      "urgent": false,
+      "score": 84,
+      "source": "GRS",
+      "grsId": "1057418",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/35m-147-pax-passenger-ship-for-sale-1057418",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000007,
+      "imo": "GRS-1134688",
+      "name": "52M 268 PAX PASSENGER SHIP",
+      "flag": "Unknown",
+      "type": "Passenger Ship",
+      "group": "Ferry & Cruise",
+      "built": 2021,
+      "dwt": 0,
+      "ldt": 1035,
+      "length": 51.77,
+      "speed": 26,
+      "pax": 268,
+      "classCode": "CC",
+      "location": "—",
+      "price": "$5.6M",
+      "priceEUR": 5200000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "5y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "268 pax",
+          "type": "idle"
+        }
+      ],
+      "urgent": false,
+      "score": 45,
+      "source": "GRS",
+      "grsId": "1134688",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/52m-268-pax-passenger-ship-for-sale-1134688",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000008,
+      "imo": "GRS-1103609",
+      "name": "78M 700 PAX PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 2017,
+      "dwt": 750,
+      "ldt": 128,
+      "length": 78.214,
+      "speed": 13,
+      "pax": null,
+      "classCode": "IV",
+      "location": "—",
+      "price": "$6.7M",
+      "priceEUR": 6200000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "9y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        }
+      ],
+      "urgent": false,
+      "score": 49,
+      "source": "GRS",
+      "grsId": "1103609",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/78m-700-pax-passenger-roro-ship-for-sale-1103609",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000009,
+      "imo": "GRS-1055817",
+      "name": "104M 580 PAX PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 1996,
+      "dwt": 1139,
+      "ldt": 194,
+      "length": 103.55,
+      "speed": 36,
+      "pax": null,
+      "classCode": "RI",
+      "location": "—",
+      "price": "$10.9M",
+      "priceEUR": 10100000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "30y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        }
+      ],
+      "urgent": false,
+      "score": 84,
+      "source": "GRS",
+      "grsId": "1055817",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/104m-580-pax-passenger-roro-ship-for-sale-1055817",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000010,
+      "imo": "GRS-1100698",
+      "name": "66M 72 PAX CRUISE SHIP",
+      "flag": "Unknown",
+      "type": "Cruise Ship",
+      "group": "Ferry & Cruise",
+      "built": 2012,
+      "dwt": 374,
+      "ldt": 64,
+      "length": 65.95,
+      "speed": 15,
+      "pax": 72,
+      "classCode": "RI",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "14y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "72 pax",
+          "type": "idle"
+        }
+      ],
+      "urgent": false,
+      "score": 54,
+      "source": "GRS",
+      "grsId": "1100698",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/66m-72-pax-cruise-ship-for-sale-1100698",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000011,
+      "imo": "GRS-1110719",
+      "name": "50M 292 PAX PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 2025,
+      "dwt": 0,
+      "ldt": 998,
+      "length": 49.9,
+      "speed": 16,
+      "pax": null,
+      "classCode": "AB",
+      "location": "—",
+      "price": "$6.5M",
+      "priceEUR": 6000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "1y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        }
+      ],
+      "urgent": false,
+      "score": 41,
+      "source": "GRS",
+      "grsId": "1110719",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/50m-292-pax-passenger-roro-ship-for-sale-1110719",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000012,
+      "imo": "GRS-1000115",
+      "name": "ATTRACTIVE SALE OR SALE&LEASE BACK OPPORTUNITY - PLS CONTACT US 90M 127 PAX CRUISE SHIP",
+      "flag": "Unknown",
+      "type": "Cruise Ship",
+      "group": "Ferry & Cruise",
+      "built": 1991,
+      "dwt": 695,
+      "ldt": 118,
+      "length": 90.36,
+      "speed": 16,
+      "pax": 127,
+      "classCode": "BV",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "35y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "127 pax",
+          "type": "idle"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 93,
+      "source": "GRS",
+      "grsId": "1000115",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/attractive-sale-or-sale&lease-back-opportunity-pls-contact-us-90m-127-pax-cruise-ship-for-sale-1000115",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000013,
+      "imo": "GRS-1096645",
+      "name": "80M 102 PAX CRUISE SHIP",
+      "flag": "Unknown",
+      "type": "Cruise Ship",
+      "group": "Ferry & Cruise",
+      "built": 1981,
+      "dwt": 0,
+      "ldt": 1600,
+      "length": 80,
+      "speed": null,
+      "pax": 102,
+      "classCode": "",
+      "location": "—",
+      "price": "$6.5M",
+      "priceEUR": 6000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "45y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "102 pax",
+          "type": "idle"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1096645",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/80m-102-pax-cruise-ship-for-sale-1096645",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000014,
+      "imo": "GRS-1064110",
+      "name": "50M RESTAURANT VESSEL, STATIONARY",
+      "flag": "Unknown",
+      "type": "50M RESTAURANT VESSEL, STATIONARY",
+      "group": "Ferry & Cruise",
+      "built": 2004,
+      "dwt": 175,
+      "ldt": 30,
+      "length": 49.7,
+      "speed": 10,
+      "pax": null,
+      "classCode": "",
+      "location": "—",
+      "price": "$0.7M",
+      "priceEUR": 650000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "22y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        }
+      ],
+      "urgent": false,
+      "score": 66,
+      "source": "GRS",
+      "grsId": "1064110",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/50m-restaurant-vessel,-stationary-for-sale-1064110",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000015,
+      "imo": "GRS-1010644",
+      "name": "45M PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 1973,
+      "dwt": 86,
+      "ldt": 15,
+      "length": 44.51,
+      "speed": null,
+      "pax": null,
+      "classCode": "",
+      "location": "—",
+      "price": "$0.9M",
+      "priceEUR": 850000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "53y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1010644",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/45m-passenger-roro-ship-for-sale-1010644",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000016,
+      "imo": "GRS-1068749",
+      "name": "48M 430 PAX PASSENGER SHIP",
+      "flag": "Unknown",
+      "type": "Passenger Ship",
+      "group": "Ferry & Cruise",
+      "built": 2008,
+      "dwt": 58,
+      "ldt": 10,
+      "length": 47.5,
+      "speed": 42.3,
+      "pax": null,
+      "classCode": "DNV",
+      "location": "—",
+      "price": "$7.2M",
+      "priceEUR": 6650000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "18y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        }
+      ],
+      "urgent": false,
+      "score": 58,
+      "source": "GRS",
+      "grsId": "1068749",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/48m-430-pax-passenger-ship-for-sale-1068749",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000017,
+      "imo": "GRS-1106371",
+      "name": "75M INLAND WATERWAYS VESSEL",
+      "flag": "Unknown",
+      "type": "75M INLAND WATERWAYS VESSEL",
+      "group": "Ferry & Cruise",
+      "built": 2004,
+      "dwt": 1300,
+      "ldt": 221,
+      "length": 75,
+      "speed": 11,
+      "pax": null,
+      "classCode": "BV",
+      "location": "—",
+      "price": "$2.8M",
+      "priceEUR": 2600000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "22y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        }
+      ],
+      "urgent": false,
+      "score": 66,
+      "source": "GRS",
+      "grsId": "1106371",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/75m-inland-waterways-vessel-for-sale-1106371",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000018,
+      "imo": "GRS-1134709",
+      "name": "VINTAGE DAY FERRY FOR CONVERSION (NO ENGINES) 30M 607 PAX ACCOMODATION VESSEL",
+      "flag": "Unknown",
+      "type": "Ferry",
+      "group": "Ferry & Cruise",
+      "built": 1959,
+      "dwt": 0,
+      "ldt": 602,
+      "length": 30.1,
+      "speed": null,
+      "pax": 607,
+      "classCode": "",
+      "location": "—",
+      "price": "$0.5M",
+      "priceEUR": 500000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "67y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "607 pax",
+          "type": "idle"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1134709",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/vintage-day-ferry-for-conversion-(no-engines)-30m-607-pax-accomodation-vessel-for-sale-1134709",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000019,
+      "imo": "GRS-1063363",
+      "name": "57M 630 PAX PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 2004,
+      "dwt": 122,
+      "ldt": 21,
+      "length": 56.6,
+      "speed": 33,
+      "pax": null,
+      "classCode": "BV",
+      "location": "—",
+      "price": "$6.7M",
+      "priceEUR": 6200000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "22y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        }
+      ],
+      "urgent": false,
+      "score": 66,
+      "source": "GRS",
+      "grsId": "1063363",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/57m-630-pax-passenger-roro-ship-for-sale-1063363",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000020,
+      "imo": "GRS-1144229",
+      "name": "68M LANDING CRAFT",
+      "flag": "Unknown",
+      "type": "Landing Craft",
+      "group": "Ferry & Cruise",
+      "built": 2004,
+      "dwt": 0,
+      "ldt": 1350,
+      "length": 67.5,
+      "speed": 14,
+      "pax": 255,
+      "classCode": "KO",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "22y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "255 pax",
+          "type": "idle"
+        }
+      ],
+      "urgent": false,
+      "score": 66,
+      "source": "GRS",
+      "grsId": "1144229",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/68m-landing-craft-for-sale-1144229",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000021,
+      "imo": "GRS-1076119",
+      "name": "41M 351 PAX PASSENGER SHIP",
+      "flag": "Unknown",
+      "type": "Passenger Ship",
+      "group": "Ferry & Cruise",
+      "built": 2012,
+      "dwt": 52,
+      "ldt": 9,
+      "length": 40.8,
+      "speed": 36,
+      "pax": null,
+      "classCode": "CS",
+      "location": "—",
+      "price": "$7.0M",
+      "priceEUR": 6500000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "14y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        }
+      ],
+      "urgent": false,
+      "score": 54,
+      "source": "GRS",
+      "grsId": "1076119",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/41m-351-pax-passenger-ship-for-sale-1076119",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000022,
+      "imo": "GRS-1011973",
+      "name": "78M 754 PAX PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 1981,
+      "dwt": 350,
+      "ldt": 60,
+      "length": 78.14,
+      "speed": null,
+      "pax": null,
+      "classCode": "LR",
+      "location": "—",
+      "price": "$2.8M",
+      "priceEUR": 2600000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "45y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1011973",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/78m-754-pax-passenger-roro-ship-for-sale-1011973",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000023,
+      "imo": "GRS-1105149",
+      "name": "NEW BUILD 22M LANDING CRAFT",
+      "flag": "Unknown",
+      "type": "Landing Craft",
+      "group": "Ferry & Cruise",
+      "built": 2018,
+      "dwt": 0,
+      "ldt": 443,
+      "length": 22.13,
+      "speed": 9,
+      "pax": null,
+      "classCode": "",
+      "location": "—",
+      "price": "$1.4M",
+      "priceEUR": 1271000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "8y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        }
+      ],
+      "urgent": false,
+      "score": 48,
+      "source": "GRS",
+      "grsId": "1105149",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/new-build-22m-landing-craft-for-sale-1105149",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000024,
+      "imo": "GRS-1092572",
+      "name": "SALE PRICE REDUCED 90M 126 PAX CRUISE SHIP",
+      "flag": "Unknown",
+      "type": "Cruise Ship",
+      "group": "Ferry & Cruise",
+      "built": 1979,
+      "dwt": 0,
+      "ldt": 1800,
+      "length": 90,
+      "speed": null,
+      "pax": 126,
+      "classCode": "",
+      "location": "—",
+      "price": "$2.2M",
+      "priceEUR": 2000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "47y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "126 pax",
+          "type": "idle"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1092572",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/sale-price-reduced-90m-126-pax-cruise-ship-for-sale-1092572",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000025,
+      "imo": "GRS-1060483",
+      "name": "214M 2,781 PAX PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 2001,
+      "dwt": 4600,
+      "ldt": 782,
+      "length": 213.96,
+      "speed": 28.9,
+      "pax": 1212,
+      "classCode": "RI",
+      "location": "—",
+      "price": "$33.5M",
+      "priceEUR": 31000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "25y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "1212 pax",
+          "type": "idle"
+        }
+      ],
+      "urgent": false,
+      "score": 74,
+      "source": "GRS",
+      "grsId": "1060483",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/214m-2,781-pax-passenger-roro-ship-for-sale-1060483",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000026,
+      "imo": "GRS-1002522",
+      "name": "PRICE REDUCED 47M 34 PAX PASSENGER SHIP",
+      "flag": "Unknown",
+      "type": "Passenger Ship",
+      "group": "Ferry & Cruise",
+      "built": 1963,
+      "dwt": 0,
+      "ldt": 936,
+      "length": 46.82,
+      "speed": null,
+      "pax": 34,
+      "classCode": "",
+      "location": "—",
+      "price": "$5.4M",
+      "priceEUR": 5000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "63y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "34 pax",
+          "type": "idle"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1002522",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/price-reduced-47m-34-pax-passenger-ship-for-sale-1002522",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000027,
+      "imo": "GRS-1056788",
+      "name": "LAID UP SINCE 2014 - OUT OF CLASS EX MED SEA 123M 973 PAX PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 1999,
+      "dwt": 516,
+      "ldt": 88,
+      "length": 122.5,
+      "speed": 37,
+      "pax": 973,
+      "classCode": "EX",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "27y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "973 pax",
+          "type": "idle"
+        }
+      ],
+      "urgent": false,
+      "score": 78,
+      "source": "GRS",
+      "grsId": "1056788",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/laid-up-since-2014-out-of-class-ex-med-sea-123m-973-pax-passenger-roro-ship-for-sale-1056788",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000028,
+      "imo": "GRS-1054977",
+      "name": "70M 300 PAX PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 1995,
+      "dwt": 157,
+      "ldt": 27,
+      "length": 70.35,
+      "speed": 45,
+      "pax": null,
+      "classCode": "DNV",
+      "location": "—",
+      "price": "$7.6M",
+      "priceEUR": 7000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "31y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": false,
+      "score": 85,
+      "source": "GRS",
+      "grsId": "1054977",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/70m-300-pax-passenger-roro-ship-for-sale-1054977",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000029,
+      "imo": "GRS-1000611",
+      "name": "PRICE REDUCED POOR CONDITION STRICTLY AS IS, WHERE IS EU PORT 93M 1,287 PAX CRUISE SHIP",
+      "flag": "Unknown",
+      "type": "Cruise Ship",
+      "group": "Ferry & Cruise",
+      "built": 1953,
+      "dwt": 864,
+      "ldt": 147,
+      "length": 92.66,
+      "speed": 15,
+      "pax": 369,
+      "classCode": "",
+      "location": "—",
+      "price": "$0.6M",
+      "priceEUR": 600000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "73y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "369 pax",
+          "type": "idle"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1000611",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/price-reduced-poor-condition-strictly-as-is,-where-is-eu-port-93m-1,287-pax-cruise-ship-for-sale-1000611",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000030,
+      "imo": "GRS-1025462",
+      "name": "35M 126 PAX PASSENGER SHIP",
+      "flag": "Unknown",
+      "type": "Passenger Ship",
+      "group": "Ferry & Cruise",
+      "built": 1982,
+      "dwt": 15,
+      "ldt": 3,
+      "length": 35.19,
+      "speed": 32,
+      "pax": null,
+      "classCode": "RS",
+      "location": "—",
+      "price": "$1.0M",
+      "priceEUR": 950000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "44y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1025462",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/35m-126-pax-passenger-ship-for-sale-1025462",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000031,
+      "imo": "GRS-1120872",
+      "name": "54M 378 PAX PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 2021,
+      "dwt": 265,
+      "ldt": 45,
+      "length": 54,
+      "speed": 16.5,
+      "pax": null,
+      "classCode": "BV",
+      "location": "—",
+      "price": "$7.0M",
+      "priceEUR": 6500000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "5y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        }
+      ],
+      "urgent": false,
+      "score": 45,
+      "source": "GRS",
+      "grsId": "1120872",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/54m-378-pax-passenger-roro-ship-for-sale-1120872",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000032,
+      "imo": "GRS-1044445",
+      "name": "40M 255 PAX PASSENGER SHIP",
+      "flag": "Unknown",
+      "type": "Passenger Ship",
+      "group": "Ferry & Cruise",
+      "built": 1990,
+      "dwt": 133,
+      "ldt": 23,
+      "length": 40.4,
+      "speed": 34.5,
+      "pax": null,
+      "classCode": "RI",
+      "location": "—",
+      "price": "$1.1M",
+      "priceEUR": 1000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "36y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 94,
+      "source": "GRS",
+      "grsId": "1044445",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/40m-255-pax-passenger-ship-for-sale-1044445",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000033,
+      "imo": "GRS-1106331",
+      "name": "111M 150 PAX CRUISE SHIP",
+      "flag": "Unknown",
+      "type": "Cruise Ship",
+      "group": "Ferry & Cruise",
+      "built": 2001,
+      "dwt": 0,
+      "ldt": 2225,
+      "length": 111.24,
+      "speed": null,
+      "pax": 150,
+      "classCode": "",
+      "location": "—",
+      "price": "$6.6M",
+      "priceEUR": 6100000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "25y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "150 pax",
+          "type": "idle"
+        }
+      ],
+      "urgent": false,
+      "score": 74,
+      "source": "GRS",
+      "grsId": "1106331",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/111m-150-pax-cruise-ship-for-sale-1106331",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000034,
+      "imo": "GRS-1142243",
+      "name": "85M 650 PAX PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 2025,
+      "dwt": 0,
+      "ldt": 1698,
+      "length": 84.91,
+      "speed": 14,
+      "pax": 650,
+      "classCode": "FA",
+      "location": "—",
+      "price": "$6.5M",
+      "priceEUR": 6000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "1y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "650 pax",
+          "type": "idle"
+        }
+      ],
+      "urgent": false,
+      "score": 41,
+      "source": "GRS",
+      "grsId": "1142243",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/85m-650-pax-passenger-roro-ship-for-sale-1142243",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000035,
+      "imo": "GRS-1032603",
+      "name": "73M 350 PAX PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 2004,
+      "dwt": 124,
+      "ldt": 21,
+      "length": 73,
+      "speed": 11,
+      "pax": null,
+      "classCode": "",
+      "location": "—",
+      "price": "$3.7M",
+      "priceEUR": 3400000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "22y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        }
+      ],
+      "urgent": false,
+      "score": 66,
+      "source": "GRS",
+      "grsId": "1032603",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/73m-350-pax-passenger-roro-ship-for-sale-1032603",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000036,
+      "imo": "GRS-1027941",
+      "name": "50M 199 PAX PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 1984,
+      "dwt": 560,
+      "ldt": 95,
+      "length": 49.51,
+      "speed": null,
+      "pax": 199,
+      "classCode": "",
+      "location": "—",
+      "price": "$1.9M",
+      "priceEUR": 1800000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "42y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "199 pax",
+          "type": "idle"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1027941",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/50m-199-pax-passenger-roro-ship-for-sale-1027941",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000037,
+      "imo": "GRS-1069119",
+      "name": "48M 418 PAX PASSENGER SHIP",
+      "flag": "Unknown",
+      "type": "Passenger Ship",
+      "group": "Ferry & Cruise",
+      "built": 2008,
+      "dwt": 58,
+      "ldt": 10,
+      "length": 47.5,
+      "speed": 42.3,
+      "pax": null,
+      "classCode": "DNV",
+      "location": "—",
+      "price": "$7.2M",
+      "priceEUR": 6650000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "18y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        }
+      ],
+      "urgent": false,
+      "score": 58,
+      "source": "GRS",
+      "grsId": "1069119",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/48m-418-pax-passenger-ship-for-sale-1069119",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000038,
+      "imo": "GRS-1019169",
+      "name": "113M PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 1979,
+      "dwt": 3295,
+      "ldt": 560,
+      "length": 113.39,
+      "speed": 11,
+      "pax": null,
+      "classCode": "IB",
+      "location": "—",
+      "price": "$5.2M",
+      "priceEUR": 4850000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "47y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1019169",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/113m-passenger-roro-ship-for-sale-1019169",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000039,
+      "imo": "GRS-1140291",
+      "name": "50M 298 PAX PASSENGER SHIP",
+      "flag": "Unknown",
+      "type": "Passenger Ship",
+      "group": "Ferry & Cruise",
+      "built": 2022,
+      "dwt": 0,
+      "ldt": 990,
+      "length": 49.5,
+      "speed": 36,
+      "pax": 298,
+      "classCode": "",
+      "location": "—",
+      "price": "$8.1M",
+      "priceEUR": 7500000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "4y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "298 pax",
+          "type": "idle"
+        }
+      ],
+      "urgent": false,
+      "score": 44,
+      "source": "GRS",
+      "grsId": "1140291",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/50m-298-pax-passenger-ship-for-sale-1140291",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000040,
+      "imo": "GRS-1095679",
+      "name": "12M WORKBOAT DAUGHTER CRAFT + LARS DAVIT 12M WORKBOAT",
+      "flag": "Unknown",
+      "type": "12M WORKBOAT DAUGHTER CRAFT + LARS DAVIT 12M WORKBOAT",
+      "group": "Ferry & Cruise",
+      "built": 2016,
+      "dwt": 4,
+      "ldt": 1,
+      "length": 12.2,
+      "speed": null,
+      "pax": null,
+      "classCode": "",
+      "location": "—",
+      "price": "$1.6M",
+      "priceEUR": 1500000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "10y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        }
+      ],
+      "urgent": false,
+      "score": 50,
+      "source": "GRS",
+      "grsId": "1095679",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/12m-workboat-daughter-craft-+-lars-davit-12m-workboat-for-sale-1095679",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000041,
+      "imo": "GRS-1011598",
+      "name": "75M 498 PAX PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 1974,
+      "dwt": 211,
+      "ldt": 36,
+      "length": 74.76,
+      "speed": 13.5,
+      "pax": null,
+      "classCode": "RI",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "52y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1011598",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/75m-498-pax-passenger-roro-ship-for-sale-1011598",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000042,
+      "imo": "GRS-1017948",
+      "name": "106M 870 LANE METER RORO VESSEL",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 1980,
+      "dwt": 3573,
+      "ldt": 607,
+      "length": 105.6,
+      "speed": 10,
+      "pax": null,
+      "classCode": "",
+      "location": "—",
+      "price": "$2.6M",
+      "priceEUR": 2450000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "46y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1017948",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/106m-870-lane-meter-roro-vessel-for-sale-1017948",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000043,
+      "imo": "GRS-1008937",
+      "name": "113M 1002 LANE METER RORO VESSEL",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 1972,
+      "dwt": 4700,
+      "ldt": 799,
+      "length": 113.46,
+      "speed": 16,
+      "pax": 12,
+      "classCode": "",
+      "location": "—",
+      "price": "$1.7M",
+      "priceEUR": 1600000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "54y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "12 pax",
+          "type": "idle"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1008937",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/113m-1002-lane-meter-roro-vessel-for-sale-1008937",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000044,
+      "imo": "GRS-1055242",
+      "name": "193M 1,230 PAX CRUISE SHIP",
+      "flag": "Unknown",
+      "type": "Cruise Ship",
+      "group": "Ferry & Cruise",
+      "built": 1996,
+      "dwt": 3752,
+      "ldt": 638,
+      "length": 193.34,
+      "speed": 20,
+      "pax": 1230,
+      "classCode": "IS",
+      "location": "—",
+      "price": "$43.2M",
+      "priceEUR": 40000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "30y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "1230 pax",
+          "type": "idle"
+        }
+      ],
+      "urgent": false,
+      "score": 84,
+      "source": "GRS",
+      "grsId": "1055242",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/193m-1,230-pax-cruise-ship-for-sale-1055242",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000045,
+      "imo": "GRS-1104458",
+      "name": "102M 1,130 PAX PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 2018,
+      "dwt": 1099,
+      "ldt": 187,
+      "length": 102,
+      "speed": 11.5,
+      "pax": null,
+      "classCode": "RI",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "8y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        }
+      ],
+      "urgent": false,
+      "score": 48,
+      "source": "GRS",
+      "grsId": "1104458",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/102m-1,130-pax-passenger-roro-ship-for-sale-1104458",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000046,
+      "imo": "GRS-1060062",
+      "name": "PRICE REDUCED SISTER AVAILABLE JOHNS ACT COMPLIANT ACCOMMODATION TONNAGE 87M 294 PAX CRUISE SHIP",
+      "flag": "Unknown",
+      "type": "Cruise Ship",
+      "group": "Ferry & Cruise",
+      "built": 2004,
+      "dwt": 695,
+      "ldt": 118,
+      "length": 87.27,
+      "speed": 10,
+      "pax": 294,
+      "classCode": "BV",
+      "location": "—",
+      "price": "$27.0M",
+      "priceEUR": 25000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "22y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "294 pax",
+          "type": "idle"
+        }
+      ],
+      "urgent": false,
+      "score": 66,
+      "source": "GRS",
+      "grsId": "1060062",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/price-reduced-sister-available-johns-act-compliant-accommodation-tonnage-87m-294-pax-cruise-ship-for-sale-1060062",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000047,
+      "imo": "GRS-1092675",
+      "name": "101M 123 PAX CRUISE SHIP",
+      "flag": "Unknown",
+      "type": "Cruise Ship",
+      "group": "Ferry & Cruise",
+      "built": 1996,
+      "dwt": 0,
+      "ldt": 2020,
+      "length": 101,
+      "speed": 16,
+      "pax": 123,
+      "classCode": "",
+      "location": "—",
+      "price": "$5.5M",
+      "priceEUR": 5100000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "30y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "123 pax",
+          "type": "idle"
+        }
+      ],
+      "urgent": false,
+      "score": 84,
+      "source": "GRS",
+      "grsId": "1092675",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/101m-123-pax-cruise-ship-for-sale-1092675",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000048,
+      "imo": "GRS-1021453",
+      "name": "NON-PROPELLED WORK BARGE CRANE PLATFORM (CONVERTED RORO FERRY HULL) 56M 12.8M PONTOON BARGE",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 1970,
+      "dwt": 170,
+      "ldt": 29,
+      "length": 55.5,
+      "speed": 13.25,
+      "pax": null,
+      "classCode": "",
+      "location": "—",
+      "price": "$2.2M",
+      "priceEUR": 2000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "56y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1021453",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/non-propelled-work-barge-crane-platform-(converted-roro-ferry-hull)-56m-12.8m-pontoon-barge-for-sale-1021453",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000049,
+      "imo": "GRS-1033890",
+      "name": "62M 400 PAX PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 1988,
+      "dwt": 389,
+      "ldt": 66,
+      "length": 61.78,
+      "speed": null,
+      "pax": 400,
+      "classCode": "PR",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "38y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "400 pax",
+          "type": "idle"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 96,
+      "source": "GRS",
+      "grsId": "1033890",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/62m-400-pax-passenger-roro-ship-for-sale-1033890",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000050,
+      "imo": "GRS-1028515",
+      "name": "158M 119 PAX PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 1987,
+      "dwt": 8027,
+      "ldt": 1365,
+      "length": 157.6,
+      "speed": 20.5,
+      "pax": 119,
+      "classCode": "RI",
+      "location": "—",
+      "price": "$10.3M",
+      "priceEUR": 9500000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "39y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "119 pax",
+          "type": "idle"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 97,
+      "source": "GRS",
+      "grsId": "1028515",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/158m-119-pax-passenger-roro-ship-for-sale-1028515",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000051,
+      "imo": "GRS-1022640",
+      "name": "75M 270 PAX PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 1981,
+      "dwt": 323,
+      "ldt": 55,
+      "length": 74.61,
+      "speed": 13.5,
+      "pax": null,
+      "classCode": "RI",
+      "location": "—",
+      "price": "$3.9M",
+      "priceEUR": 3600000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "45y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1022640",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/75m-270-pax-passenger-roro-ship-for-sale-1022640",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000052,
+      "imo": "GRS-1034556",
+      "name": "PROMPT AVAILABLE EX ASIA 95M 13.5KNTS SURVEY VESSEL",
+      "flag": "Unknown",
+      "type": "PROMPT AVAILABLE EX ASIA 95M 13.5KNTS SURVEY VESSEL",
+      "group": "Ferry & Cruise",
+      "built": 1990,
+      "dwt": 3911,
+      "ldt": 665,
+      "length": 94.91,
+      "speed": 13.5,
+      "pax": null,
+      "classCode": "CS",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "36y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 94,
+      "source": "GRS",
+      "grsId": "1034556",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/for-sale-prompt-available-ex-asia-95m-13.5knts-survey-vessel-for-sale-1034556",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000053,
+      "imo": "GRS-1050459",
+      "name": "23M 118 PAX PASSENGER SHIP",
+      "flag": "Unknown",
+      "type": "Passenger Ship",
+      "group": "Ferry & Cruise",
+      "built": 1991,
+      "dwt": 38,
+      "ldt": 6,
+      "length": 22.5,
+      "speed": 26,
+      "pax": null,
+      "classCode": "",
+      "location": "—",
+      "price": "$1.0M",
+      "priceEUR": 900000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "35y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 93,
+      "source": "GRS",
+      "grsId": "1050459",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/23m-118-pax-passenger-ship-for-sale-1050459",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000054,
+      "imo": "GRS-1047297",
+      "name": "46M 70 PAX CRUISE SHIP",
+      "flag": "Unknown",
+      "type": "Cruise Ship",
+      "group": "Ferry & Cruise",
+      "built": 1982,
+      "dwt": 0,
+      "ldt": 920,
+      "length": 46,
+      "speed": 12,
+      "pax": 70,
+      "classCode": "",
+      "location": "—",
+      "price": "$3.8M",
+      "priceEUR": 3500000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "44y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "70 pax",
+          "type": "idle"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1047297",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/46m-70-pax-cruise-ship-for-sale-1047297",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000055,
+      "imo": "GRS-1117308",
+      "name": "CHARTER FREE - PROMPT AVAILABLE 110M 98 PAX ACCOMODATION VESSEL",
+      "flag": "Unknown",
+      "type": "Accommodation Vessel",
+      "group": "Ferry & Cruise",
+      "built": 1991,
+      "dwt": 0,
+      "ldt": 2200,
+      "length": 110,
+      "speed": 12,
+      "pax": 98,
+      "classCode": "",
+      "location": "—",
+      "price": "$4.3M",
+      "priceEUR": 4000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "35y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "98 pax",
+          "type": "idle"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 93,
+      "source": "GRS",
+      "grsId": "1117308",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/charter-free-prompt-available-110m-98-pax-accomodation-vessel-for-sale-1117308",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000056,
+      "imo": "GRS-1139792",
+      "name": "PRICE REDUCED TWO SISTERS AVAILABLE 31M 12 PAX YACHT",
+      "flag": "Unknown",
+      "type": "PRICE REDUCED TWO SISTERS AVAILABLE 31M 12 PAX YACHT",
+      "group": "Ferry & Cruise",
+      "built": 2000,
+      "dwt": 0,
+      "ldt": 615,
+      "length": 30.75,
+      "speed": 17,
+      "pax": 12,
+      "classCode": "HR",
+      "location": "—",
+      "price": "$0.4M",
+      "priceEUR": 400000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "26y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "12 pax",
+          "type": "idle"
+        }
+      ],
+      "urgent": false,
+      "score": 76,
+      "source": "GRS",
+      "grsId": "1139792",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/price-reduced-two-sisters-available-31m-12-pax-yacht-for-sale-1139792",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000057,
+      "imo": "GRS-1144443",
+      "name": "84M RORO VESSEL",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 2018,
+      "dwt": 129075,
+      "ldt": 21943,
+      "length": 83.68,
+      "speed": 11,
+      "pax": 17,
+      "classCode": "KO",
+      "location": "—",
+      "price": "$6.5M",
+      "priceEUR": 6000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "8y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "17 pax",
+          "type": "idle"
+        }
+      ],
+      "urgent": false,
+      "score": 48,
+      "source": "GRS",
+      "grsId": "1144443",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/84m-roro-vessel-for-sale-1144443",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000058,
+      "imo": "GRS-1034528",
+      "name": "PRICE REDUCED 211M 2,020 PAX CRUISE SHIP",
+      "flag": "Unknown",
+      "type": "Cruise Ship",
+      "group": "Ferry & Cruise",
+      "built": 1990,
+      "dwt": 4978,
+      "ldt": 846,
+      "length": 210.814,
+      "speed": 19.5,
+      "pax": 2020,
+      "classCode": "LR",
+      "location": "—",
+      "price": "$43.2M",
+      "priceEUR": 40000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "36y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "2020 pax",
+          "type": "idle"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 94,
+      "source": "GRS",
+      "grsId": "1034528",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/price-reduced-211m-2,020-pax-cruise-ship-for-sale-1034528",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000059,
+      "imo": "GRS-1060711",
+      "name": "200M 3,100 PAX PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 2002,
+      "dwt": 6574,
+      "ldt": 1118,
+      "length": 199.9,
+      "speed": 29.2,
+      "pax": 790,
+      "classCode": "AB",
+      "location": "—",
+      "price": "$70.2M",
+      "priceEUR": 65000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "24y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "790 pax",
+          "type": "idle"
+        }
+      ],
+      "urgent": false,
+      "score": 72,
+      "source": "GRS",
+      "grsId": "1060711",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/200m-3,100-pax-passenger-roro-ship-for-sale-1060711",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000060,
+      "imo": "GRS-1016274",
+      "name": "BACK TO MARKET + REDUCED PRICE - PROMPT EX EU 137M 328 PAX CRUISE SHIP",
+      "flag": "Unknown",
+      "type": "Cruise Ship",
+      "group": "Ferry & Cruise",
+      "built": 1982,
+      "dwt": 1622,
+      "ldt": 276,
+      "length": 137.1,
+      "speed": 15,
+      "pax": 328,
+      "classCode": "BV",
+      "location": "—",
+      "price": "$6.5M",
+      "priceEUR": 6000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "44y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "328 pax",
+          "type": "idle"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1016274",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/back-to-market-+-reduced-price-prompt-ex-eu-137m-328-pax-cruise-ship-for-sale-1016274",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000061,
+      "imo": "GRS-1123006",
+      "name": "110M INLAND WATERWAYS VESSEL",
+      "flag": "Unknown",
+      "type": "110M INLAND WATERWAYS VESSEL",
+      "group": "Ferry & Cruise",
+      "built": 2015,
+      "dwt": 0,
+      "ldt": 2198,
+      "length": 109.92,
+      "speed": null,
+      "pax": 140,
+      "classCode": "",
+      "location": "—",
+      "price": "$15.7M",
+      "priceEUR": 14500000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "11y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "140 pax",
+          "type": "idle"
+        }
+      ],
+      "urgent": false,
+      "score": 51,
+      "source": "GRS",
+      "grsId": "1123006",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/110m-inland-waterways-vessel-for-sale-1123006",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000062,
+      "imo": "GRS-1017695",
+      "name": "91M 700 PAX PASSENGER RORO SHIP",
+      "flag": "Unknown",
+      "type": "Passenger / RoRo",
+      "group": "Ferry & Cruise",
+      "built": 1980,
+      "dwt": 850,
+      "ldt": 145,
+      "length": 91.01,
+      "speed": 18,
+      "pax": 280,
+      "classCode": "RI",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "46y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "280 pax",
+          "type": "idle"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1017695",
+      "detailUrl": "https://grs.group/grs-ferry-cruise/purchase/ferry-cruise-vessels-for-sale/ferrycruise-vessels-for-sale-results/ferrycruise-vessels-for-sale-detail/purchase/91m-700-pax-passenger-roro-ship-for-sale-1017695",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000063,
+      "imo": "GRS-1134899",
+      "name": "24M MULTIROLE DIVE SUPPORT VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2021,
+      "dwt": 0,
+      "ldt": 478,
+      "length": 23.9,
+      "speed": null,
+      "pax": null,
+      "classCode": "",
+      "location": "—",
+      "price": "$3.2M",
+      "priceEUR": 3000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "5y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 45,
+      "source": "GRS",
+      "grsId": "1134899",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/24m-multirole-dive-support-vessel-for-sale-1134899",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000064,
+      "imo": "GRS-1004831",
+      "name": "TRACTOR TUG TWIN VOITH SCHNEIDER 28M 15TS BP TUG",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 1968,
+      "dwt": 42,
+      "ldt": 7,
+      "length": 28.22,
+      "speed": 12,
+      "pax": null,
+      "classCode": "",
+      "location": "—",
+      "price": "$0.4M",
+      "priceEUR": 350000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "58y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1004831",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/tractor-tug-twin-voith-schneider-28m-15ts-bp-tug-for-sale-1004831",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000065,
+      "imo": "GRS-1056338",
+      "name": "106M MULTI PURPOSE VESSEL GENERAL CARGO SHIP",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 1996,
+      "dwt": 6830,
+      "ldt": 1161,
+      "length": 105.5,
+      "speed": 11,
+      "pax": null,
+      "classCode": "NK",
+      "location": "—",
+      "price": "$1.8M",
+      "priceEUR": 1700000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "30y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 84,
+      "source": "GRS",
+      "grsId": "1056338",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/106m-multi-purpose-vessel-general-cargo-ship-for-sale-1056338",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000066,
+      "imo": "GRS-1011875",
+      "name": "39M 6KNTS SURVEY VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 1975,
+      "dwt": 520,
+      "ldt": 88,
+      "length": 39.22,
+      "speed": 6,
+      "pax": 21,
+      "classCode": "DNV",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "51y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "21 pax",
+          "type": "idle"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1011875",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/39m-6knts-survey-vessel-for-sale-1011875",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000067,
+      "imo": "GRS-1079488",
+      "name": "28M WASTE DISPOSAL VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2011,
+      "dwt": 226,
+      "ldt": 38,
+      "length": 27.6,
+      "speed": null,
+      "pax": null,
+      "classCode": "",
+      "location": "—",
+      "price": "$2.8M",
+      "priceEUR": 2550000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "15y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 55,
+      "source": "GRS",
+      "grsId": "1079488",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/28m-waste-disposal-vessel-for-sale-1079488",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000068,
+      "imo": "GRS-1074286",
+      "name": "54M CREW TRANSFER VESSEL",
+      "flag": "Unknown",
+      "type": "Crew Transfer Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2010,
+      "dwt": 226,
+      "ldt": 38,
+      "length": 53.96,
+      "speed": null,
+      "pax": null,
+      "classCode": "AB",
+      "location": "—",
+      "price": "$10.8M",
+      "priceEUR": 10000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "16y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 56,
+      "source": "GRS",
+      "grsId": "1074286",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/54m-crew-transfer-vessel-for-sale-1074286",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000069,
+      "imo": "GRS-1073719",
+      "name": "ASD TUG 26M 40TS BP TUG",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2009,
+      "dwt": 111,
+      "ldt": 19,
+      "length": 25.78,
+      "speed": 10,
+      "pax": null,
+      "classCode": "AB",
+      "location": "—",
+      "price": "$3.4M",
+      "priceEUR": 3150000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "17y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 57,
+      "source": "GRS",
+      "grsId": "1073719",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/asd-tug-26m-40ts-bp-tug-for-sale-1073719",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000070,
+      "imo": "GRS-1134665",
+      "name": "37M 14.63M PONTOON BARGE",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2013,
+      "dwt": 0,
+      "ldt": 732,
+      "length": 36.58,
+      "speed": null,
+      "pax": null,
+      "classCode": "PR",
+      "location": "—",
+      "price": "$0.9M",
+      "priceEUR": 815000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "13y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 53,
+      "source": "GRS",
+      "grsId": "1134665",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/37m-14.63m-pontoon-barge-for-sale-1134665",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000071,
+      "imo": "GRS-1079816",
+      "name": "KEEN SELLERS 40M UTILITY VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2013,
+      "dwt": 250,
+      "ldt": 43,
+      "length": 40.2,
+      "speed": 11,
+      "pax": null,
+      "classCode": "",
+      "location": "—",
+      "price": "$3.8M",
+      "priceEUR": 3500000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "13y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 53,
+      "source": "GRS",
+      "grsId": "1079816",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/keen-sellers-40m-utility-vessel-for-sale-1079816",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000072,
+      "imo": "GRS-1000984",
+      "name": "44M 8KNTS RESEARCH- SURVEY- GUARD VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 1954,
+      "dwt": 0,
+      "ldt": 881,
+      "length": 44.04,
+      "speed": 8,
+      "pax": 6,
+      "classCode": "",
+      "location": "—",
+      "price": "$0.2M",
+      "priceEUR": 175000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "72y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "6 pax",
+          "type": "idle"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1000984",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/44m-8knts-research-survey-guard-vessel-for-sale-1000984",
+      "addedAt": "2026-06-19T03:09:36.948Z"
+    },
+    {
+      "id": 10000073,
+      "imo": "GRS-1064024",
+      "name": "DELIVERY AUGUST 2026 45M OFFSHORE TUG SUPPLY SHIP",
+      "flag": "Unknown",
+      "type": "Offshore Platform",
+      "group": "Offshore / Renewables",
+      "built": 2004,
+      "dwt": 494,
+      "ldt": 84,
+      "length": 45,
+      "speed": 12,
+      "pax": null,
+      "classCode": "KI",
+      "location": "—",
+      "price": "$3.6M",
+      "priceEUR": 3300000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "22y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 66,
+      "source": "GRS",
+      "grsId": "1064024",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/delivery-august-2026-45m-offshore-tug-supply-ship-for-sale-1064024",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000074,
+      "imo": "GRS-1117097",
+      "name": "9M 22KNTS RIB",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 1989,
+      "dwt": 0,
+      "ldt": 180,
+      "length": 9,
+      "speed": 22,
+      "pax": null,
+      "classCode": "",
+      "location": "—",
+      "price": "$0.4M",
+      "priceEUR": 350000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "37y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": true,
+      "score": 95,
+      "source": "GRS",
+      "grsId": "1117097",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/9m-22knts-rib-for-sale-1117097",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000075,
+      "imo": "GRS-1069872",
+      "name": "70M DP 1 PLATFORM SUPPLY VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Platform",
+      "group": "Offshore / Renewables",
+      "built": 2008,
+      "dwt": 3101,
+      "ldt": 527,
+      "length": 70,
+      "speed": 15.6,
+      "pax": null,
+      "classCode": "IR",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "18y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 58,
+      "source": "GRS",
+      "grsId": "1069872",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/70m-dp1-platform-supply-vessel-for-sale-1069872",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000076,
+      "imo": "GRS-1076806",
+      "name": "MAINTENANCE ACCOMMODATION VESSEL 70M OFFSHORE SUPPORT & CONSTRUCTION VESSEL",
+      "flag": "Unknown",
+      "type": "Accommodation Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2011,
+      "dwt": 1078,
+      "ldt": 183,
+      "length": 70.16,
+      "speed": 12,
+      "pax": null,
+      "classCode": "RI",
+      "location": "—",
+      "price": "$15.1M",
+      "priceEUR": 14000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "15y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 55,
+      "source": "GRS",
+      "grsId": "1076806",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/maintenance-accommodation-vessel-70m-offshore-support-&-construction-vessel-for-sale-1076806",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000077,
+      "imo": "GRS-1078269",
+      "name": "24M SURVEY VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 1998,
+      "dwt": 0,
+      "ldt": 470,
+      "length": 23.5,
+      "speed": null,
+      "pax": 2,
+      "classCode": "",
+      "location": "—",
+      "price": "$0.2M",
+      "priceEUR": 160000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "28y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "2 pax",
+          "type": "idle"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 82,
+      "source": "GRS",
+      "grsId": "1078269",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/24m-survey-vessel-for-sale-1078269",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000078,
+      "imo": "GRS-1089597",
+      "name": "22M 50 PAX CREW TRANSFER VESSEL",
+      "flag": "Unknown",
+      "type": "Crew Transfer Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2010,
+      "dwt": 0,
+      "ldt": 440,
+      "length": 22,
+      "speed": 15,
+      "pax": 4,
+      "classCode": "",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "16y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "4 pax",
+          "type": "idle"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 56,
+      "source": "GRS",
+      "grsId": "1089597",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/22m-50-pax-crew-transfer-vessel-for-sale-1089597",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000079,
+      "imo": "GRS-1053218",
+      "name": "55M MULTI PURPOSE VESSEL GENERAL CARGO SHIP",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 1992,
+      "dwt": 1400,
+      "ldt": 238,
+      "length": 55,
+      "speed": 8,
+      "pax": null,
+      "classCode": "",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "34y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": true,
+      "score": 92,
+      "source": "GRS",
+      "grsId": "1053218",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/55m-multi-purpose-vessel-general-cargo-ship-for-sale-1053218",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000080,
+      "imo": "GRS-1120884",
+      "name": "133M DP 1 700TS CRANE JACK UP",
+      "flag": "Unknown",
+      "type": "Jack-up",
+      "group": "Offshore / Renewables",
+      "built": 2021,
+      "dwt": 1714,
+      "ldt": 291,
+      "length": 133,
+      "speed": null,
+      "pax": null,
+      "classCode": "CC",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "5y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 45,
+      "source": "GRS",
+      "grsId": "1120884",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/133m-dp1-700ts-crane-jack-up-for-sale-1120884",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000081,
+      "imo": "GRS-1089599",
+      "name": "25M 51 PAX CREW TRANSFER VESSEL",
+      "flag": "Unknown",
+      "type": "Crew Transfer Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2012,
+      "dwt": 0,
+      "ldt": 500,
+      "length": 25,
+      "speed": 18,
+      "pax": 4,
+      "classCode": "",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "14y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "4 pax",
+          "type": "idle"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 54,
+      "source": "GRS",
+      "grsId": "1089599",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/25m-51-pax-crew-transfer-vessel-for-sale-1089599",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000082,
+      "imo": "GRS-1029959",
+      "name": "68M 15KNTS SURVEY VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 1985,
+      "dwt": 1475,
+      "ldt": 251,
+      "length": 68.41,
+      "speed": 15,
+      "pax": null,
+      "classCode": "YES",
+      "location": "—",
+      "price": "$3.9M",
+      "priceEUR": 3600000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "41y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1029959",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/68m-15knts-survey-vessel-for-sale-1029959",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000083,
+      "imo": "GRS-1123548",
+      "name": "26M 24 PAX CREW TRANSFER VESSEL",
+      "flag": "Unknown",
+      "type": "Crew Transfer Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2022,
+      "dwt": 0,
+      "ldt": 516,
+      "length": 25.8,
+      "speed": 27.1,
+      "pax": 2,
+      "classCode": "",
+      "location": "—",
+      "price": "$4.5M",
+      "priceEUR": 4200000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "4y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "2 pax",
+          "type": "idle"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 44,
+      "source": "GRS",
+      "grsId": "1123548",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/26m-24-pax-crew-transfer-vessel-for-sale-1123548",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000084,
+      "imo": "GRS-1066773",
+      "name": "92M DP 2 PLATFORM SUPPLY VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Platform",
+      "group": "Offshore / Renewables",
+      "built": 2007,
+      "dwt": 4378,
+      "ldt": 744,
+      "length": 91.97,
+      "speed": null,
+      "pax": null,
+      "classCode": "AB",
+      "location": "—",
+      "price": "$35.1M",
+      "priceEUR": 32500000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "19y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 59,
+      "source": "GRS",
+      "grsId": "1066773",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/92m-dp2-platform-supply-vessel-for-sale-1066773",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000085,
+      "imo": "GRS-1144447",
+      "name": "21M 23KNTS SURVEY VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 1989,
+      "dwt": 0,
+      "ldt": 426,
+      "length": 21.3,
+      "speed": 23,
+      "pax": null,
+      "classCode": "LR",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "37y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": true,
+      "score": 95,
+      "source": "GRS",
+      "grsId": "1144447",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/21m-23knts-survey-vessel-for-sale-1144447",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000086,
+      "imo": "GRS-1133739",
+      "name": "107M DP 1 1200TS CRANE JACK UP",
+      "flag": "Unknown",
+      "type": "Jack-up",
+      "group": "Offshore / Renewables",
+      "built": 2025,
+      "dwt": 4000,
+      "ldt": 680,
+      "length": 106.6,
+      "speed": null,
+      "pax": 120,
+      "classCode": "CC",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "1y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "120 pax",
+          "type": "idle"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 41,
+      "source": "GRS",
+      "grsId": "1133739",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/107m-dp1-1200ts-crane-jack-up-for-sale-1133739",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000087,
+      "imo": "GRS-1070898",
+      "name": "34M CREW TRANSFER VESSEL",
+      "flag": "Unknown",
+      "type": "Crew Transfer Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2010,
+      "dwt": 0,
+      "ldt": 680,
+      "length": 34,
+      "speed": null,
+      "pax": null,
+      "classCode": "PR",
+      "location": "—",
+      "price": "$2.4M",
+      "priceEUR": 2200000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "16y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 56,
+      "source": "GRS",
+      "grsId": "1070898",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/34m-crew-transfer-vessel-for-sale-1070898",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000088,
+      "imo": "GRS-1004718",
+      "name": "NOT CLASSED 55M BUOY TENDER",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 1968,
+      "dwt": 419,
+      "ldt": 71,
+      "length": 55.33,
+      "speed": 10,
+      "pax": 28,
+      "classCode": "",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "58y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "28 pax",
+          "type": "idle"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1004718",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/not-classed-55m-buoy-tender-for-sale-1004718",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000089,
+      "imo": "GRS-1061771",
+      "name": "95M ACCOMMODATION SHIP",
+      "flag": "Unknown",
+      "type": "Accommodation Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2007,
+      "dwt": 1293,
+      "ldt": 220,
+      "length": 95.36,
+      "speed": 13,
+      "pax": 81,
+      "classCode": "BV",
+      "location": "—",
+      "price": "$29.2M",
+      "priceEUR": 27000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "19y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "81 pax",
+          "type": "idle"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 59,
+      "source": "GRS",
+      "grsId": "1061771",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/95m-accommodation-ship-for-sale-1061771",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000090,
+      "imo": "GRS-1072173",
+      "name": "89M 15KNTS SURVEY VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2010,
+      "dwt": 3800,
+      "ldt": 646,
+      "length": 88.8,
+      "speed": 15,
+      "pax": null,
+      "classCode": "DNV",
+      "location": "—",
+      "price": "$32.4M",
+      "priceEUR": 30000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "16y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 56,
+      "source": "GRS",
+      "grsId": "1072173",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/89m-15knts-survey-vessel-for-sale-1072173",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000091,
+      "imo": "GRS-1135178",
+      "name": "27M CREW TRANSFER VESSEL",
+      "flag": "Unknown",
+      "type": "Crew Transfer Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2025,
+      "dwt": 33,
+      "ldt": 6,
+      "length": 26.65,
+      "speed": 23.1,
+      "pax": null,
+      "classCode": "BV",
+      "location": "—",
+      "price": "$5.1M",
+      "priceEUR": 4750000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "1y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 41,
+      "source": "GRS",
+      "grsId": "1135178",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/27m-crew-transfer-vessel-for-sale-1135178",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000092,
+      "imo": "GRS-1078418",
+      "name": "19M 12 PAX CREW TRANSFER VESSEL",
+      "flag": "Unknown",
+      "type": "Crew Transfer Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2012,
+      "dwt": 0,
+      "ldt": 380,
+      "length": 19,
+      "speed": 22,
+      "pax": 4,
+      "classCode": "",
+      "location": "—",
+      "price": "$0.7M",
+      "priceEUR": 680000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "14y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "4 pax",
+          "type": "idle"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 54,
+      "source": "GRS",
+      "grsId": "1078418",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/19m-12-pax-crew-transfer-vessel-for-sale-1078418",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000093,
+      "imo": "GRS-1074758",
+      "name": "56M 12KNTS SURVEY VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2010,
+      "dwt": 428,
+      "ldt": 73,
+      "length": 56,
+      "speed": 12,
+      "pax": null,
+      "classCode": "CC",
+      "location": "—",
+      "price": "$1.9M",
+      "priceEUR": 1800000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "16y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 56,
+      "source": "GRS",
+      "grsId": "1074758",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/56m-12knts-survey-vessel-for-sale-1074758",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000094,
+      "imo": "GRS-1072087",
+      "name": "64M DP 2 PLATFORM SUPPLY VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Platform",
+      "group": "Offshore / Renewables",
+      "built": 2009,
+      "dwt": 2799,
+      "ldt": 476,
+      "length": 64.03,
+      "speed": 10,
+      "pax": null,
+      "classCode": "AB",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "17y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 57,
+      "source": "GRS",
+      "grsId": "1072087",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/64m-dp2-platform-supply-vessel-for-sale-1072087",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000095,
+      "imo": "GRS-1064566",
+      "name": "86M DP 2 PLATFORM SUPPLY VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Platform",
+      "group": "Offshore / Renewables",
+      "built": 2005,
+      "dwt": 4813,
+      "ldt": 818,
+      "length": 86.2,
+      "speed": 15,
+      "pax": null,
+      "classCode": "DNV",
+      "location": "—",
+      "price": "$23.8M",
+      "priceEUR": 22000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "21y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 63,
+      "source": "GRS",
+      "grsId": "1064566",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/86m-dp2-platform-supply-vessel-for-sale-1064566",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000096,
+      "imo": "GRS-1073940",
+      "name": "31M 51TS BP TUG",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2010,
+      "dwt": 195,
+      "ldt": 33,
+      "length": 30.5,
+      "speed": 8,
+      "pax": null,
+      "classCode": "BV",
+      "location": "—",
+      "price": "$4.9M",
+      "priceEUR": 4500000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "16y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 56,
+      "source": "GRS",
+      "grsId": "1073940",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/31m-51ts-bp-tug-for-sale-1073940",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000097,
+      "imo": "GRS-1134755",
+      "name": "JACK UP IMMEDIATELY AVAILABLE FOR PURCHASE RENTAL ALSO POSSIBLE 31M JACK UP",
+      "flag": "Unknown",
+      "type": "Jack-up",
+      "group": "Offshore / Renewables",
+      "built": 2001,
+      "dwt": 0,
+      "ldt": 610,
+      "length": 30.5,
+      "speed": null,
+      "pax": null,
+      "classCode": "BV",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "25y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 74,
+      "source": "GRS",
+      "grsId": "1134755",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/jack-up-immediately-available-for-purchase-rental-also-possible-31m-jack-up-for-sale-1134755",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000098,
+      "imo": "GRS-1144219",
+      "name": "65M DP 2 AHTS VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2026,
+      "dwt": 1600,
+      "ldt": 272,
+      "length": 64.8,
+      "speed": null,
+      "pax": null,
+      "classCode": "AB",
+      "location": "—",
+      "price": "$23.8M",
+      "priceEUR": 22000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "0y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 40,
+      "source": "GRS",
+      "grsId": "1144219",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/65m-dp2-ahts-vessel-for-sale-1144219",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000099,
+      "imo": "GRS-1134896",
+      "name": "25M MULTIROLE DIVE SUPPORT VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 1995,
+      "dwt": 0,
+      "ldt": 507,
+      "length": 25.35,
+      "speed": null,
+      "pax": null,
+      "classCode": "",
+      "location": "—",
+      "price": "$2.4M",
+      "priceEUR": 2250000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "31y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 85,
+      "source": "GRS",
+      "grsId": "1134896",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/25m-multirole-dive-support-vessel-for-sale-1134896",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000100,
+      "imo": "GRS-1029232",
+      "name": "31M TUG",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 1984,
+      "dwt": 250,
+      "ldt": 43,
+      "length": 31.02,
+      "speed": 10,
+      "pax": null,
+      "classCode": "",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "42y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1029232",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/31m-tug-for-sale-1029232",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000101,
+      "imo": "GRS-1070111",
+      "name": "38M 47TS BP AHTS VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2008,
+      "dwt": 349,
+      "ldt": 59,
+      "length": 38,
+      "speed": null,
+      "pax": null,
+      "classCode": "RI",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "18y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 58,
+      "source": "GRS",
+      "grsId": "1070111",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/38m-47ts-bp-ahts-vessel-for-sale-1070111",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000102,
+      "imo": "GRS-1082261",
+      "name": "15M 7TS BP TUG",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 1975,
+      "dwt": 0,
+      "ldt": 300,
+      "length": 15,
+      "speed": null,
+      "pax": null,
+      "classCode": "",
+      "location": "—",
+      "price": "$0.4M",
+      "priceEUR": 350000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "51y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1082261",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/15m-7ts-bp-tug-for-sale-1082261",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000103,
+      "imo": "GRS-1089332",
+      "name": "15M 15KNTS RIB",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2018,
+      "dwt": 0,
+      "ldt": 300,
+      "length": 15,
+      "speed": 15,
+      "pax": 9,
+      "classCode": "",
+      "location": "—",
+      "price": "$2.4M",
+      "priceEUR": 2200000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "8y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "9 pax",
+          "type": "idle"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 48,
+      "source": "GRS",
+      "grsId": "1089332",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/15m-15knts-rib-for-sale-1089332",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000104,
+      "imo": "GRS-1106371",
+      "name": "75M INLAND WATERWAYS VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2004,
+      "dwt": 1300,
+      "ldt": 221,
+      "length": 75,
+      "speed": 11,
+      "pax": null,
+      "classCode": "BV",
+      "location": "—",
+      "price": "$2.8M",
+      "priceEUR": 2600000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "22y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 66,
+      "source": "GRS",
+      "grsId": "1106371",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/75m-inland-waterways-vessel-for-sale-1106371",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000105,
+      "imo": "GRS-1117098",
+      "name": "20M TUG",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2001,
+      "dwt": 0,
+      "ldt": 400,
+      "length": 20,
+      "speed": 10,
+      "pax": 6,
+      "classCode": "",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "25y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "6 pax",
+          "type": "idle"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 74,
+      "source": "GRS",
+      "grsId": "1117098",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/20m-tug-for-sale-1117098",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000106,
+      "imo": "GRS-1144524",
+      "name": "173M DECK CARGO SHIP",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2024,
+      "dwt": 27242,
+      "ldt": 4631,
+      "length": 172.8,
+      "speed": 16,
+      "pax": 25,
+      "classCode": "CC",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "2y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "25 pax",
+          "type": "idle"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 42,
+      "source": "GRS",
+      "grsId": "1144524",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/173m-deck-cargo-ship-for-sale-1144524",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000107,
+      "imo": "GRS-1144470",
+      "name": "FLOATING DOCK",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 1991,
+      "dwt": 10007,
+      "ldt": 1701,
+      "length": 65,
+      "speed": null,
+      "pax": null,
+      "classCode": "",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "35y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": true,
+      "score": 93,
+      "source": "GRS",
+      "grsId": "1144470",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/floating-dock-for-sale-1144470",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000108,
+      "imo": "GRS-1057706",
+      "name": "126M MULTI PURPOSE VESSEL GENERAL CARGO SHIP",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2005,
+      "dwt": 10334,
+      "ldt": 1757,
+      "length": 126.08,
+      "speed": 13.8,
+      "pax": null,
+      "classCode": "BV",
+      "location": "—",
+      "price": "$5.7M",
+      "priceEUR": 5250000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "21y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 63,
+      "source": "GRS",
+      "grsId": "1057706",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/126m-multi-purpose-vessel-general-cargo-ship-for-sale-1057706",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000109,
+      "imo": "GRS-1144586",
+      "name": "19M 12 PAX CREW TRANSFER VESSEL",
+      "flag": "Unknown",
+      "type": "Crew Transfer Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2011,
+      "dwt": 0,
+      "ldt": 376,
+      "length": 18.8,
+      "speed": 24,
+      "pax": 12,
+      "classCode": "BV",
+      "location": "—",
+      "price": "$1.0M",
+      "priceEUR": 950000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "15y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "12 pax",
+          "type": "idle"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 55,
+      "source": "GRS",
+      "grsId": "1144586",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/19m-12-pax-crew-transfer-vessel-for-sale-1144586",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000110,
+      "imo": "GRS-1015353",
+      "name": "36M 30TS BP TUG",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 1981,
+      "dwt": 188,
+      "ldt": 32,
+      "length": 36.23,
+      "speed": 13,
+      "pax": null,
+      "classCode": "TL",
+      "location": "—",
+      "price": "$2.1M",
+      "priceEUR": 1900000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "45y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1015353",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/36m-30ts-bp-tug-for-sale-1015353",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000111,
+      "imo": "GRS-1074365",
+      "name": "37M UTILITY VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2010,
+      "dwt": 79,
+      "ldt": 13,
+      "length": 36.63,
+      "speed": null,
+      "pax": 10,
+      "classCode": "AB",
+      "location": "—",
+      "price": "$3.0M",
+      "priceEUR": 2750000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "16y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "10 pax",
+          "type": "idle"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 56,
+      "source": "GRS",
+      "grsId": "1074365",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/37m-utility-vessel-for-sale-1074365",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000112,
+      "imo": "GRS-1144432",
+      "name": "110M 11.48M PONTOON BARGE",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 1978,
+      "dwt": 0,
+      "ldt": 2200,
+      "length": 110,
+      "speed": null,
+      "pax": null,
+      "classCode": "",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "48y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1144432",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/110m-11.48m-pontoon-barge-for-sale-1144432",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000113,
+      "imo": "GRS-1144232",
+      "name": "58M LANDING CRAFT",
+      "flag": "Unknown",
+      "type": "Landing Craft",
+      "group": "Offshore / Renewables",
+      "built": 2004,
+      "dwt": 0,
+      "ldt": 1169,
+      "length": 58.44,
+      "speed": null,
+      "pax": 162,
+      "classCode": "KR",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "22y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "162 pax",
+          "type": "idle"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 66,
+      "source": "GRS",
+      "grsId": "1144232",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/58m-landing-craft-for-sale-1144232",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000114,
+      "imo": "GRS-1074271",
+      "name": "59M 70TS BP AHTS VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2012,
+      "dwt": 1293,
+      "ldt": 220,
+      "length": 58.7,
+      "speed": 13.5,
+      "pax": null,
+      "classCode": "AB",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "14y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 54,
+      "source": "GRS",
+      "grsId": "1074271",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/59m-70ts-bp-ahts-vessel-for-sale-1074271",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000115,
+      "imo": "GRS-1038757",
+      "name": "59M 10KNTS SURVEY VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 1989,
+      "dwt": 885,
+      "ldt": 150,
+      "length": 59,
+      "speed": 10,
+      "pax": null,
+      "classCode": "LR",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "37y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": true,
+      "score": 95,
+      "source": "GRS",
+      "grsId": "1038757",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/59m-10knts-survey-vessel-for-sale-1038757",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000116,
+      "imo": "GRS-1022878",
+      "name": "42M 10KNTS SURVEY VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 1981,
+      "dwt": 325,
+      "ldt": 55,
+      "length": 42.25,
+      "speed": null,
+      "pax": null,
+      "classCode": "NV",
+      "location": "—",
+      "price": "$7.4M",
+      "priceEUR": 6850000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "45y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": true,
+      "score": 99,
+      "source": "GRS",
+      "grsId": "1022878",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/42m-10knts-survey-vessel-for-sale-1022878",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000117,
+      "imo": "GRS-1144229",
+      "name": "68M LANDING CRAFT",
+      "flag": "Unknown",
+      "type": "Landing Craft",
+      "group": "Offshore / Renewables",
+      "built": 2004,
+      "dwt": 0,
+      "ldt": 1350,
+      "length": 67.5,
+      "speed": 14,
+      "pax": 255,
+      "classCode": "KO",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "22y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "255 pax",
+          "type": "idle"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 66,
+      "source": "GRS",
+      "grsId": "1144229",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/68m-landing-craft-for-sale-1144229",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000118,
+      "imo": "GRS-1144325",
+      "name": "60M 62TS BP AHTS VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2005,
+      "dwt": 1256,
+      "ldt": 214,
+      "length": 60,
+      "speed": 13.5,
+      "pax": 40,
+      "classCode": "",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "21y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "40 pax",
+          "type": "idle"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 63,
+      "source": "GRS",
+      "grsId": "1144325",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/60m-62ts-bp-ahts-vessel-for-sale-1144325",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000119,
+      "imo": "GRS-1116994",
+      "name": "60M 22M PONTOON BARGE",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2001,
+      "dwt": 0,
+      "ldt": 1200,
+      "length": 60,
+      "speed": null,
+      "pax": null,
+      "classCode": "BV",
+      "location": "—",
+      "price": "$2.8M",
+      "priceEUR": 2600000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "25y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 74,
+      "source": "GRS",
+      "grsId": "1116994",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/60m-22m-pontoon-barge-for-sale-1116994",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000120,
+      "imo": "GRS-1112617",
+      "name": "25M 41 PAX CREW TRANSFER VESSEL",
+      "flag": "Unknown",
+      "type": "Crew Transfer Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2020,
+      "dwt": 0,
+      "ldt": 500,
+      "length": 25,
+      "speed": 25,
+      "pax": null,
+      "classCode": "KR",
+      "location": "—",
+      "price": "$3.8M",
+      "priceEUR": 3500000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "6y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 46,
+      "source": "GRS",
+      "grsId": "1112617",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/25m-41-pax-crew-transfer-vessel-for-sale-1112617",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000121,
+      "imo": "GRS-1105149",
+      "name": "NEW BUILD 22M LANDING CRAFT",
+      "flag": "Unknown",
+      "type": "Landing Craft",
+      "group": "Offshore / Renewables",
+      "built": 2018,
+      "dwt": 0,
+      "ldt": 443,
+      "length": 22.13,
+      "speed": 9,
+      "pax": null,
+      "classCode": "",
+      "location": "—",
+      "price": "$1.4M",
+      "priceEUR": 1271000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "8y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 48,
+      "source": "GRS",
+      "grsId": "1105149",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/new-build-22m-landing-craft-for-sale-1105149",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000122,
+      "imo": "GRS-1134805",
+      "name": "12M 29 PAX CREW TRANSFER VESSEL",
+      "flag": "Unknown",
+      "type": "Crew Transfer Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2001,
+      "dwt": 0,
+      "ldt": 240,
+      "length": 12,
+      "speed": 28,
+      "pax": 29,
+      "classCode": "",
+      "location": "—",
+      "price": "$0.7M",
+      "priceEUR": 670000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "25y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "29 pax",
+          "type": "idle"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 74,
+      "source": "GRS",
+      "grsId": "1134805",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/12m-29-pax-crew-transfer-vessel-for-sale-1134805",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000123,
+      "imo": "GRS-1084089",
+      "name": "59M DP 1 OFFSHORE SUPPORT & CONSTRUCTION VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Platform",
+      "group": "Offshore / Renewables",
+      "built": 2024,
+      "dwt": 1302,
+      "ldt": 221,
+      "length": 59.25,
+      "speed": 11,
+      "pax": null,
+      "classCode": "AB",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "2y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 42,
+      "source": "GRS",
+      "grsId": "1084089",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/59m-dp1-offshore-support-&-construction-vessel-for-sale-1084089",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000124,
+      "imo": "GRS-1067774",
+      "name": "74M DP 2 PLATFORM SUPPLY VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Platform",
+      "group": "Offshore / Renewables",
+      "built": 2009,
+      "dwt": 3240,
+      "ldt": 551,
+      "length": 73.6,
+      "speed": 13,
+      "pax": null,
+      "classCode": "RI",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "17y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 57,
+      "source": "GRS",
+      "grsId": "1067774",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/74m-dp2-platform-supply-vessel-for-sale-1067774",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000125,
+      "imo": "GRS-1100803",
+      "name": "DECK CARGO PONTOON, NON PROPELLED",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2014,
+      "dwt": 32000,
+      "ldt": 5440,
+      "length": 140,
+      "speed": null,
+      "pax": null,
+      "classCode": "CC",
+      "location": "—",
+      "price": "$10.3M",
+      "priceEUR": 9500000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "12y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 52,
+      "source": "GRS",
+      "grsId": "1100803",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/deck-cargo-pontoon,-non-propelled-for-sale-1100803",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000126,
+      "imo": "GRS-1069793",
+      "name": "31M 43TS BP TUG",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2008,
+      "dwt": 305,
+      "ldt": 52,
+      "length": 31.1,
+      "speed": 10,
+      "pax": null,
+      "classCode": "DNV",
+      "location": "—",
+      "price": "$2.7M",
+      "priceEUR": 2500000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "18y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 58,
+      "source": "GRS",
+      "grsId": "1069793",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/31m-43ts-bp-tug-for-sale-1069793",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000127,
+      "imo": "GRS-1144308",
+      "name": "64M FLOATING DOCK",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2014,
+      "dwt": 0,
+      "ldt": 1280,
+      "length": 64,
+      "speed": null,
+      "pax": null,
+      "classCode": "",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "12y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 52,
+      "source": "GRS",
+      "grsId": "1144308",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/64m-floating-dock-for-sale-1144308",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000128,
+      "imo": "GRS-1095424",
+      "name": "89M DP 2 OFFSHORE SUPPORT & CONSTRUCTION VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Platform",
+      "group": "Offshore / Renewables",
+      "built": 2018,
+      "dwt": 3911,
+      "ldt": 665,
+      "length": 89,
+      "speed": 11,
+      "pax": null,
+      "classCode": "AB",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "8y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 48,
+      "source": "GRS",
+      "grsId": "1095424",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/89m-dp2-offshore-support-&-construction-vessel-for-sale-1095424",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000129,
+      "imo": "GRS-1088655",
+      "name": "ASD TUG KEEN SELLERS 31M 65TS BP TUG",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2022,
+      "dwt": 0,
+      "ldt": 610,
+      "length": 30.5,
+      "speed": 11.5,
+      "pax": null,
+      "classCode": "BV",
+      "location": "—",
+      "price": "$8.6M",
+      "priceEUR": 8000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "4y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 44,
+      "source": "GRS",
+      "grsId": "1088655",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/asd-tug-keen-sellers-31m-65ts-bp-tug-for-sale-1088655",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000130,
+      "imo": "GRS-1069871",
+      "name": "70M DP 1 PLATFORM SUPPLY VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Platform",
+      "group": "Offshore / Renewables",
+      "built": 2007,
+      "dwt": 3066,
+      "ldt": 521,
+      "length": 70,
+      "speed": 12.5,
+      "pax": null,
+      "classCode": "IR",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "19y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 59,
+      "source": "GRS",
+      "grsId": "1069871",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/70m-dp1-platform-supply-vessel-for-sale-1069871",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000131,
+      "imo": "GRS-1134821",
+      "name": "24M 14TS BP MULTICAT",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2025,
+      "dwt": 0,
+      "ldt": 486,
+      "length": 24.3,
+      "speed": 8,
+      "pax": null,
+      "classCode": "BV",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "1y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 41,
+      "source": "GRS",
+      "grsId": "1134821",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/24m-14ts-bp-multicat-for-sale-1134821",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000132,
+      "imo": "GRS-1112519",
+      "name": "15M 22KNTS SURVEY VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2012,
+      "dwt": 162,
+      "ldt": 28,
+      "length": 15.18,
+      "speed": 22,
+      "pax": null,
+      "classCode": "BV",
+      "location": "—",
+      "price": "$0.5M",
+      "priceEUR": 450000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "14y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 54,
+      "source": "GRS",
+      "grsId": "1112519",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/15m-22knts-survey-vessel-for-sale-1112519",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000133,
+      "imo": "GRS-1030716",
+      "name": "85M 12KNTS SURVEY VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Support Vessel",
+      "group": "Offshore / Renewables",
+      "built": 1986,
+      "dwt": 1000,
+      "ldt": 170,
+      "length": 84.7,
+      "speed": 12,
+      "pax": null,
+      "classCode": "RI",
+      "location": "—",
+      "price": "POA",
+      "priceEUR": null,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "40y old",
+          "type": "urgent"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "High priority",
+          "type": "urgent"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": true,
+      "score": 98,
+      "source": "GRS",
+      "grsId": "1030716",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/85m-12knts-survey-vessel-for-sale-1030716",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000134,
+      "imo": "GRS-1128932",
+      "name": "15M CREW TRANSFER VESSEL",
+      "flag": "Unknown",
+      "type": "Crew Transfer Vessel",
+      "group": "Offshore / Renewables",
+      "built": 2017,
+      "dwt": 0,
+      "ldt": 300,
+      "length": 15,
+      "speed": null,
+      "pax": null,
+      "classCode": "BV",
+      "location": "—",
+      "price": "$0.6M",
+      "priceEUR": 550000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "9y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 49,
+      "source": "GRS",
+      "grsId": "1128932",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/15m-crew-transfer-vessel-for-sale-1128932",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    },
+    {
+      "id": 10000135,
+      "imo": "GRS-1088254",
+      "name": "78M DP 2 PLATFORM SUPPLY VESSEL",
+      "flag": "Unknown",
+      "type": "Offshore Platform",
+      "group": "Offshore / Renewables",
+      "built": 2022,
+      "dwt": 3970,
+      "ldt": 675,
+      "length": 78,
+      "speed": 12,
+      "pax": null,
+      "classCode": "CC",
+      "location": "—",
+      "price": "$24.8M",
+      "priceEUR": 23000000,
+      "priceType": "Asking",
+      "saleType": "voluntary",
+      "tags": [
+        {
+          "label": "4y old",
+          "type": "idle"
+        },
+        {
+          "label": "Voluntary Sale",
+          "type": "new"
+        },
+        {
+          "label": "Offshore",
+          "type": "bank"
+        }
+      ],
+      "urgent": false,
+      "score": 44,
+      "source": "GRS",
+      "grsId": "1088254",
+      "detailUrl": "https://grs.group/grs-offshore-renewables/purchase/offshore-vessels-for-sale/offshore-vessels-for-sale-results/offshore-vessels-for-sale-detail/purchase/78m-dp2-platform-supply-vessel-for-sale-1088254",
+      "addedAt": "2026-06-19T03:09:36.949Z"
+    }
+  ],
+  "updatedAt": "2026-06-19T03:09:36.949Z"
+}

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { list }         from "@vercel/blob";
 
 const API_KEY = process.env.DATALASTIC_API_KEY;
 const BASE    = "https://api.datalastic.com/api/v0";
@@ -77,49 +78,75 @@ async function fetchVessel(imo: string) {
   }
 }
 
-export async function GET() {
-  if (!API_KEY) return NextResponse.json({ error: "API key missing" }, { status: 500 });
+async function fetchGRSVessels(): Promise<any[]> {
+  try {
+    const { blobs } = await list({ prefix: "grs_vessels.json" });
+    const blob = blobs[0];
+    if (!blob) return [];
+    const res = await fetch(blob.url, { next: { revalidate: 300 } });
+    if (!res.ok) return [];
+    const json = await res.json();
+    return json?.vessels || [];
+  } catch {
+    return [];
+  }
+}
 
-  const results = await Promise.all(TRACKED_IMOS.map(fetchVessel));
+export async function GET() {
   const year = new Date().getFullYear();
 
-  const listings = results
-    .map((d, i) => {
-      if (!d) return null;
-      const imo      = TRACKED_IMOS[i];
-      const built    = parseInt(d.year_built) || 2000;
-      const age      = year - built;
-      const dwt      = d.deadweight || 0;
-      const ldt      = d.lightship  || Math.round(dwt * 0.17);
-      const type     = typeLabel(d.type_specific);
-      const market   = bestMarket(d.type_specific);
-      const price    = MARKET_PRICES[market] ?? 500;
-      const estUSD   = ldt * price;
-      const score    = Math.min(99, scoreFromAge(age));
-      const saleType = saleTypeFromVessel(age, score, imo);
-      const tags     = tagsFromVessel(age, score, saleType);
+  // Always load GRS vessels (no API key needed)
+  const grsVessels = await fetchGRSVessels();
 
-      return {
-        id:        parseInt(imo),
-        imo,
-        name:      d.name || `Vessel ${imo}`,
-        flag:      d.country_name || "Unknown",
-        type,
-        group:     type.includes("Tanker") ? "Tankers" : type.includes("Container") ? "Dry Cargo" : "Dry Cargo",
-        built,
-        dwt,
-        ldt,
-        location:  d.last_port || d.home_port || "—",
-        price:     `$${(estUSD / 1_000_000).toFixed(1)}M`,
-        priceType: saleType === "judicial" ? "Reserve price" : saleType === "bank" ? "Bank offer" : score >= 85 ? "Distressed" : "Asking",
-        saleType,
-        tags,
-        urgent:    score >= 88,
-        score,
-      };
-    })
-    .filter(Boolean)
-    .sort((a, b) => b!.score - a!.score);
+  // Load Datalastic vessels if key is available
+  let datalasticListings: any[] = [];
+  if (API_KEY) {
+    const results = await Promise.all(TRACKED_IMOS.map(fetchVessel));
+    datalasticListings = results
+      .map((d, i) => {
+        if (!d) return null;
+        const imo      = TRACKED_IMOS[i];
+        const built    = parseInt(d.year_built) || 2000;
+        const age      = year - built;
+        const dwt      = d.deadweight || 0;
+        const ldt      = d.lightship  || Math.round(dwt * 0.17);
+        const type     = typeLabel(d.type_specific);
+        const market   = bestMarket(d.type_specific);
+        const price    = MARKET_PRICES[market] ?? 500;
+        const estUSD   = ldt * price;
+        const score    = Math.min(99, scoreFromAge(age));
+        const saleType = saleTypeFromVessel(age, score, imo);
+        const tags     = tagsFromVessel(age, score, saleType);
+
+        return {
+          id:        parseInt(imo),
+          imo,
+          name:      d.name || `Vessel ${imo}`,
+          flag:      d.country_name || "Unknown",
+          type,
+          group:     type.includes("Tanker") ? "Tankers" : type.includes("Container") ? "Dry Cargo" : "Dry Cargo",
+          built,
+          dwt,
+          ldt,
+          location:  d.last_port || d.home_port || "—",
+          price:     `$${(estUSD / 1_000_000).toFixed(1)}M`,
+          priceType: saleType === "judicial" ? "Reserve price" : saleType === "bank" ? "Bank offer" : score >= 85 ? "Distressed" : "Asking",
+          saleType,
+          tags,
+          urgent:    score >= 88,
+          score,
+          source:    "datalastic",
+        };
+      })
+      .filter(Boolean);
+  }
+
+  const listings = [...datalasticListings, ...grsVessels]
+    .sort((a, b) => (b?.score ?? 0) - (a?.score ?? 0));
+
+  if (listings.length === 0) {
+    return NextResponse.json({ error: "No vessel data available" }, { status: 503 });
+  }
 
   return NextResponse.json(
     { listings, updatedAt: new Date().toISOString() },

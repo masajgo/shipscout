@@ -7,11 +7,23 @@ export const maxDuration = 9;
 const BOUNDING_BOXES = [[[-90.0, -180.0], [90.0, 180.0]]];
 
 export interface VesselData {
-  mmsi: string; name: string;
-  lat: number; lon: number;
-  speed: number; course: number;
-  vesselType: number; length: number; width: number;
-  draught: number; destination: string; timestamp: string;
+  mmsi:        string;
+  name:        string;
+  callSign:    string;
+  imo:         string;
+  lat:         number;
+  lon:         number;
+  speed:       number;
+  course:      number;
+  heading:     number;
+  navStatus:   number;
+  vesselType:  number;
+  length:      number;
+  width:       number;
+  draught:     number;
+  destination: string;
+  eta:         string;
+  timestamp:   string;
 }
 
 export async function GET() {
@@ -59,43 +71,45 @@ function collectVessels(ms: number): Promise<VesselData[]> {
     ws.on("message", (raw: Buffer | string) => {
       try {
         const data = JSON.parse(raw.toString());
-        const mmsi =
-          data.MetaData?.MMSI?.toString() ||
-          data.Message?.PositionReport?.UserID?.toString() ||
-          data.Message?.ShipStaticData?.UserID?.toString();
+        const type = data.MessageType as string;
+        const mmsi = data.MetaData?.MMSI?.toString();
         if (!mmsi) return;
 
-        const existing = partials.get(mmsi) || {};
+        const cur = partials.get(mmsi) || {};
 
-        if (data.Message?.PositionReport) {
+        if (type === "PositionReport") {
           const pos = data.Message.PositionReport;
           partials.set(mmsi, {
-            ...existing, mmsi,
-            lat: pos.Latitude, lon: pos.Longitude,
-            speed: pos.SpeedOverGround ?? 0,
-            course: pos.CourseOverGround ?? 0,
+            ...cur, mmsi,
+            lat:    pos.Latitude,
+            lon:    pos.Longitude,
+            speed:  pos.Sog  ?? 0,
+            course: pos.Cog  ?? 0,
+            heading:   pos.TrueHeading        ?? 511,
+            navStatus: pos.NavigationalStatus ?? 0,
             timestamp: data.MetaData?.time_utc || new Date().toISOString(),
           });
         }
 
-        if (data.Message?.ShipStaticData) {
+        if (type === "ShipStaticData") {
           const stat = data.Message.ShipStaticData;
-          const dim = stat.Dimension || {};
-          const cur = partials.get(mmsi) || existing;
+          const dim  = stat.Dimension || {};
           partials.set(mmsi, {
             ...cur, mmsi,
-            name: stat.Name?.trim() || cur.name || "",
-            vesselType: stat.Type || cur.vesselType || 0,
-            length: (dim.A || 0) + (dim.B || 0),
-            width: (dim.C || 0) + (dim.D || 0),
-            draught: stat.MaximumStaticDraught || 0,
-            destination: stat.Destination?.trim() || cur.destination || "",
+            name:        (stat.Name        || "").trim() || cur.name        || "",
+            callSign:    (stat.CallSign    || "").trim() || cur.callSign    || "",
+            imo:         stat.ImoNumber?.toString()      || cur.imo         || "",
+            vesselType:  stat.Type                      ?? cur.vesselType  ?? 0,
+            length:      (dim.A || 0) + (dim.B || 0),
+            width:       (dim.C || 0) + (dim.D || 0),
+            draught:     stat.MaximumStaticDraught       ?? 0,
+            destination: (stat.Destination || "").trim() || cur.destination || "",
+            eta:         stat.Eta                        || cur.eta         || "",
           });
         }
 
-        if (data.MetaData?.ShipName) {
-          const cur = partials.get(mmsi) || existing;
-          partials.set(mmsi, { ...cur, name: data.MetaData.ShipName.trim() || cur.name || "" });
+        if (data.MetaData?.ShipName && !cur.name) {
+          partials.set(mmsi, { ...cur, name: data.MetaData.ShipName.trim() });
         }
       } catch {}
     });

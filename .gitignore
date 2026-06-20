@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# runtime / generated
+/logs/
+/scraper/data/vessel_age_cache.json

@@ -1,0 +1,8 @@
+[build]
+dockerfilePath = "worker/Dockerfile"
+
+[deploy]
+startCommand    = "node worker/aisWorker.js"
+restartPolicyType       = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+healthcheckPath         = ""   # no HTTP — pure background worker

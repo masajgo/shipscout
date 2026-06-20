@@ -5,8 +5,8 @@ import VesselPanel from "@/components/VesselPanel";
 const SHIP_TYPES = [
   { group: "Dry Cargo",          types: ["Bulk Carrier", "General Cargo", "Container Ship"] },
   { group: "Tankers",            types: ["Oil / Crude Tanker", "Product Tanker", "Chemical Tanker", "LNG / LPG Carrier"] },
-  { group: "Passenger",          types: ["Cruise Ship", "Ferry / RoPax", "Expedition Vessel"] },
-  { group: "Offshore & Special", types: ["Offshore Supply (PSV)", "AHTS", "Dredger", "Tugboat", "Fishing Vessel"] },
+  { group: "Passenger",          types: ["Cruise Ship", "Passenger / RoRo", "Passenger Ship", "Ferry / RoPax", "Expedition Vessel", "Accommodation Vessel"] },
+  { group: "Offshore & Special", types: ["Offshore Support Vessel", "Crew Transfer Vessel", "Offshore Platform", "Jack-up", "Wind Support Vessel", "Offshore Supply (PSV)", "AHTS", "Landing Craft", "Dredger", "Tugboat", "Fishing Vessel"] },
   { group: "Other",              types: ["Reefer", "Car Carrier (RORO)", "Multi-Purpose"] },
 ];
 
@@ -37,7 +37,10 @@ const TYPE_CODE: Record<string, string> = {
   "Bulk Carrier": "BC", "General Cargo": "GC", "Container Ship": "CT",
   "Oil / Crude Tanker": "TK", "Product Tanker": "PT", "Chemical Tanker": "CH",
   "LNG / LPG Carrier": "LG", "Cruise Ship": "CR", "Ferry / RoPax": "FR",
-  "Expedition Vessel": "EX", "Offshore Supply (PSV)": "OS", "AHTS": "AH",
+  "Passenger / RoRo": "RO", "Passenger Ship": "PS", "Accommodation Vessel": "AV",
+  "Expedition Vessel": "EX", "Offshore Support Vessel": "OS", "Landing Craft": "LC",
+  "Crew Transfer Vessel": "CT", "Offshore Platform": "OP", "Jack-up": "JU",
+  "Wind Support Vessel": "WS", "Offshore Supply (PSV)": "OS", "AHTS": "AH",
   "Dredger": "DR", "Tugboat": "TG", "Fishing Vessel": "FV",
   "Reefer": "RF", "Car Carrier (RORO)": "RO", "Multi-Purpose": "MP",
 };
@@ -260,7 +263,13 @@ export default function SNPPage() {
             const age = year - v.built;
             const code = TYPE_CODE[v.type] || "VS";
             return (
-              <div key={v.id} onClick={() => setSelectedIMO(v.imo)} style={{
+              <div key={v.id} onClick={() => {
+                if (v.source === "GRS" && v.detailUrl) {
+                  window.open(v.detailUrl, "_blank", "noopener,noreferrer");
+                } else {
+                  setSelectedIMO(v.imo);
+                }
+              }} style={{
                 background: "#fff",
                 border: "1px solid #EAECF0",
                 borderLeft: v.urgent ? "3px solid #F04438" : "1px solid #EAECF0",
@@ -283,7 +292,10 @@ export default function SNPPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                     <span style={{ fontSize: 14, fontWeight: 700, color: "#101828" }}>{v.name}</span>
-                    <span style={{ fontSize: 11, color: "#C8CDD6", fontFamily: "monospace" }}>IMO {v.imo}</span>
+                    {v.source === "GRS"
+                      ? <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: "#0057FF", borderRadius: 4, padding: "1px 6px" }}>GRS</span>
+                      : <span style={{ fontSize: 11, color: "#C8CDD6", fontFamily: "monospace" }}>IMO {v.imo}</span>
+                    }
                     <span style={{ fontSize: 11, color: "#98A2B3" }}>{v.flag}</span>
                   </div>
                   <div style={{ display: "flex", gap: 20, flexWrap: "wrap" as const }}>
@@ -292,6 +304,8 @@ export default function SNPPage() {
                       { label: "Built",    val: `${v.built} · ${age}y` },
                       v.dwt ? { label: "DWT", val: `${v.dwt.toLocaleString()} t` } : null,
                       v.ldt ? { label: "LDT", val: `${(v.ldt || 0).toLocaleString()} t` } : null,
+                      v.length ? { label: "Length", val: `${v.length}m` } : null,
+                      v.pax ? { label: "Pax", val: v.pax.toLocaleString() } : null,
                       { label: "Location", val: v.location },
                     ].filter(Boolean).map(s => s && (
                       <div key={s.label}>

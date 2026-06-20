@@ -1,0 +1,15 @@
+services:
+  - type: worker
+    name: shipscout-ais-worker
+    runtime: docker
+    dockerfilePath: ./worker/Dockerfile
+    envVars:
+      - key: AISSTREAM_API_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: NODE_ENV
+        value: production
+    autoDeploy: true

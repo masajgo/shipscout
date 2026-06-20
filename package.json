@@ -6,19 +6,22 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "worker:ais": "node worker/aisWorker.js"
   },
   "dependencies": {
     "@vercel/blob": "^2.4.0",
     "@vercel/kv": "^3.0.0",
     "axios": "^1.18.0",
     "cheerio": "^1.2.0",
+    "dotenv": "^17.4.2",
+    "ioredis": "^5.11.1",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
     "lucide-react": "^1.18.0",
     "next": "16.2.9",
     "node-cron": "^4.2.1",
-    "pg": "^8.21.0",
+    "pg": "^8.22.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-leaflet": "^5.0.0",
@@ -30,11 +33,13 @@
     "@types/leaflet": "^1.9.21",
     "@types/leaflet.markercluster": "^1.5.6",
     "@types/node": "^20",
+    "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/ws": "^8.18.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "playwright": "^1.61.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

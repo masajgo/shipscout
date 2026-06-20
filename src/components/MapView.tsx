@@ -223,6 +223,8 @@ export default function MapView() {
         if (debounceRef.current) clearTimeout(debounceRef.current);
         debounceRef.current = setTimeout(() => fetchRef.current(), DEBOUNCE_MS);
       });
+      // Ensure Leaflet picks up the correct container size after React renders
+      setTimeout(() => map.invalidateSize(), 0);
       setMapReady(true);
     });
 
@@ -302,12 +304,16 @@ export default function MapView() {
         if (inner) inner.textContent = fmtCount(c.count);
         continue;
       }
-      const sz   = clamp(32 + Math.log2(c.count + 1) * 7, 32, 62);
+      const sz   = clamp(28 + Math.log2(c.count + 1) * 5, 28, 52);
       const icon = L.divIcon({
         className: "", iconSize: [sz, sz], iconAnchor: [sz / 2, sz / 2],
         html: `<div class="cs" style="width:${sz}px;height:${sz}px"><div class="cs-n">${fmtCount(c.count)}</div></div>`,
       });
-      const marker = L.marker([c.lat, c.lon], { icon, interactive: false });
+      const marker = L.marker([c.lat, c.lon], { icon, interactive: true });
+      marker.on("click", () => {
+        const z = Math.min(map.getZoom() + 3, CLUSTER_ZOOM + 1);
+        map.flyTo([c.lat, c.lon], z, { animate: true, duration: 0.5 });
+      });
       marker.addTo(map);
       clusterMarkersRef.current.set(key, marker);
     }
@@ -430,9 +436,9 @@ export default function MapView() {
     <div style={{ background: S.bg, color: S.text, display: "flex", height: "calc(100vh - 56px)", fontFamily: "Inter, sans-serif" }}>
 
       <style>{`
-        .cs { border-radius:50%; background:radial-gradient(circle at 35% 35%,rgba(29,158,117,0.9),rgba(29,158,117,0.5)); border:2px solid rgba(29,158,117,0.6); box-shadow:0 0 12px rgba(29,158,117,0.4),0 0 24px rgba(29,158,117,0.15); display:flex; align-items:center; justify-content:center; animation:cs-pulse 3s ease-in-out infinite; }
-        .cs-n { color:#fff; font-size:11px; font-weight:800; font-family:'Inter',sans-serif; letter-spacing:-0.5px; }
-        @keyframes cs-pulse { 0%,100%{box-shadow:0 0 12px rgba(29,158,117,0.4),0 0 24px rgba(29,158,117,0.15)} 50%{box-shadow:0 0 18px rgba(29,158,117,0.65),0 0 36px rgba(29,158,117,0.25)} }
+        .cs { border-radius:50%; background:#1D9E75; border:2px solid rgba(255,255,255,0.25); box-shadow:0 2px 8px rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:transform 0.15s; }
+        .cs:hover { transform:scale(1.12); }
+        .cs-n { color:#fff; font-size:11px; font-weight:700; font-family:'Inter',sans-serif; letter-spacing:-0.3px; }
         .vt.leaflet-tooltip { background:#0F1520 !important; border:1px solid rgba(255,255,255,0.1) !important; color:#E8EDF2 !important; font-size:11px !important; font-family:'Inter',monospace !important; border-radius:5px !important; padding:5px 9px !important; pointer-events:none; }
         .vt.leaflet-tooltip::before { border-top-color:rgba(255,255,255,0.08) !important; }
         .leaflet-control-attribution { background:rgba(10,14,20,0.85) !important; color:rgba(255,255,255,0.18) !important; font-size:9px !important; }
@@ -521,8 +527,8 @@ export default function MapView() {
       </aside>
 
       {/* ── Map ── */}
-      <div style={{ flex: 1, position: "relative" }}>
-        <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
+      <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
+        <div ref={mapRef} style={{ position: "absolute", inset: 0 }} />
         {loading && (
           <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, zIndex: 900, background: "linear-gradient(90deg,transparent,#1D9E75,transparent)", animation: "loading-sweep 1.2s linear infinite" }} />
         )}

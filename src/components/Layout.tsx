@@ -25,7 +25,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     fetch("/api/ais").then(r => r.json()).then(d => {
-      if (Array.isArray(d.vessels)) setAisCount(d.vessels.length);
+      const n = d.total ?? (Array.isArray(d.vessels) ? d.vessels.length : null);
+      if (n !== null) setAisCount(n);
     }).catch(() => {});
   }, []);
 
@@ -90,31 +91,33 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
 
-      {/* TICKER */}
-      <div style={{ background: "#101828", display: "flex", padding: "0 32px" }}>
-        {TICKER.map((t, i) => (
-          <div key={t.port} style={{
-            padding: "12px 26px",
-            borderRight: "1px solid rgba(255,255,255,0.1)",
-            display: "flex", flexDirection: "column", gap: 3,
-            ...(i === 0 ? { paddingLeft: 0 } : {}),
-          }}>
-            <div style={{ fontSize: 9, color: "rgba(255,255,255,0.55)", letterSpacing: "0.12em", textTransform: "uppercase" as const, fontWeight: 600 }}>
-              {t.port} · {t.country}
+      {/* TICKER — hidden on /map to give map full height */}
+      {path !== "/map" && (
+        <div style={{ background: "#101828", display: "flex", padding: "0 32px" }}>
+          {TICKER.map((t, i) => (
+            <div key={t.port} style={{
+              padding: "12px 26px",
+              borderRight: "1px solid rgba(255,255,255,0.1)",
+              display: "flex", flexDirection: "column", gap: 3,
+              ...(i === 0 ? { paddingLeft: 0 } : {}),
+            }}>
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.55)", letterSpacing: "0.12em", textTransform: "uppercase" as const, fontWeight: 600 }}>
+                {t.port} · {t.country}
+              </div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#FFFFFF" }}>{t.price}</div>
+                <div style={{ fontSize: 8, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" as const }}>$/LDT</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: t.up ? "#34D399" : "#FB7185" }}>{t.delta}</div>
+              </div>
             </div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
-              <div style={{ fontSize: 18, fontWeight: 800, color: "#FFFFFF" }}>{t.price}</div>
-              <div style={{ fontSize: 8, color: "rgba(255,255,255,0.4)", textTransform: "uppercase" as const }}>$/LDT</div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: t.up ? "#34D399" : "#FB7185" }}>{t.delta}</div>
-            </div>
+          ))}
+          <div style={{ marginLeft: "auto", alignSelf: "center" }}>
+            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", letterSpacing: "0.1em", textTransform: "uppercase" as const }}>
+              Jun 2026 · $/LDT benchmark
+            </span>
           </div>
-        ))}
-        <div style={{ marginLeft: "auto", alignSelf: "center" }}>
-          <span style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", letterSpacing: "0.1em", textTransform: "uppercase" as const }}>
-            Jun 2026 · $/LDT benchmark
-          </span>
         </div>
-      </div>
+      )}
 
       <main>{children}</main>
     </div>

@@ -1,310 +1,288 @@
-/**
- * contactEnrichment.js
- * Given a company name, finds contact info via:
- *   1. Domain guessing (no search API needed)
- *   2. Brave Search API (if BRAVE_SEARCH_KEY env var set — 2000 free/month)
- *   3. Scraping /contact and /about pages of the found website
- *
- * Exports:
- *   enrichCompanyContact(companyName) → { company, website, emails, phones, address, linkedinSearchUrl }
- */
-
 "use strict";
 
-const https = require("https");
-const http  = require("http");
+/**
+ * contactEnrichment.js  —  Company contact finder
+ *
+ * Usage:
+ *   const { enrichCompanyContact } = require('./scraper/contactEnrichment');
+ *   const result = await enrichCompanyContact('SunStone Ship Management');
+ *
+ * Strategy:
+ *   1. Generate candidate domains from company name (heuristics)
+ *   2. Probe each with HEAD requests until one resolves
+ *   3. Fetch /contact (and /about) from the live domain
+ *   4. Extract emails, phones, address via regex
+ *   5. Produce LinkedIn search URL
+ */
 
-// ─── Config ───────────────────────────────────────────────────────────────────
+const path = require("path");
+const fs   = require("fs");
 
-const ENV_PATH = require("path").join(__dirname, "../.env.local");
-if (require("fs").existsSync(ENV_PATH)) {
-  for (const line of require("fs").readFileSync(ENV_PATH, "utf8").split("\n")) {
-    const m = line.match(/^([A-Z_][A-Z0-9_]*)="?([^"]*?)"?\s*$/);
-    if (m) process.env[m[1]] = m[2];
+// ─── Blacklists ───────────────────────────────────────────────────────────────
+
+const PERSONAL_EMAIL_DOMAINS = /gmail|hotmail|yahoo|outlook|icloud|proton|aol|live\.com/i;
+
+const AGGREGATOR_DOMAINS = /linkedin|facebook|bloomberg|crunchbase|dnb\.com|zoominfo|rocketreach|leadiq|equasis|marinetraffic|vesseltracker|fleetmon|shipfinder|yellowpages|yelp|trustpilot|glassdoor|indeed|twitter|instagram/i;
+
+// Maritime / generic suffixes to strip when deriving domain slug
+const STRIP_WORDS = [
+  "ship management", "shipping company", "shipping co", "shipping",
+  "ship", "ships", "marine services", "marine", "maritime",
+  "navigation", "offshore", "vessel", "fleet", "tankers", "tanker",
+  "bulk", "cargo", "logistics", "transport", "group", "holding",
+  "holdings", "international", "intl", "global", "ltd", "limited",
+  "inc", "llc", "sa", "as", "ab", "bv", "gmbh", "oy",
+  "company", "co",
+];
+
+// ─── Domain candidate generator ───────────────────────────────────────────────
+
+// Maritime keywords found in the original name (used to boost specific candidates)
+const MARITIME_KEYWORDS = ["ship", "ships", "shipping", "marine", "maritime", "navigation", "offshore", "vessel", "fleet", "tanker", "bulk", "cargo", "sea", "ocean", "port"];
+
+function generateDomainCandidates(companyName) {
+  const raw  = companyName.toLowerCase().trim();
+  const slug = raw.replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, " ").trim();
+
+  let core = slug;
+  for (const w of STRIP_WORDS) {
+    core = core.replace(new RegExp(`\\b${w}\\b`, "gi"), " ").trim();
   }
+  core = core.replace(/\s+/g, " ").trim();
+
+  const coreNoSpace = core.replace(/\s/g, "");
+  const slugNoSpace = slug.replace(/\s/g, "");
+  const coreHyphen  = core.replace(/\s/g, "-");
+  const words       = slug.split(/\s+/).filter(w => w.length > 2).slice(0, 3);
+  const acronym     = words.map(w => w[0]).join("");
+  const firstWord   = words[0] || coreNoSpace;
+
+  // Detect if original name had a maritime keyword — use it as suffix hint
+  const hasMaritime  = MARITIME_KEYWORDS.some(k => raw.includes(k));
+  const maritimeSuffix = hasMaritime ? "ships" :
+    raw.includes("ship") ? "ships" :
+    raw.includes("shipp") ? "shipping" :
+    raw.includes("marine") ? "marine" : "ships";
+
+  // Ordered: most-specific (with maritime suffix) first, generic bare domain last
+  const ordered = [
+    `${coreNoSpace}${maritimeSuffix}.com`,
+    `${coreNoSpace}shipping.com`,
+    `${coreNoSpace}ships.com`,
+    `${coreNoSpace}marine.com`,
+    `${coreNoSpace}maritime.com`,
+    `${firstWord}${maritimeSuffix}.com`,
+    `${firstWord}ships.com`,
+    `${firstWord}shipping.com`,
+    `${firstWord}marine.com`,
+    `${coreNoSpace}group.com`,
+    `${coreHyphen}.com`,
+    `${acronym}ships.com`,
+    `${acronym}shipping.com`,
+    `${acronym}marine.com`,
+    `${slugNoSpace}.com`,
+    `${coreNoSpace}.com`,      // generic bare domain — last resort
+    `${coreNoSpace}mgmt.com`,
+    `${coreNoSpace}.net`,
+    `${coreNoSpace}.org`,
+  ];
+
+  return [...new Set(ordered)].filter(d => d.length > 5 && !d.startsWith("."));
 }
 
-const BRAVE_KEY = process.env.BRAVE_SEARCH_KEY || null;
+// ─── Domain probe ─────────────────────────────────────────────────────────────
 
-// ─── Personal email domains (exclude) ────────────────────────────────────────
-
-const PERSONAL_DOMAINS = new Set([
-  "gmail.com","hotmail.com","yahoo.com","outlook.com","aol.com",
-  "live.com","icloud.com","me.com","protonmail.com","mail.com",
-  "yandex.com","yandex.ru","gmx.com","gmx.net","zoho.com","msn.com",
-  "hotmail.co.uk","yahoo.co.uk","yahoo.fr","yahoo.de","web.de","inbox.com",
-]);
-
-function isCorporateEmail(email) {
-  const domain = (email.split("@")[1] || "").toLowerCase();
-  return domain.length > 0 && !PERSONAL_DOMAINS.has(domain);
+async function probeDomain(domain) {
+  for (const url of [`https://www.${domain}`, `https://${domain}`]) {
+    try {
+      const res = await fetch(url, {
+        method: "HEAD",
+        redirect: "follow",
+        signal: AbortSignal.timeout(5000),
+        headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" },
+      });
+      if (res.ok || res.status === 405) return res.url.replace(/\/+$/, "");
+    } catch {}
+  }
+  return null;
 }
 
-// ─── Text helpers ─────────────────────────────────────────────────────────────
+async function findWebsite(companyName) {
+  const candidates = generateDomainCandidates(companyName);
+  const raw = companyName.toLowerCase();
+  const needsValidation = MARITIME_KEYWORDS.some(k => raw.includes(k));
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-function stripHtml(html) {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ")
-    .replace(/\s+/g, " ");
+  for (const domain of candidates) {
+    const url = await probeDomain(domain);
+    if (!url) continue;
+    // If company name has maritime keywords, validate the domain is actually maritime
+    if (needsValidation && !(await validateMaritime(url))) {
+      console.log(`[contactEnrichment]   Skipping ${domain} (not maritime)`);
+      continue;
+    }
+    return url;
+  }
+  return null;
 }
 
-function extractEmails(text) {
-  const raw = text.match(/[\w.+%-]+@[\w.-]+\.[a-z]{2,}/gi) || [];
-  return [...new Set(raw.filter(e =>
-    isCorporateEmail(e) &&
-    !e.includes("example") && !e.includes("noreply") && !e.includes("no-reply") &&
-    !e.includes("unsubscribe") && !e.includes("sentry") && !e.includes("privacy") &&
-    !e.includes("webmaster") && !e.endsWith(".png") && !e.endsWith(".jpg") &&
-    e.length < 80
-  ))];
-}
+// ─── Contact page fetcher ─────────────────────────────────────────────────────
 
-function extractPhones(text) {
-  const raw = text.match(
-    /(?:\+\d{1,3}[\s.\-()]?)?\(?\d{2,4}\)?[\s.\-]?\d{3,4}[\s.\-]?\d{3,5}/g
-  ) || [];
-  return [...new Set(
-    raw.map(p => p.trim()).filter(p => p.replace(/\D/g, "").length >= 7)
-  )].slice(0, 3);
-}
-
-function extractAddress(text) {
-  const m = text.match(/(?:address|headquarter|hq|located at|our office)[:\s,]+([^\n<]{15,120})/i);
-  return m ? m[1].replace(/\s+/g, " ").trim() : null;
-}
-
-// ─── HTTP fetch with redirect following ──────────────────────────────────────
-
-function fetchUrl(url, extraHeaders = {}, maxRedirects = 5) {
-  return new Promise((resolve, reject) => {
-    if (maxRedirects < 0) return reject(new Error("Too many redirects"));
-    let parsed;
-    try { parsed = new URL(url); } catch (e) { return reject(e); }
-
-    const lib  = parsed.protocol === "https:" ? https : http;
-    const opts = {
-      hostname: parsed.hostname,
-      port:     parsed.port || (parsed.protocol === "https:" ? 443 : 80),
-      path:     (parsed.pathname || "/") + (parsed.search || ""),
-      method:   "GET",
-      headers: {
-        "User-Agent":      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
-        "Accept":          "text/html,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-        ...extraHeaders,
-      },
-      timeout: 12000,
-    };
-
-    const req = lib.request(opts, res => {
-      if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
-        const next = new URL(res.headers.location, url).href;
-        res.resume();
-        return fetchUrl(next, extraHeaders, maxRedirects - 1).then(resolve).catch(reject);
-      }
-      let data = "";
-      let done  = false;
-      const finish = () => { if (!done) { done = true; resolve({ status: res.statusCode, body: data }); } };
-      res.setEncoding("utf8");
-      res.on("data", c => { data += c; if (data.length > 400_000) { res.destroy(); finish(); } });
-      res.on("end",  finish);
-      res.on("error", finish);
-    });
-    req.on("error", reject);
-    req.on("timeout", () => req.destroy(new Error("timeout")));
-    req.end();
-  });
-}
-
-// Test if a URL resolves (returns 200 or 301/302 chain leading to 200)
-async function probeUrl(url) {
+async function fetchPage(url) {
   try {
-    const res = await fetchUrl(url);
-    return res.status >= 200 && res.status < 400 ? res : null;
+    const res = await fetch(url, {
+      redirect: "follow",
+      signal: AbortSignal.timeout(10000),
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml",
+      },
+    });
+    if (!res.ok) return null;
+    return await res.text();
   } catch {
     return null;
   }
 }
 
-// ─── Domain guessing ─────────────────────────────────────────────────────────
-
-// Words that are generic suffixes/prefixes in company names
-const STOP_WORDS = new Set([
-  "management", "group", "holding", "holdings", "international", "intl", "global",
-  "company", "corporation", "corp", "limited", "ltd", "inc", "sa",
-  "bv", "nv", "as", "aps", "gmbh", "co", "llc", "plc", "spa",
-  "pte", "and", "the", "of",
-]);
-
-function guessCompanyDomains(companyName) {
-  // Strip all punctuation, keep letters and digits
-  const raw = companyName.toLowerCase().replace(/[^a-z0-9\s]/g, " ").trim();
-  const words = raw.split(/\s+/).filter(w => w.length > 0);
-
-  // Identify "core" words (non-stop-words)
-  const core = words.filter(w => !STOP_WORDS.has(w));
-
-  // All words joined, core joined, first word, first two words
-  const allJoined  = words.join("");
-  const coreJoined = core.join("");
-  const first      = words[0] || "";
-  const firstTwo   = words.slice(0, 2).join("");
-
-  const candidates = new Set();
-  for (const stem of [coreJoined, allJoined, first, firstTwo].filter(s => s.length > 1)) {
-    candidates.add(`https://www.${stem}.com`);
-    candidates.add(`https://${stem}.com`);
-    candidates.add(`https://www.${stem}.net`);
-  }
-  // Also try hyphenated first-two
-  if (core.length >= 2) {
-    const hyph = core.slice(0, 2).join("-");
-    candidates.add(`https://www.${hyph}.com`);
-  }
-
-  return [...candidates];
+// Check if a homepage looks like a maritime/shipping company
+async function validateMaritime(baseUrl) {
+  const html = await fetchPage(baseUrl);
+  if (!html) return false;
+  const text = html.toLowerCase();
+  const hits = MARITIME_KEYWORDS.filter(k => text.includes(k)).length;
+  return hits >= 2;
 }
 
-async function findWebsiteByDomainGuessing(companyName) {
-  const candidates = guessCompanyDomains(companyName);
-
-  for (const candidate of candidates) {
-    try {
-      const res = await probeUrl(candidate);
-      if (res) {
-        return new URL(candidate).origin;
-      }
-      await sleep(150);
-    } catch (e) {
-      // probe error — continue to next candidate
-    }
+async function fetchContactHtml(baseUrl) {
+  const paths = ["/contact", "/contact-us", "/contacts", "/about", "/about-us", "/get-in-touch", "/reach-us", "/"];
+  for (const p of paths) {
+    const html = await fetchPage(baseUrl + p);
+    if (html && (html.includes("@") || html.includes("tel:"))) return { html, path: p };
   }
   return null;
 }
 
-// ─── Brave Search API (optional) ─────────────────────────────────────────────
+// ─── Extractors ───────────────────────────────────────────────────────────────
 
-async function braveSearch(query) {
-  if (!BRAVE_KEY) return [];
-  try {
-    const res = await fetchUrl(
-      `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=5`,
-      { "X-Subscription-Token": BRAVE_KEY, "Accept": "application/json" }
-    );
-    if (res.status !== 200) return [];
-    const json = JSON.parse(res.body);
-    return (json?.web?.results || []).map(r => ({
-      url:  r.url,
-      text: r.description || "",
-    }));
-  } catch {
-    return [];
-  }
+function extractEmails(html) {
+  const raw = [...html.matchAll(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g)]
+    .map(m => m[0].toLowerCase());
+  return [...new Set(raw.filter(e => !PERSONAL_EMAIL_DOMAINS.test(e)))];
 }
 
-// ─── Scrape website contact pages ────────────────────────────────────────────
+function extractPhones(html) {
+  const raw = [...html.matchAll(/\+\d[\d\s\-().]{6,20}\d/g)].map(m => m[0].trim());
+  return [...new Set(raw)].slice(0, 6);
+}
 
-const URL_EXCLUDES = [
-  "linkedin.com", "facebook.com", "twitter.com", "instagram.com", "wikipedia.org",
-  "equasis.org", "marinetraffic.com", "dnb.com", "zoominfo.com", "bloomberg.com",
-];
+function extractAddress(html) {
+  const stripped = html
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ");
 
-async function scrapeWebsiteContact(websiteOrigin) {
-  const out  = { emails: [], phones: [], address: null };
-  const base = websiteOrigin.replace(/\/$/, "");
+  const addrMatch = stripped.match(/address[:\s]+([A-Z][^.]{10,120})/i);
+  if (addrMatch) return addrMatch[1].trim();
 
-  const paths = ["", "/contact", "/contact-us", "/contactus", "/about", "/about-us", "/en/contact"];
+  const pcMatch = stripped.match(/[A-Z][a-zA-Z\s,]{5,50}\d{4,5}[A-Z\s,]{0,20}/);
+  if (pcMatch) return pcMatch[0].trim();
 
-  for (const p of paths) {
-    try {
-      const res = await fetchUrl(base + p);
-      if (res.status !== 200) { await sleep(300); continue; }
+  return null;
+}
 
-      const text   = stripHtml(res.body);
-      const emails = extractEmails(text);
-      const phones = extractPhones(text);
-      const addr   = !out.address ? extractAddress(text) : null;
-
-      for (const e of emails) if (!out.emails.includes(e)) out.emails.push(e);
-      for (const p2 of phones) if (!out.phones.includes(p2)) out.phones.push(p2);
-      if (addr && !out.address) out.address = addr;
-
-      // Stop once we've found emails
-      if (out.emails.length > 0 && p !== "") break;
-      await sleep(350);
-    } catch {
-      await sleep(200);
-    }
-  }
-
-  out.emails = out.emails.slice(0, 5);
-  out.phones = out.phones.slice(0, 3);
-  return out;
+function guessEmailFormat(emails, domain) {
+  if (!domain || emails.length === 0) return null;
+  const own = emails.filter(e => e.includes(domain.split(".")[0]));
+  if (own.length === 0) return null;
+  const local = own[0].split("@")[0];
+  if (/^[a-z]\.[a-z]+$/.test(local))  return `first_initial.last@${domain}`;
+  if (/^[a-z]+\.[a-z]+$/.test(local)) return `first.last@${domain}`;
+  if (/^[a-z]{2,5}$/.test(local))     return `role@${domain}`;
+  if (local.includes("-"))             return `first-last@${domain}`;
+  return null;
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 async function enrichCompanyContact(companyName) {
-  if (!companyName) return null;
+  console.log(`[contactEnrichment] Searching: "${companyName}"`);
 
-  const out = {
+  const result = {
     company:          companyName,
     website:          null,
     emails:           [],
     phones:           [],
     address:          null,
+    emailFormat:      null,
     linkedinSearchUrl: `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(companyName)}`,
+    source:           "web",
+    contactPath:      null,
   };
 
-  // 1. Domain guessing — fast, no API needed
-  out.website = await findWebsiteByDomainGuessing(companyName);
-
-  // 2. If no website found and Brave key available, use search
-  if (!out.website && BRAVE_KEY) {
-    await sleep(400);
-    const results = await braveSearch(`"${companyName}" ship management official website`);
-    for (const { url, text } of results) {
-      if (URL_EXCLUDES.some(ex => url.includes(ex))) continue;
-      // Grab any emails from the search snippet
-      for (const e of extractEmails(text)) {
-        if (!out.emails.includes(e)) out.emails.push(e);
-      }
-      // Use first non-excluded URL as website
-      if (!out.website) {
-        try { out.website = new URL(url).origin; } catch {}
-      }
-    }
-    await sleep(400);
+  const baseUrl = await findWebsite(companyName);
+  if (!baseUrl) {
+    console.log(`[contactEnrichment]   No website found`);
+    return result;
   }
 
-  // 3. Scrape website /contact and /about pages
-  if (out.website) {
-    await sleep(300);
-    const webData = await scrapeWebsiteContact(out.website);
-    for (const e of webData.emails) if (!out.emails.includes(e)) out.emails.push(e);
-    for (const p of webData.phones) if (!out.phones.includes(p)) out.phones.push(p);
-    if (!out.address) out.address = webData.address;
+  result.website = baseUrl.replace(/^https?:\/\/(www\.)?/, "").split("/")[0];
+  console.log(`[contactEnrichment]   Website: ${baseUrl}`);
+
+  const found = await fetchContactHtml(baseUrl);
+  if (!found) {
+    console.log(`[contactEnrichment]   No contact page found`);
+    return result;
   }
 
-  // 4. Brave fallback search for email if still nothing
-  if (out.emails.length === 0 && BRAVE_KEY) {
-    await sleep(600);
-    const fallback = await braveSearch(`"${companyName}" shipping email contact maritime`);
-    const text = fallback.map(r => r.text).join(" ");
-    for (const e of extractEmails(text)) {
-      if (!out.emails.includes(e)) out.emails.push(e);
-    }
-  }
+  result.contactPath = found.path;
+  console.log(`[contactEnrichment]   Contact page: ${baseUrl}${found.path}`);
 
-  out.emails = [...new Set(out.emails)].slice(0, 5);
-  out.phones = [...new Set(out.phones)].slice(0, 3);
+  result.emails  = extractEmails(found.html);
+  result.phones  = extractPhones(found.html);
+  result.address = extractAddress(found.html);
+  result.emailFormat = guessEmailFormat(result.emails, result.website);
 
-  return out;
+  console.log(`[contactEnrichment]   emails: ${result.emails.slice(0, 3).join(", ") || "none"}`);
+  console.log(`[contactEnrichment]   phones: ${result.phones.slice(0, 2).join(", ") || "none"}`);
+
+  return result;
 }
 
-module.exports = { enrichCompanyContact };
+// ─── Cache wrapper ────────────────────────────────────────────────────────────
+
+const CACHE_FILE = path.join(__dirname, "data", "contact_cache.json");
+
+function loadCache() {
+  if (!fs.existsSync(CACHE_FILE)) return {};
+  return JSON.parse(fs.readFileSync(CACHE_FILE, "utf8"));
+}
+
+function saveCache(cache) {
+  fs.mkdirSync(path.join(__dirname, "data"), { recursive: true });
+  fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
+}
+
+async function enrichWithCache(companyName) {
+  const cache = loadCache();
+  const key   = companyName.toLowerCase().trim();
+  if (cache[key]) {
+    console.log(`[contactEnrichment] Cache hit: ${key}`);
+    return cache[key];
+  }
+  const result = await enrichCompanyContact(companyName);
+  cache[key] = { ...result, cachedAt: new Date().toISOString() };
+  saveCache(cache);
+  return result;
+}
+
+module.exports = { enrichCompanyContact, enrichWithCache, generateDomainCandidates };
+
+// ─── CLI ──────────────────────────────────────────────────────────────────────
+
+if (require.main === module) {
+  const company = process.argv.slice(2).join(" ") || "SunStone Ship Management";
+  enrichCompanyContact(company)
+    .then(r => { console.log("\n=== Result ===\n" + JSON.stringify(r, null, 2)); })
+    .catch(e => { console.error(e.message); process.exit(1); });
+}

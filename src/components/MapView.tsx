@@ -59,6 +59,17 @@ interface VesselDetail {
 
 interface ScrapCounts { critical: number; high: number; medium: number; low: number; }
 
+interface ContactResult {
+  company:           string;
+  website:           string | null;
+  emails:            string[];
+  phones:            string[];
+  address:           string | null;
+  emailFormat:       string | null;
+  linkedinSearchUrl: string;
+  contactPath:       string | null;
+}
+
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const CLUSTER_ZOOM = 12;
@@ -195,9 +206,11 @@ export default function MapView() {
   const [selected,      setSelected]      = useState<ApiVessel | null>(null);
   const [detail,        setDetail]        = useState<VesselDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [trackPoints,   setTrackPoints]   = useState(0);
-  const [scrapCounts,   setScrapCounts]   = useState<ScrapCounts>({ critical: 0, high: 0, medium: 0, low: 0 });
-  const [showScrap,     setShowScrap]     = useState(false);
+  const [trackPoints,     setTrackPoints]     = useState(0);
+  const [scrapCounts,     setScrapCounts]     = useState<ScrapCounts>({ critical: 0, high: 0, medium: 0, low: 0 });
+  const [showScrap,       setShowScrap]       = useState(false);
+  const [contact,         setContact]         = useState<ContactResult | null>(null);
+  const [contactLoading,  setContactLoading]  = useState(false);
 
   // ── Init map ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -368,8 +381,10 @@ export default function MapView() {
       marker.on("click", () => {
         setSelected(v);
         setDetail(null);
+        setContact(null);
         loadVesselDetail(v.mmsi);
         loadTrack(v.mmsi);
+        loadContact(v.mmsi);
       });
 
       marker.addTo(map);
@@ -400,6 +415,21 @@ export default function MapView() {
     }
   }
 
+  // ── Contact enrichment ────────────────────────────────────────────────────
+  async function loadContact(mmsi: string) {
+    setContact(null);
+    setContactLoading(true);
+    try {
+      const res = await fetch(`/api/vessels/${mmsi}/contact`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setContact(data.contact ?? null);
+    } catch {
+    } finally {
+      setContactLoading(false);
+    }
+  }
+
   // ── Track ─────────────────────────────────────────────────────────────────
   async function loadTrack(mmsi: string) {
     clearTrack();
@@ -426,6 +456,7 @@ export default function MapView() {
   function closePanel() {
     setSelected(null);
     setDetail(null);
+    setContact(null);
     clearTrack();
   }
 
@@ -603,6 +634,48 @@ export default function MapView() {
             <div style={{ height: 3, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
               <div style={{ height: "100%", width: trackPoints ? "100%" : "40%", background: trackPoints ? S.green : "rgba(255,255,255,0.12)", borderRadius: 2, transition: "width 0.6s" }} />
             </div>
+          </div>
+
+          {/* ── Contact ── */}
+          <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 8, padding: "12px 14px" }}>
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 10 }}>
+              Owner / Manager
+            </div>
+            {contactLoading ? (
+              <div style={{ fontSize: 10, color: S.muted }}>Searching contacts…</div>
+            ) : contact ? (
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: S.text, marginBottom: 8 }}>{contact.company}</div>
+                {contact.website && (
+                  <a href={`https://${contact.website}`} target="_blank" rel="noreferrer"
+                    style={{ display: "block", fontSize: 10, color: S.green, marginBottom: 6, textDecoration: "none" }}>
+                    🌐 {contact.website}
+                  </a>
+                )}
+                {contact.emails.slice(0, 2).map(e => (
+                  <a key={e} href={`mailto:${e}`}
+                    style={{ display: "block", fontSize: 10, color: "#94A3B8", marginBottom: 4, textDecoration: "none" }}>
+                    ✉ {e}
+                  </a>
+                ))}
+                {contact.phones.slice(0, 2).map(p => (
+                  <div key={p} style={{ fontSize: 10, color: "#94A3B8", marginBottom: 4 }}>
+                    📞 {p}
+                  </div>
+                ))}
+                {contact.emailFormat && (
+                  <div style={{ fontSize: 9, color: S.muted, marginTop: 6, fontFamily: "monospace" }}>
+                    format: {contact.emailFormat}
+                  </div>
+                )}
+                <a href={contact.linkedinSearchUrl} target="_blank" rel="noreferrer"
+                  style={{ display: "inline-block", marginTop: 8, fontSize: 10, fontWeight: 600, color: "#60A5FA", textDecoration: "none" }}>
+                  LinkedIn →
+                </a>
+              </div>
+            ) : (
+              <div style={{ fontSize: 10, color: S.muted }}>No owner data available</div>
+            )}
           </div>
 
           <button

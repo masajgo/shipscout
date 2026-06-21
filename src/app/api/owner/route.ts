@@ -9,8 +9,8 @@ export async function GET(req: NextRequest) {
 
   try {
     const res = await fetch(
-      `https://api.datalastic.com/api/maritime_reports/ownership?api-key=${apiKey}&imo=${imo}`,
-      { next: { revalidate: 3600 } }
+      `https://api.datalastic.com/api/maritime_reports/ownership?imo=${imo}`,
+      { next: { revalidate: 3600 }, headers: { "X-Api-Key": apiKey } }
     );
     const data = await res.json();
     return NextResponse.json(data);

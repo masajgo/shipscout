@@ -96,8 +96,9 @@ function alertFromVessel(d: any, imo: string, year: number) {
 
 async function fetchVessel(imo: string) {
   try {
-    const res = await fetch(`${BASE}/vessel_info?imo=${imo}&api-key=${API_KEY}`, {
+    const res = await fetch(`${BASE}/vessel_info?imo=${imo}`, {
       next: { revalidate: 3600 },
+      headers: { "X-Api-Key": API_KEY! },
     });
     if (!res.ok) return null;
     const json = await res.json();

@@ -7,8 +7,9 @@ const REPORTS = "https://api.datalastic.com/api/maritime_reports";
 
 async function dl(url: string) {
   try {
-    const res = await fetch(`${url}&api-key=${API_KEY}`, {
+    const res = await fetch(url, {
       next: { revalidate: 3600 },
+      headers: { "X-Api-Key": API_KEY! },
     });
     if (!res.ok) return null;
     return await res.json();

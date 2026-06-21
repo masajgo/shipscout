@@ -1,155 +1,184 @@
-# ShipScout TODO & Sprint Report
-*Güncellendi: 2026-06-21 | Son commit: 3323cfb*
+# ShipScout TODO & Durum Raporu
+*Güncellendi: 2026-06-21 | Son commit: 4a8413f | Branch: main*
 
 ---
 
-## ✅ TAMAMLANDI
+## ✅ TAMAMLANDI (Bu Oturuma Kadar)
 
-### 1. AIS Live Map
+### AIS Live Map
 - [x] Leaflet canvas renderer, cluster/individual markers
-- [x] Scrap scoring: age≥50→+40, ≥40→+35, ≥30→+28, ≥25→+20, ≥20→+12
-- [x] Scrap kategorisi: >35=critical, ≥25=high, ≥15=medium, <15=low
-- [x] Cluster tıklanabilir (interactive:true + flyTo)
-- [x] Ticker bar `/map`'te gizleniyor
-- [x] "Live · N vessels" — Supabase COUNT'tan
-- [x] Panel: gemi detayı (isim, bayrak, hız, kurs, scrap skoru, yaş)
+- [x] Scrap scoring + kategori (critical/high/medium/low)
+- [x] Map panel: isim, bayrak, hız, kurs, scrap skoru, yaş
 - [x] Track (last positions) görünümü
+- [x] Cluster tıklanabilir, flyTo animasyonu
 
-### 2. Owner/Contact Enrichment Pipeline
-- [x] `src/lib/contactEnricher.ts` — domain heuristics, HEAD probe, maritime validation
-- [x] `src/app/api/vessels/[mmsi]/contact/route.ts` — **owners tablosundan** (Supabase) okuma, maxDuration:10s
-- [x] Contact panel: website, emails (mailto), phones, emailFormat, LinkedIn butonu
-- [x] `scraper/contactEnrichment.js` — ROLE_LOCALS filter, maritime validation ≥4 threshold
-
-### 3. Equasis Scraper
-- [x] `scraper/equasisOwner.js` — Playwright login, IMO arama, cheerio parseShipPage
-- [x] Rate-limit koruması: DAILY_LIMIT=250, delay 5-8s, block detection regex
-- [x] Checkpoint/resume: owners.json'daki IMO'lar atlanıyor
-- [x] waitForURL fix: `/restricted\/ShipInfo/` (false positive düzeltildi)
-- [x] Log: `[5/120] ✓ IMO 9321483 | bugün: 47/250 (kalan: 203)`
-- [x] equasis_usage.json — günlük sayaç, tarih bazlı otomatik sıfırlama
-
-### 4. Kalıcı Owners Tablosu (Supabase)
-- [x] `owners` tablosu oluşturuldu: `imo bigint PRIMARY KEY`, vessel_name, owner_name, manager_name, ism_manager, website, emails[], phones[], address, email_format, linkedin_url, source, fetched_at
-- [x] `scraper/dailyOwnerScan.js` — pipeline: vessels WHERE scrap_category IN ('critical','high') AND imo≥8M → Equasis → owners UPSERT
-- [x] --dry-run flag, scraper/data/daily_scan.log
-- [x] launchd: `com.shipscout.ownerscan` — 09:00 günlük, yüklü ve aktif
-
-### 5. Render AIS Worker (Production)
-- [x] `render.yaml` — dockerfilePath + dockerContext:. (Blueprint parse fix)
-- [x] `worker/Dockerfile` — `COPY scraper/ ./scraper/` eklendi (builtYearEnrichment bağımlılığı)
-- [x] Render'a deploy edildi, 15.600+ gemi/cycle işliyor
-- [x] Env vars: DATABASE_URL, AISSTREAM_API_KEY, DATALASTIC_API_KEY, NODE_ENV=production
-
-### 6. Datalastic Full Enrichment
-- [x] `scraper/builtYearEnrichment.js` — TÜM statik alanlar: gross_tonnage, deadweight, type_specific, teu, length, breadth, draught, speed_avg, speed_max, home_port, callsign, flag
-- [x] LDT tahmini: DWT × tip katsayısı (container 0.28, tanker 0.20, bulk 0.20, ro-ro 0.40...)
+### Datalastic Full Enrichment (commit: 3323cfb)
+- [x] `scraper/builtYearEnrichment.js` — TÜM statik alanlar: gross_tonnage, deadweight, type_specific, teu, length, breadth, draught, speed_max, home_port, callsign, flag
+- [x] LDT tahmini: DWT × tip katsayısı (container 0.28 / tanker 0.20 / bulk 0.20 / ro-ro 0.40...)
 - [x] Yolcu/cruise/ferry → ldt=null ("as per request")
-- [x] Scrap value: LDT × $450/LDT (SCRAP_PRICE_PER_LDT env ile override)
-- [x] `updateStaticsToDB()` — COALESCE UPDATE, sadece null olan alanları doldurur
-- [x] `worker/aisWorker.js` — Step 2b: her cycle sonrası updateStaticsToDB() çağrısı
-- [x] Yeni DB sütunları: gross_tonnage, deadweight, ldt, ldt_estimated, type_specific, teu, home_port, speed_max, callsign, scrap_value_usd, scrap_value_estimated
+- [x] Scrap value: LDT × $450/LDT (SCRAP_PRICE_PER_LDT env override)
+- [x] `updateStaticsToDB()` — COALESCE UPDATE, sadece null kolonları doldurur
+- [x] `worker/aisWorker.js` — her cycle sonrası updateStaticsToDB() çağrısı
+- [x] 11 yeni vessels sütunu eklendi
 
-### 7. Core Pages
-- [x] `/` — Ana sayfa
-- [x] `/map` — AIS harita
-- [x] `/alerts` — Judicial/distress alerts
-- [x] `/snp` — S&P marketplace
-- [x] `/owner` — Owner dashboard
+### Render AIS Worker (Production)
+- [x] `render.yaml` — dockerfilePath + `dockerContext: .` (Blueprint parse fix)
+- [x] `worker/Dockerfile` — `COPY scraper/ ./scraper/` eklendi
+- [x] Render'a deploy edildi, 15.600+ gemi/cycle işliyor
+- [x] Env: DATABASE_URL, AISSTREAM_API_KEY, DATALASTIC_API_KEY, NODE_ENV=production
 
----
+### Owners DB + Günlük Equasis Pipeline
+- [x] `owners` tablosu: `imo bigint PRIMARY KEY`, vessel_name, owner_name, manager_name, ism_manager, website, emails[], phones[], address, email_format, linkedin_url, source, fetched_at
+- [x] `scraper/dailyOwnerScan.js` — critical/high AND imo≥8M → Equasis → owners UPSERT
+- [x] Rate-limit koruması: DAILY_LIMIT=250, delay 5-8s, block detection, checkpoint/resume
+- [x] equasis_usage.json — günlük sayaç (tarih bazlı sıfırlama)
+- [x] launchd: `com.shipscout.ownerscan` — 09:00 günlük, yüklü ve aktif
+- [x] Contact API (`/api/vessels/[mmsi]/contact`) — owners tablosundan okuma, maxDuration:10s
 
-## ⏳ BUGÜN OTOMATİK (2026-06-21)
-
-- [ ] **09:00** — `com.shipscout.ownerscan` launchd çalışacak (ilk gerçek run, taze 250 limit)
-  - 50 gemi × 5-8s ≈ 5-7 dk
-  - Log: `scraper/data/daily_scan.log`
-  - Doğrulama: `SELECT COUNT(*) FROM owners` (akşam kontrol)
-
----
-
-## 🔲 AÇIK / BEKLEYEN
-
-### 1. Render Worker Log Doğrulaması (Öncelik: Yüksek)
-Datalastic enrichment'ın production'da çalıştığını doğrula:
-```
-Render → shipscout-ais-worker → Logs
-→ "updateStaticsToDB: N vessels updated" satırı aranacak
-```
-
-### 2. scraper/data/ .gitignore (Öncelik: Orta)
-Runtime dosyaları commit edilmemeli:
-```
-# .gitignore'a ekle:
-scraper/data/owners.json
-scraper/data/daily_scan.log
-scraper/data/contact_cache.json
-scraper/data/equasis_debug/
-scraper/data/equasis_usage.json
-```
-Not: `scraper/data/vessel_age_cache.json` zaten gitignore'da.
-
-### 3. Equasis Parse Bug — 9321483 (Öncelik: Orta)
-`managerName` company adı yerine adres string'i dönüyor.
-→ `scraper/data/equasis_debug/9321483.html` incelenmeli, management table column sırası düzeltilmeli
-
-### 4. is_navaid / liquid_gas / speed_avg Karar (Öncelik: Düşük)
-Datalastic'te mevcut 3 alan henüz DB'ye eklenmedi. Eklenecekse:
-- vessels tablosuna sütun ekle
-- getVesselInfo() entry'sine ekle
-- updateStaticsToDB() parametrelerine ekle
-
-### 5. S&P OCEAN ENDEAVOUR Gerçek Listing (Öncelik: Düşük)
-IMO 7625811 için `src/app/snp/page.tsx` veya API'ye gerçek listing eklenmeli.
-Şu an mock data var.
-
-### 6. Equasis Parse Bug — IMO 9321483 managerName
-`scraper/data/equasis_debug/9321483.html` incelenerek management table parsing düzeltilecek.
+### Contact Panel (MapView)
+- [x] Website linki, emails (mailto), phones, emailFormat gösterimi
+- [x] LinkedIn arama linki butonu (company name → URL encode)
+- [x] "Teklif emaili yaz" butonu — mailto ile draft oluşturma
+- [x] "No owner data available" fallback
 
 ---
 
-## 🐛 BİLİNEN BUGLAR
+## 🔴 YARI KALDI — OWNER ZİNCİRİ
 
-| Bug | Durum | Dosya |
-|-----|-------|-------|
-| 9321483 managerName parse yanlış | Açık | scraper/equasisOwner.js |
-| SunStone contact'ta emails boş | Muhtemelen site koruması | contactEnricher.ts |
+Owner chain'in 3 kritik parçası **eksik veya kısmi**:
+
+### 1. LinkedIn Arama Linkleri — Kısmi (Öncelik: Yüksek)
+**Mevcut durum:** `linkedinSearchUrl` oluşturuluyor AMA kalitesi düşük.
+- owners tablosundaki `linkedin_url` çoğunlukla null → fallback `/search/results/companies/?keywords=...` üretiliyor
+- Bu arama URL'i company sayfasına değil, arama listesine götürüyor
+
+**Yapılacak:**
+- Equasis'ten çekilen `manager_name` ile şirketin gerçek LinkedIn company page URL'i bulunacak
+- Yöntem 1: Datalastic `vessel_info`'da varsa company LinkedIn alanı kontrol et
+- Yöntem 2: Google arama `"{companyName}" site:linkedin.com/company` → ilk sonucu parse et
+- Yöntem 3: Scraper'da manual lookup table (top 50 shipmanager için hardcode)
+- owners.linkedin_url doldurulunca panel direkt doğru sayfaya açılacak
+
+### 2. 4 Katmanlı Email Bulma — YAPILMADI (Öncelik: Yüksek)
+**Mevcut durum:** Sadece website scrape var (Katman 1). Diğer 3 katman hiç yok.
+
+**Planlanan 4 katman:**
+```
+Katman 1: Website scrape (contactEnricher.ts — MEVCUT)
+  → mailto: linkleri, /contact sayfası, meta tags
+
+Katman 2: Hunter.io API (YAPILMADI)
+  → GET https://api.hunter.io/v2/domain-search?domain={domain}&api_key=KEY
+  → emails[] + emailFormat pattern döner
+  → Aylık 25 free / 500 starter $49/mo
+
+Katman 3: Apollo.io / Clearbit API (YAPILMADI)
+  → Apollo: POST /v1/people/search { organization_domains: [domain] }
+  → Clearbit: GET https://autocomplete.clearbit.com/v1/companies/suggest?query=...
+  → Kişi bazlı: "Commercial Director", "Fleet Manager" title filter
+
+Katman 4: Email format tahmini + doğrulama (KISMI)
+  → emailFormat pattern'den {first}.{last}@domain.com üret (MEVCUT — guessEmailFormat)
+  → SMTP verify (YAPILMADI) — MX lookup + RCPT TO handshake
+```
+
+**Yapılacak dosyalar:**
+- `src/lib/emailHunter.ts` — Hunter.io + Apollo entegrasyonu
+- `src/lib/smtpVerify.ts` — SMTP doğrulama (basit MX + connect check)
+- `src/lib/contactEnricher.ts` — fallback zinciri: scrape → hunter → apollo → format guess
+
+### 3. Panele Tam Bağlama — Eksik (Öncelik: Orta)
+**Mevcut durum:** Panel owners tablosundaki veriyi gösteriyor AMA:
+
+- `owner_name` vs `manager_name` ayrımı panelde gösterilmiyor (sadece `company` = manager || owner)
+- `ism_manager` hiç gösterilmiyor
+- `address` gösterilmiyor
+- Email kalitesi indikatörü yok (verified mi? scraped mı? guessed mı?)
+- Equasis'ten gelen veri vs contactEnricher'dan gelen veri ayrımı yok (`cached:"db"` ama kaynak belli değil)
+
+**Yapılacak (MapView.tsx contact panel):**
+```tsx
+// Şu an:
+<div>{contact.company}</div>
+
+// Olacak:
+<div>Manager: {managerName}</div>
+<div>Owner: {ownerName}</div>
+{ismManager && <div>ISM: {ismManager}</div>}
+{address && <div style={{fontSize:9}}>{address}</div>}
+{emails.map(e => <EmailBadge email={e} verified={e.verified} />)}
+// EmailBadge: yeşil=verified, sarı=scraped, gri=guessed
+```
+
+---
+
+## 🔲 DİĞER AÇIK GÖREVLER
+
+### Acil
+- [ ] **Render worker log doğrula** — `updateStaticsToDB: N vessels updated` satırı var mı?
+  - Render Dashboard → shipscout-ais-worker → Logs
+- [ ] **09:00 launchd run kontrolü** — `tail -50 scraper/data/daily_scan.log` + `SELECT COUNT(*) FROM owners`
+
+### Orta Öncelik
+- [ ] **scraper/data/ gitignore** — runtime dosyaları commit'e girmesin:
+  ```
+  scraper/data/owners.json
+  scraper/data/daily_scan.log
+  scraper/data/contact_cache.json
+  scraper/data/equasis_debug/
+  scraper/data/equasis_usage.json
+  ```
+- [ ] **Equasis parse bug** — IMO 9321483: `managerName` adres string'i dönüyor
+  - `scraper/data/equasis_debug/9321483.html` incelenecek
+  - Management table column sırası düzeltilecek
+
+### Düşük Öncelik
+- [ ] **is_navaid / liquid_gas / speed_avg** — Datalastic'te var ama DB'ye eklenmedi. Eklensin mi karar verilecek.
+- [ ] **S&P OCEAN ENDEAVOUR** — IMO 7625811 için gerçek S&P listing (`src/app/snp/page.tsx`)
+- [ ] **VesselPanel.tsx** — MapView içindeki inline panel kodu ayrı component'e çıkarılabilir (refactor, acil değil)
 
 ---
 
 ## 🏗 MİMARİ ÖZET
 
 ```
-AISStream WebSocket (aisstream.io)
-    → worker/aisWorker.js (Render background worker, 45s cycle)
-        → Step 1: vessels UPSERT (konum, AIS data, scrap_score)
-        → Step 2a: enrichCandidates() — Datalastic API (anchored/moored/risk flag)
-        → Step 2b: updateStaticsToDB() — COALESCE UPDATE statik alanlar
-    → Supabase vessels table
+AISStream WebSocket
+    → worker/aisWorker.js (Render, 45s cycle)
+        ├─ Step 1: vessels UPSERT (konum + AIS)
+        ├─ Step 2a: enrichCandidates() → Datalastic API → statik alanlar
+        └─ Step 2b: updateStaticsToDB() → COALESCE UPDATE
 
-Equasis scraper (launchd 09:00 günlük)
+Equasis (launchd 09:00 / gün)
     → scraper/dailyOwnerScan.js
         → vessels WHERE critical/high AND imo≥8M AND NOT IN owners
-        → equasisOwner.js (Playwright, 5-8s delay, 250/day limit)
-        → owners table UPSERT (Supabase)
+        → equasisOwner.js (Playwright, 250/gün limit)
+        → owners table UPSERT
 
-Next.js API (/api/vessels/[mmsi]/contact)
+Next.js /api/vessels/[mmsi]/contact
     → SELECT FROM owners WHERE imo=$1
-    → ContactResult { cached:"db" }
-    → MapView.tsx contact panel
+    → ContactResult → MapView contact panel
+
+EKSIK:
+    Hunter.io / Apollo → emailHunter.ts  ← YAPILACAK
+    SMTP verify        → smtpVerify.ts   ← YAPILACAK
+    LinkedIn company URL lookup          ← YAPILACAK
 ```
 
 ---
 
-## 📋 SONRAKİ ADIMLAR (Öncelik Sırasıyla)
+## 📋 ÖNCELIK SIRALI YAPILACAKLAR
 
-1. **Render worker logları** — updateStaticsToDB çalışıyor mu doğrula
-2. **.gitignore** — scraper/data/ dosyaları ekle, commit
-3. **09:00 launchd** — daily_scan.log'u akşam kontrol et, owners COUNT'u bak
-4. **Equasis parse bug** — 9321483 HTML debug
-5. **is_navaid/liquid_gas/speed_avg** — eklensin mi karar ver
-6. **S&P real listing** — OCEAN ENDEAVOUR
+| # | Görev | Dosya | Süre |
+|---|-------|-------|------|
+| 1 | Render log + launchd kontrol | — | 5 dk |
+| 2 | scraper/data/ gitignore | .gitignore | 2 dk |
+| 3 | LinkedIn URL lookup (top 50 shipmanager hardcode) | owners table / dailyOwnerScan.js | 30 dk |
+| 4 | Hunter.io entegrasyonu (Katman 2 email) | src/lib/emailHunter.ts | 1 saat |
+| 5 | Panel owner/manager/ism ayrımı + adres | src/components/MapView.tsx | 30 dk |
+| 6 | Equasis parse bug fix (9321483) | scraper/equasisOwner.js | 20 dk |
+| 7 | Apollo / SMTP verify (Katman 3-4) | src/lib/smtpVerify.ts | 2 saat |
+| 8 | S&P real listing OCEAN ENDEAVOUR | src/app/snp/page.tsx | 20 dk |
 
 ---
 
-*Son commit: `3323cfb` feat(enrichment): Datalastic tüm alanları + LDT tahmini + scrap value*
+*Render worker: canlı, 15.600+ gemi/cycle | launchd: 09:00 aktif | Son commit: 4a8413f*

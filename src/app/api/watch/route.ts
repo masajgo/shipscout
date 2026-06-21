@@ -1,60 +1,62 @@
 import { NextRequest, NextResponse } from "next/server";
-import { put, list } from "@vercel/blob";
+import pool from "@/lib/db";
 
-const BLOB_KEY = "watched_vessels.json";
+/*
+  Required Supabase migration (run once in SQL editor):
 
-type Store = { vessels: any[]; ownerQueue: any[] };
+  CREATE TABLE IF NOT EXISTS watched_vessels (
+    imo        TEXT PRIMARY KEY,
+    name       TEXT,
+    flag       TEXT,
+    source     TEXT    DEFAULT 'manual',
+    added_at   TIMESTAMPTZ DEFAULT NOW(),
+    status     TEXT    DEFAULT 'watching'
+  );
+*/
 
-async function loadStore(): Promise<Store> {
-  try {
-    const { blobs } = await list({ prefix: BLOB_KEY });
-    if (!blobs.length) return { vessels: [], ownerQueue: [] };
-    const res = await fetch(blobs[0].url);
-    if (!res.ok) return { vessels: [], ownerQueue: [] };
-    return await res.json();
-  } catch {
-    return { vessels: [], ownerQueue: [] };
-  }
-}
-
-async function saveStore(store: Store) {
-  await put(BLOB_KEY, JSON.stringify(store, null, 2), {
-    access: "public",
-    contentType: "application/json",
-    addRandomSuffix: false,
-    allowOverwrite: true,
-  });
-}
+export const runtime     = "nodejs";
+export const maxDuration = 10;
 
 export async function POST(req: NextRequest) {
+  let vessel: any;
   try {
-    const vessel = await req.json();
-    if (!vessel?.imo) return NextResponse.json({ error: "IMO required" }, { status: 400 });
+    vessel = await req.json();
+  } catch {
+    return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
+  }
 
-    const store  = await loadStore();
-    const exists = store.vessels.find((v) => v.imo === vessel.imo);
-    if (exists) return NextResponse.json({ status: "already_watching" });
+  if (!vessel?.imo) return NextResponse.json({ error: "IMO required" }, { status: 400 });
 
-    const entry = {
-      imo:     vessel.imo,
-      name:    vessel.name   || `Vessel ${vessel.imo}`,
-      flag:    vessel.flag   || null,
-      source:  vessel.source || "manual",
-      addedAt: new Date().toISOString(),
-      status:  "watching",
-    };
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO watched_vessels (imo, name, flag, source, added_at, status)
+       VALUES ($1, $2, $3, $4, NOW(), 'watching')
+       ON CONFLICT (imo) DO NOTHING
+       RETURNING *`,
+      [
+        vessel.imo,
+        vessel.name   || `Vessel ${vessel.imo}`,
+        vessel.flag   || null,
+        vessel.source || "manual",
+      ],
+    );
 
-    store.vessels.push(entry);
-    store.ownerQueue.push({ imo: vessel.imo, queuedAt: new Date().toISOString() });
-    await saveStore(store);
-
-    return NextResponse.json({ status: "watching", vessel: entry });
-  } catch (err: any) {
-    return NextResponse.json({ error: String(err?.message || err) }, { status: 500 });
+    if (!rows.length) {
+      return NextResponse.json({ status: "already_watching" });
+    }
+    return NextResponse.json({ status: "watching", vessel: rows[0] });
+  } catch {
+    return NextResponse.json({ error: "db error" }, { status: 503 });
   }
 }
 
 export async function GET() {
-  const store = await loadStore();
-  return NextResponse.json({ vessels: store.vessels });
+  try {
+    const { rows } = await pool.query(
+      "SELECT imo, name, flag, source, added_at, status FROM watched_vessels ORDER BY added_at DESC",
+    );
+    return NextResponse.json({ vessels: rows });
+  } catch {
+    return NextResponse.json({ vessels: [] }, { status: 503 });
+  }
 }

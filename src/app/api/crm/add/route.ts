@@ -1,59 +1,58 @@
 import { NextRequest, NextResponse } from "next/server";
-import { put, list } from "@vercel/blob";
+import pool from "@/lib/db";
 
-const BLOB_KEY = "crm_vessels.json";
+/*
+  Required Supabase migration (run once in SQL editor):
 
-async function loadCRM(): Promise<any[]> {
-  try {
-    const { blobs } = await list({ prefix: BLOB_KEY });
-    if (!blobs.length) return [];
-    const res = await fetch(blobs[0].url);
-    if (!res.ok) return [];
-    return await res.json();
-  } catch {
-    return [];
-  }
-}
+  CREATE TABLE IF NOT EXISTS crm_vessels (
+    imo        TEXT PRIMARY KEY,
+    name       TEXT,
+    score      INTEGER DEFAULT 0,
+    stage      TEXT    DEFAULT 'lead',
+    added_at   TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+  );
+*/
 
-async function saveCRM(data: any[]) {
-  await put(BLOB_KEY, JSON.stringify(data, null, 2), {
-    access: "public",
-    contentType: "application/json",
-    addRandomSuffix: false,
-    allowOverwrite: true,
-  });
-}
+export const runtime     = "nodejs";
+export const maxDuration = 10;
 
 export async function POST(req: NextRequest) {
+  let body: any;
   try {
-    const { imo, name, score, stage } = await req.json();
-    if (!imo) return NextResponse.json({ error: "IMO required" }, { status: 400 });
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
+  }
 
-    const crm = await loadCRM();
-    const idx  = crm.findIndex((v) => v.imo === imo);
-    const entry = {
-      imo,
-      name:      name  || `IMO ${imo}`,
-      score:     score || 0,
-      stage:     stage || "lead",
-      addedAt:   idx >= 0 ? crm[idx].addedAt : new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+  const { imo, name, score, stage } = body;
+  if (!imo) return NextResponse.json({ error: "IMO required" }, { status: 400 });
 
-    if (idx >= 0) {
-      crm[idx] = entry;
-    } else {
-      crm.push(entry);
-    }
-
-    await saveCRM(crm);
-    return NextResponse.json({ success: true, entry });
-  } catch (err: any) {
-    return NextResponse.json({ error: String(err?.message || err) }, { status: 500 });
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO crm_vessels (imo, name, score, stage, added_at, updated_at)
+       VALUES ($1, $2, $3, $4, NOW(), NOW())
+       ON CONFLICT (imo) DO UPDATE
+         SET name       = EXCLUDED.name,
+             score      = EXCLUDED.score,
+             stage      = EXCLUDED.stage,
+             updated_at = NOW()
+       RETURNING *`,
+      [imo, name || `IMO ${imo}`, score ?? 0, stage || "lead"],
+    );
+    return NextResponse.json({ success: true, entry: rows[0] });
+  } catch {
+    return NextResponse.json({ error: "db error" }, { status: 503 });
   }
 }
 
 export async function GET() {
-  const crm = await loadCRM();
-  return NextResponse.json({ vessels: crm });
+  try {
+    const { rows } = await pool.query(
+      "SELECT imo, name, score, stage, added_at, updated_at FROM crm_vessels ORDER BY updated_at DESC",
+    );
+    return NextResponse.json({ vessels: rows });
+  } catch {
+    return NextResponse.json({ vessels: [] }, { status: 503 });
+  }
 }

@@ -18,7 +18,7 @@ const { WebSocket } = require("ws");
 const { Pool }      = require("pg");
 const path          = require("path");
 const fs            = require("fs");
-const { enrichCandidates, computeScrapScore, scrapCategory } =
+const { enrichCandidates, updateStaticsToDB, computeScrapScore, scrapCategory } =
   require("../scraper/builtYearEnrichment");
 
 // ─── Env ──────────────────────────────────────────────────────────────────────
@@ -353,13 +353,20 @@ async function poll() {
     log(`Enrichment skipped: ${err.message}`);
   }
 
-  // 2. Supabase batch UPSERT
+  // 2. Supabase batch UPSERT (konum + AIS statik)
   if (pgPool) {
     try {
       await withRetry(() => upsertToSupabase(vessels), "Supabase", { maxAttempts: 4, baseMs: 2000 });
       log(`Supabase: ${vessels.length} vessels upserted in ${Date.now() - t0}ms`);
     } catch (err) {
       log(`Supabase upsert failed after retries: ${err.message}`);
+    }
+
+    // 2b. Ship particulars UPDATE (Datalastic statik alanlar: tonaj, LDT, tip, vb)
+    try {
+      await updateStaticsToDB(pgPool, vessels);
+    } catch (err) {
+      log(`updateStaticsToDB error: ${err.message}`);
     }
   } else {
     log("Supabase: skipped (DATABASE_URL not set)");

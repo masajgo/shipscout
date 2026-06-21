@@ -11,11 +11,9 @@ const SHIP_TYPES = [
 ];
 
 const SALE_TYPES = [
-  { id: "all",        label: "All Listings"     },
-  { id: "distressed", label: "Distressed"        },
-  { id: "judicial",   label: "Judicial Auction"  },
-  { id: "bank",       label: "Bank Repo"         },
-  { id: "voluntary",  label: "Voluntary Sale"    },
+  { id: "all",        label: "All Listings"  },
+  { id: "distressed", label: "Distressed"    },
+  { id: "voluntary",  label: "Voluntary"     },
 ];
 
 const AGE_FILTERS  = ["Any age", "0–10y", "10–20y", "20–25y", "25y+"];
@@ -116,7 +114,7 @@ export default function SNPPage() {
           <span style={{ color: "#1D9E75" }}>Before the market does.</span>
         </h1>
         <p style={{ fontSize: 13, color: "#667085", lineHeight: 1.7, maxWidth: 480, margin: "0 0 20px" }}>
-          Distressed sales, judicial auctions, bank repos and voluntary sales — unified with AI-powered valuation and owner contact data.
+          Aging and distressed vessels approaching end-of-life — with scrap valuation, owner data, and market pricing from Datalastic.
         </p>
 
         {/* SALE TYPE TABS */}

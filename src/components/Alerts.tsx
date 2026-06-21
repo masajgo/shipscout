@@ -2,12 +2,9 @@
 import { useState, useEffect } from "react";
 
 const typeConfig: Record<string, { icon:string; label:string; color:string; bg:string; border:string }> = {
-  judicial:  { icon:"🏛️", label:"Judicial Sale",  color:"#F04438", bg:"#FEF3F2", border:"#FECDCA" },
-  dark:      { icon:"📡", label:"AIS Dark",        color:"#7C3AED", bg:"#F5F3FF", border:"#DDD6FE" },
-  bank:      { icon:"🏦", label:"Bank Repo",       color:"#2563EB", bg:"#EFF8FF", border:"#B2DDFF" },
-  idle:      { icon:"⚓", label:"Extended Idle",   color:"#DC6803", bg:"#FFFAEB", border:"#FEF0C7" },
-  survey:    { icon:"📋", label:"Survey Due",      color:"#DC6803", bg:"#FFFAEB", border:"#FEF0C7" },
-  sanctions: { icon:"🚫", label:"Sanctioned",      color:"#F04438", bg:"#FEF3F2", border:"#FECDCA" },
+  age:    { icon:"⏳", label:"End of Life",  color:"#F04438", bg:"#FEF3F2", border:"#FECDCA" },
+  survey: { icon:"📋", label:"Survey Due",   color:"#DC6803", bg:"#FFFAEB", border:"#FEF0C7" },
+  idle:   { icon:"⚓", label:"Age Watch",    color:"#DC6803", bg:"#FFFAEB", border:"#FEF0C7" },
 };
 
 const priorityColor: Record<string, string> = {
@@ -33,13 +30,10 @@ export default function Alerts() {
   const unread = alertData.filter(a => !a.read).length;
 
   const filters = [
-    { id:"all",        label:"All alerts", count:alertData.length },
-    { id:"judicial",   label:"Judicial",   count:alertData.filter(a => a.type==="judicial").length },
-    { id:"dark",       label:"AIS Dark",   count:alertData.filter(a => a.type==="dark").length },
-    { id:"bank",       label:"Bank Repo",  count:alertData.filter(a => a.type==="bank").length },
-    { id:"sanctions",  label:"Sanctions",  count:alertData.filter(a => a.type==="sanctions").length },
-    { id:"idle",       label:"Idle",       count:alertData.filter(a => a.type==="idle").length },
-    { id:"survey",     label:"Survey",     count:alertData.filter(a => a.type==="survey").length },
+    { id:"all",    label:"All alerts",  count:alertData.length },
+    { id:"age",    label:"End of Life", count:alertData.filter(a => a.type==="age").length },
+    { id:"survey", label:"Survey Due",  count:alertData.filter(a => a.type==="survey").length },
+    { id:"idle",   label:"Age Watch",   count:alertData.filter(a => a.type==="idle").length },
   ];
 
   const filtered = filter === "all" ? alertData : alertData.filter(a => a.type === filter);
@@ -74,7 +68,7 @@ export default function Alerts() {
             ["Unread",    unread,                                                     "#F04438"],
             ["Critical",  alertData.filter(a => a.priority==="critical").length,      "#F04438"],
             ["High",      alertData.filter(a => a.priority==="high").length,          "#DC6803"],
-            ["Auctions",  alertData.filter(a => a.type==="judicial").length,          "#7C3AED"],
+            ["Survey Due",alertData.filter(a => a.type==="survey").length,            "#DC6803"],
           ].map(([l, v, c]) => (
             <div key={String(l)} style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
               <span style={{ fontSize:12, color:"#667085" }}>{l}</span>

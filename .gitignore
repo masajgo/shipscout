@@ -43,3 +43,8 @@ next-env.d.ts
 # runtime / generated
 /logs/
 /scraper/data/vessel_age_cache.json
+/scraper/data/owners.json
+/scraper/data/daily_scan.log
+/scraper/data/contact_cache.json
+/scraper/data/equasis_usage.json
+/scraper/data/equasis_debug/

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { scoreFromAge } from "@/lib/scoring";
 
 const API_KEY = process.env.DATALASTIC_API_KEY;
 const BASE    = "https://api.datalastic.com/api/v0";
@@ -30,13 +31,6 @@ function bestMarket(type: string): string {
   return "Gadani";
 }
 
-function scoreFromAge(age: number): number {
-  if (age >= 32) return 90 + Math.min(9, age - 32);
-  if (age >= 28) return 82 + (age - 28);
-  if (age >= 24) return 72 + (age - 24) * 2;
-  if (age >= 20) return 60 + (age - 20) * 3;
-  return Math.max(30, 40 + age);
-}
 
 function alertFromVessel(d: any, imo: string, year: number) {
   const built  = parseInt(d.year_built) || 2000;

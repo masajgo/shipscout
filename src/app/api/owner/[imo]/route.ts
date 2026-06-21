@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { computeScrapScore } from "@/lib/scoring";
 
 const API_KEY = process.env.DATALASTIC_API_KEY;
 const BASE = "https://api.datalastic.com/api/v0";
@@ -37,26 +38,18 @@ export async function GET(
   const drydock = dryDock.status     === "fulfilled" ? dryDock.value     : null;
   const inspect = inspections.status === "fulfilled" ? inspections.value : null;
 
-  // Scrap Score hesapla
   const builtYear = vessel?.data?.year_built;
   const age = builtYear ? new Date().getFullYear() - builtYear : null;
-  let scrapScore = 0;
-  if (age) {
-    if (age >= 30) scrapScore += 35;
-    else if (age >= 25) scrapScore += 28;
-    else if (age >= 20) scrapScore += 20;
-    else if (age >= 15) scrapScore += 10;
-  }
-  if (inspect?.data?.length > 0) scrapScore += 25;
-  if (inspect?.data?.length >= 3) scrapScore += 10;
-  if (drydock?.data?.next_dry_dock) {
-    const nextDD = new Date(drydock.data.next_dry_dock);
-    const monthsLeft = (nextDD.getTime() - Date.now()) / (1000 * 60 * 60 * 24 * 30);
-    if (monthsLeft < 6) scrapScore += 15;
-  }
+  const scrapScore = computeScrapScore(
+    age,
+    inspect?.data?.length ?? 0,
+    drydock?.data?.next_dry_dock ?? null,
+  );
 
   return NextResponse.json({
     imo,
+    scrapScore: Math.min(100, scrapScore),
+    age,
     particulars: {
       name:         vessel?.data?.name,
       flag:         vessel?.data?.flag,
@@ -90,7 +83,5 @@ export async function GET(
       classExpiry: drydock?.data?.class_expiry,
     },
     detentions: inspect?.data ?? [],
-    scrapScore: Math.min(100, scrapScore),
-    age,
   });
 }

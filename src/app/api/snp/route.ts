@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { list }         from "@vercel/blob";
+import { scoreFromAge } from "@/lib/scoring";
 
 const API_KEY = process.env.DATALASTIC_API_KEY;
 const BASE    = "https://api.datalastic.com/api/v0";
@@ -58,13 +59,6 @@ function tagsFromVessel(age: number, score: number, saleType: string): { label: 
   return tags;
 }
 
-function scoreFromAge(age: number): number {
-  if (age >= 32) return 90 + Math.min(9, age - 32);
-  if (age >= 28) return 82 + (age - 28);
-  if (age >= 24) return 72 + (age - 24) * 2;
-  if (age >= 20) return 60 + (age - 20) * 3;
-  return Math.max(30, 40 + age);
-}
 
 async function fetchVessel(imo: string) {
   try {

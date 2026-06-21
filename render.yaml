@@ -3,6 +3,7 @@ services:
     name: shipscout-ais-worker
     runtime: docker
     dockerfilePath: ./worker/Dockerfile
+    dockerContext: .
     envVars:
       - key: DATABASE_URL
         sync: false

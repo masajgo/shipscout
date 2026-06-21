@@ -1,118 +1,110 @@
 # ShipScout TODO & Sprint Report
-*Generated: 2026-06-20 | Branch: main | Last commit: c85a6bb*
-
----
-
-## Sprint Özeti
-
-Bu otonom sprint (~24 dakika, 69 tool use) şunları tamamladı ve yarım bıraktı:
+*Güncellendi: 2026-06-21 | Son commit: 3323cfb*
 
 ---
 
 ## ✅ TAMAMLANDI
 
-### 1. AIS Live Map (Harita)
+### 1. AIS Live Map
 - [x] Leaflet canvas renderer, cluster/individual markers
-- [x] Scrap scoring: age>50→+40, >40→+35, >30→+28, >25→+20, >20→+12
-- [x] Scrap kategorisi eşikleri: >35=critical, ≥25=high, ≥15=medium, <15=low
+- [x] Scrap scoring: age≥50→+40, ≥40→+35, ≥30→+28, ≥25→+20, ≥20→+12
+- [x] Scrap kategorisi: >35=critical, ≥25=high, ≥15=medium, <15=low
 - [x] Cluster tıklanabilir (interactive:true + flyTo)
-- [x] Map height fix: `position:absolute; inset:0`
-- [x] Ticker bar `/map`'te gizleniyor (Layout.tsx)
-- [x] "Live · N vessels" — Supabase COUNT'tan (WebSocket değil)
+- [x] Ticker bar `/map`'te gizleniyor
+- [x] "Live · N vessels" — Supabase COUNT'tan
 - [x] Panel: gemi detayı (isim, bayrak, hız, kurs, scrap skoru, yaş)
 - [x] Track (last positions) görünümü
 
 ### 2. Owner/Contact Enrichment Pipeline
-- [x] `src/lib/contactEnricher.ts` — domain heuristics, HEAD probe, maritime validation, email/phone/address extraction, emailFormat detection
-- [x] `src/app/api/vessels/[mmsi]/contact/route.ts` — dual cache (memCache 6h + file cache owners.json), manager_name DB'den okunuyor
-- [x] `src/components/MapView.tsx` — contact panel: website, emails (mailto), phones, emailFormat, LinkedIn butonu
-- [x] `scraper/contactEnrichment.js` — ROLE_LOCALS filter, leadingAcronym, maritime validation, enrichWithCache
-- [x] `scraper/equasisOwner.js` — Playwright login (page.evaluate), IMO arama, cheerio parseShipPage, management table parse
+- [x] `src/lib/contactEnricher.ts` — domain heuristics, HEAD probe, maritime validation
+- [x] `src/app/api/vessels/[mmsi]/contact/route.ts` — **owners tablosundan** (Supabase) okuma, maxDuration:10s
+- [x] Contact panel: website, emails (mailto), phones, emailFormat, LinkedIn butonu
+- [x] `scraper/contactEnrichment.js` — ROLE_LOCALS filter, maritime validation ≥4 threshold
 
-### 3. Equasis Scraper — Çalıştı
-- [x] equasisOwner.js gerçek veri çekti: OCEAN ENDEAVOUR (7625811) + 9321483
-- [x] `scraper/data/owners.json` populate edildi
-- [x] OCEAN ENDEAVOUR: managerName=SUNSTONE SHIPS INC, ownerName=ENDEAVOUR PARTNERS UNIPESSOAL
+### 3. Equasis Scraper
+- [x] `scraper/equasisOwner.js` — Playwright login, IMO arama, cheerio parseShipPage
+- [x] Rate-limit koruması: DAILY_LIMIT=250, delay 5-8s, block detection regex
+- [x] Checkpoint/resume: owners.json'daki IMO'lar atlanıyor
+- [x] waitForURL fix: `/restricted\/ShipInfo/` (false positive düzeltildi)
+- [x] Log: `[5/120] ✓ IMO 9321483 | bugün: 47/250 (kalan: 203)`
+- [x] equasis_usage.json — günlük sayaç, tarih bazlı otomatik sıfırlama
 
-### 4. Core Pages (daha önce tamamlanmış)
+### 4. Kalıcı Owners Tablosu (Supabase)
+- [x] `owners` tablosu oluşturuldu: `imo bigint PRIMARY KEY`, vessel_name, owner_name, manager_name, ism_manager, website, emails[], phones[], address, email_format, linkedin_url, source, fetched_at
+- [x] `scraper/dailyOwnerScan.js` — pipeline: vessels WHERE scrap_category IN ('critical','high') AND imo≥8M → Equasis → owners UPSERT
+- [x] --dry-run flag, scraper/data/daily_scan.log
+- [x] launchd: `com.shipscout.ownerscan` — 09:00 günlük, yüklü ve aktif
+
+### 5. Render AIS Worker (Production)
+- [x] `render.yaml` — dockerfilePath + dockerContext:. (Blueprint parse fix)
+- [x] `worker/Dockerfile` — `COPY scraper/ ./scraper/` eklendi (builtYearEnrichment bağımlılığı)
+- [x] Render'a deploy edildi, 15.600+ gemi/cycle işliyor
+- [x] Env vars: DATABASE_URL, AISSTREAM_API_KEY, DATALASTIC_API_KEY, NODE_ENV=production
+
+### 6. Datalastic Full Enrichment
+- [x] `scraper/builtYearEnrichment.js` — TÜM statik alanlar: gross_tonnage, deadweight, type_specific, teu, length, breadth, draught, speed_avg, speed_max, home_port, callsign, flag
+- [x] LDT tahmini: DWT × tip katsayısı (container 0.28, tanker 0.20, bulk 0.20, ro-ro 0.40...)
+- [x] Yolcu/cruise/ferry → ldt=null ("as per request")
+- [x] Scrap value: LDT × $450/LDT (SCRAP_PRICE_PER_LDT env ile override)
+- [x] `updateStaticsToDB()` — COALESCE UPDATE, sadece null olan alanları doldurur
+- [x] `worker/aisWorker.js` — Step 2b: her cycle sonrası updateStaticsToDB() çağrısı
+- [x] Yeni DB sütunları: gross_tonnage, deadweight, ldt, ldt_estimated, type_specific, teu, home_port, speed_max, callsign, scrap_value_usd, scrap_value_estimated
+
+### 7. Core Pages
 - [x] `/` — Ana sayfa
 - [x] `/map` — AIS harita
 - [x] `/alerts` — Judicial/distress alerts
 - [x] `/snp` — S&P marketplace
 - [x] `/owner` — Owner dashboard
 
-### 5. Deploy (önceki commit)
-- [x] Son deploy: `c85a6bb` Vercel'de canlı
-- [x] Supabase bağlantısı: transaction pooler URL
+---
+
+## ⏳ BUGÜN OTOMATİK (2026-06-21)
+
+- [ ] **09:00** — `com.shipscout.ownerscan` launchd çalışacak (ilk gerçek run, taze 250 limit)
+  - 50 gemi × 5-8s ≈ 5-7 dk
+  - Log: `scraper/data/daily_scan.log`
+  - Doğrulama: `SELECT COUNT(*) FROM owners` (akşam kontrol)
 
 ---
 
-## ✅ Sprint 2 Tamamlandılar (2026-06-20)
+## 🔲 AÇIK / BEKLEYEN
 
-- [x] 4 uncommitted dosya commit & push edildi
-- [x] contactEnrichment domain heuristics fix: `carriers`, `ocean`, `transportation` strip words; bare core + hyphenated-shipmanagement candidates sıralandı
-- [x] Maritime validation threshold ≥2 → ≥4 (e-commerce false positives önlendi)
-- [x] 5-şirket test PASS: SunStone✅ Bernhard Schulte✅ Columbia✅ Oldendorff✅ Cargill✅
-- [x] S&P OCEAN ENDEAVOUR (7625811) eklendi — TRACKED_IMOS + hardcoded fallback
-- [x] Track route: vessel_tracks tablosu yoksa 503 yerine graceful empty dönüyor
-- [x] Railway Dockerfile mevcut ve hazır (`worker/Dockerfile`)
-- [x] Tüm route curl testi — 6/7 ✅, contact ⚠️ (Equasis scraper bekleniyor)
-- [x] Production deploy: shipscout.io güncel
-
----
-
-## ⚠️ YARIDA KALDI / EKSİK
-
-### 1. Git Commit — KRİTİK
-**4 dosya değiştirildi ama commit edilmedi!**
+### 1. Render Worker Log Doğrulaması (Öncelik: Yüksek)
+Datalastic enrichment'ın production'da çalıştığını doğrula:
 ```
-modified: scraper/contactEnrichment.js
-modified: scraper/equasisOwner.js
-modified: src/app/api/vessels/[mmsi]/contact/route.ts
-modified: src/components/MapView.tsx
-```
-→ `git add -A && git commit -m "..." && git push` gerekiyor
-
-### 2. equasisOwner.js Parse Bug
-IMO 9321483 için parse hatalı: `managerName` company adı yerine adres string'i çıkıyor.
-Muhtemelen management table column sırası yanlış parse ediliyor.
-→ `scraper/data/equasis_debug/9321483.html` incelenmeli
-
-### 3. cheerio npm Paketi
-equasisOwner.js `require("cheerio")` kullanıyor ama package.json'da yoksa install gerekiyor:
-```bash
-cd scraper && npm install cheerio   # veya root'tan: npm install cheerio
+Render → shipscout-ais-worker → Logs
+→ "updateStaticsToDB: N vessels updated" satırı aranacak
 ```
 
-### 4. S&P Modülü — OCEAN ENDEAVOUR Gerçek Listing Yok
-OCEAN ENDEAVOUR (IMO 7625811) gerçek S&P listing olarak eklenmedi.
-Şu an mock data var. `src/app/snp/page.tsx` veya API'ye eklenecek.
-
-### 5. 5-Şirket contactEnrichment Testi
-Sadece SunStone test edildi. Hedef 5 şirket:
-- [ ] SunStone Ship Management ✅ (çalışıyor)
-- [ ] Bernhard Schulte Shipmanagement
-- [ ] Columbia Shipmanagement
-- [ ] Oldendorff Carriers
-- [ ] Cargill Ocean Transportation
-
-### 6. Tüm Route'ların curl Testi
-Sistematik test yapılmadı. Yapılacaklar:
-```bash
-curl https://shipscout.vercel.app/api/vessels          # list
-curl https://shipscout.vercel.app/api/vessels/[mmsi]   # detail
-curl https://shipscout.vercel.app/api/vessels/[mmsi]/contact  # enrichment
-curl https://shipscout.vercel.app/api/vessels/[mmsi]/track    # track
-curl https://shipscout.vercel.app/api/alerts           # alerts
-curl https://shipscout.vercel.app/api/owner            # owner stats
+### 2. scraper/data/ .gitignore (Öncelik: Orta)
+Runtime dosyaları commit edilmemeli:
 ```
+# .gitignore'a ekle:
+scraper/data/owners.json
+scraper/data/daily_scan.log
+scraper/data/contact_cache.json
+scraper/data/equasis_debug/
+scraper/data/equasis_usage.json
+```
+Not: `scraper/data/vessel_age_cache.json` zaten gitignore'da.
 
-### 7. Railway/Render Konfigürasyonu
-`railway.toml` mevcut ama Dockerfile ve tam deployment config eksik.
-AIS worker production'da Railway/Render'da çalışmıyor — sadece PM2 ile local.
+### 3. Equasis Parse Bug — 9321483 (Öncelik: Orta)
+`managerName` company adı yerine adres string'i dönüyor.
+→ `scraper/data/equasis_debug/9321483.html` incelenmeli, management table column sırası düzeltilmeli
 
-### 8. Production Deploy (son değişiklikler)
-Commit edilmemiş 4 dosya Vercel'de yok. Owner enrichment paneli production'da görünmüyor.
+### 4. is_navaid / liquid_gas / speed_avg Karar (Öncelik: Düşük)
+Datalastic'te mevcut 3 alan henüz DB'ye eklenmedi. Eklenecekse:
+- vessels tablosuna sütun ekle
+- getVesselInfo() entry'sine ekle
+- updateStaticsToDB() parametrelerine ekle
+
+### 5. S&P OCEAN ENDEAVOUR Gerçek Listing (Öncelik: Düşük)
+IMO 7625811 için `src/app/snp/page.tsx` veya API'ye gerçek listing eklenmeli.
+Şu an mock data var.
+
+### 6. Equasis Parse Bug — IMO 9321483 managerName
+`scraper/data/equasis_debug/9321483.html` incelenerek management table parsing düzeltilecek.
 
 ---
 
@@ -121,77 +113,43 @@ Commit edilmemiş 4 dosya Vercel'de yok. Owner enrichment paneli production'da g
 | Bug | Durum | Dosya |
 |-----|-------|-------|
 | 9321483 managerName parse yanlış | Açık | scraper/equasisOwner.js |
-| owners.json'daki imo key'i string, DB'deki imo column farklı olabilir | Kontrol edilmeli | contact/route.ts |
-| SunStone contact'ta emails boş dönüyor (sunstoneships.com'da email korunmuş olabilir) | Muhtemelen açık | contactEnricher.ts |
-
----
-
-## 🗓️ YARIN YAPILACAKLAR (2026-06-21)
-
-### 1. Equasis Owner Enrichment (Otomatik — launchd 09:00)
-- `com.shipscout.ownerscan` launchd job 09:00'da otomatik çalışır
-- `equasis_usage.json` tarihi 2026-06-21'e geçince count=0 sıfırlanır
-- 2441 gemi kuyrukta (critical/high, IMO≥8M, score DESC)
-- Günde 50 gemi × 7sn ≈ 6dk → owners tablosuna UPSERT
-- Doğrulama: `SELECT COUNT(*) FROM owners` (yarın akşam kontrol)
-
-### 2. Railway AIS Worker Deploy (Beraber yapılacak)
-Railway deploy için adımlar — **ENV VARS ve hesap gerekiyor**:
-```bash
-# 1. Railway CLI kur (bir kez)
-npm install -g @railway/cli
-
-# 2. Login
-railway login
-
-# 3. Proje oluştur (ilk kez)
-railway init            # "shipscout-worker" adı ver
-
-# 4. Env vars ayarla (Railway dashboard veya CLI)
-railway variables set DATABASE_URL="postgresql://..."
-railway variables set AISSTREAM_API_KEY="..."
-railway variables set DATALASTIC_API_KEY="..."   # varsa
-
-# 5. Deploy (railway.toml + worker/Dockerfile kullanır)
-railway up
-
-# 6. Logları izle
-railway logs
-```
-**Dockerfile notu:** `scraper/` dizini de kopyalanıyor (aisWorker → builtYearEnrichment).
-
----
-
-## 📋 SONRAKI ADIMLAR (Öncelik Sırasıyla)
-
-1. **Commit & push** — 4 uncommitted dosyayı commit et
-2. **npm install cheerio** — scraper dependencies
-3. **equasisOwner parse fix** — 9321483 debug HTML'i inceleyip column sırasını düzelt
-4. **Vercel deploy** — son commit'ten sonra otomatik tetiklenir
-5. **5-şirket test** — `node scraper/contactEnrichment.js` ile
-6. **S&P OCEAN ENDEAVOUR** — gerçek listing ekle
-7. **curl test suite** — tüm route'ları systematically test et
-8. **Railway Dockerfile** — AIS worker production deployment
+| SunStone contact'ta emails boş | Muhtemelen site koruması | contactEnricher.ts |
 
 ---
 
 ## 🏗 MİMARİ ÖZET
 
 ```
-AISStream WebSocket
-    → worker/aisWorker.js (PM2, 45s poll)
-    → Supabase vessels table (UPSERT, 5s dedup)
-    → /api/vessels (Supabase SELECT)
-    → MapView.tsx (Leaflet clusters)
+AISStream WebSocket (aisstream.io)
+    → worker/aisWorker.js (Render background worker, 45s cycle)
+        → Step 1: vessels UPSERT (konum, AIS data, scrap_score)
+        → Step 2a: enrichCandidates() — Datalastic API (anchored/moored/risk flag)
+        → Step 2b: updateStaticsToDB() — COALESCE UPDATE statik alanlar
+    → Supabase vessels table
 
-Equasis scraper (equasisOwner.js, Playwright)
-    → scraper/data/owners.json
-    → Supabase vessels.manager_name (ayrı script gerekiyor)
-    → /api/vessels/[mmsi]/contact
-    → contactEnricher.ts (domain heuristics)
+Equasis scraper (launchd 09:00 günlük)
+    → scraper/dailyOwnerScan.js
+        → vessels WHERE critical/high AND imo≥8M AND NOT IN owners
+        → equasisOwner.js (Playwright, 5-8s delay, 250/day limit)
+        → owners table UPSERT (Supabase)
+
+Next.js API (/api/vessels/[mmsi]/contact)
+    → SELECT FROM owners WHERE imo=$1
+    → ContactResult { cached:"db" }
     → MapView.tsx contact panel
 ```
 
 ---
 
-*Sprint agent 69 tool use / ~24 dk sonra 401 auth error ile kesildi.*
+## 📋 SONRAKİ ADIMLAR (Öncelik Sırasıyla)
+
+1. **Render worker logları** — updateStaticsToDB çalışıyor mu doğrula
+2. **.gitignore** — scraper/data/ dosyaları ekle, commit
+3. **09:00 launchd** — daily_scan.log'u akşam kontrol et, owners COUNT'u bak
+4. **Equasis parse bug** — 9321483 HTML debug
+5. **is_navaid/liquid_gas/speed_avg** — eklensin mi karar ver
+6. **S&P real listing** — OCEAN ENDEAVOUR
+
+---
+
+*Son commit: `3323cfb` feat(enrichment): Datalastic tüm alanları + LDT tahmini + scrap value*

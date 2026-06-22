@@ -702,15 +702,10 @@ export default function MapView() {
                 </div>
               </div>
             ) : (
-              <div style={{ fontSize: 10, color: S.muted }}>No owner data available</div>
+              <div style={{ fontSize: 10, color: S.muted, fontStyle: "italic" }}>Owner bilgisi toplanıyor — yarın güncellenir</div>
             )}
           </div>
 
-          <button
-            onClick={() => window.open(`/api/vessels/${selected.mmsi}`, "_blank")}
-            style={{ background: "rgba(29,158,117,0.1)", border: `1px solid rgba(29,158,117,0.25)`, borderRadius: 6, padding: "8px 14px", color: S.green, fontSize: 11, fontWeight: 600, cursor: "pointer", letterSpacing: "0.06em", fontFamily: "Inter, sans-serif" }}>
-            Full detail JSON →
-          </button>
         </aside>
       )}
     </div>

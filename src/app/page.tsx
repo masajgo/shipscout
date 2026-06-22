@@ -21,6 +21,12 @@ const SHIP_TYPE_ICONS: Record<string, string> = {
   "Offshore":      "OS",
 };
 
+function fmtScrap(usd: number | null | undefined, est: boolean | null | undefined): string | null {
+  if (!usd || usd < 100_000) return null;
+  const m = usd / 1_000_000;
+  return `${est ? "~" : ""}$${m >= 10 ? m.toFixed(1) : m.toFixed(2)}M`;
+}
+
 export default function Home() {
   const [vessels, setVessels]       = useState<any[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -31,7 +37,7 @@ export default function Home() {
   const [sortBy, setSortBy]             = useState<"score"|"age"|"value">("score");
 
   useEffect(() => {
-    fetch("/api/vessels")
+    fetch("/api/vessels?list=1")
       .then(r => r.json())
       .then(d => { setVessels(d.vessels || []); setLoading(false); })
       .catch(() => { setFetchError(true); setLoading(false); });
@@ -41,13 +47,12 @@ export default function Home() {
   const filtered = vessels
     .filter(v => {
       if (typeFilter !== "All" && !(v.type || "").toLowerCase().includes(typeFilter.toLowerCase())) return false;
-      if (signalFilter !== "All Signals" && !(v.status || "").includes(signalFilter)) return false;
       return true;
     })
     .sort((a, b) => {
-      if (sortBy === "age")   return (currentYear - a.built) < (currentYear - b.built) ? 1 : -1;
-      if (sortBy === "value") return parseFloat((b.estValue || "$0").replace(/[$M]/g, "")) - parseFloat((a.estValue || "$0").replace(/[$M]/g, ""));
-      return b.score - a.score;
+      if (sortBy === "age")   return (a.age ?? 0) < (b.age ?? 0) ? 1 : -1;
+      if (sortBy === "value") return (b.scrap_value_usd ?? 0) - (a.scrap_value_usd ?? 0);
+      return (b.score ?? 0) - (a.score ?? 0);
     });
 
   return (
@@ -143,11 +148,14 @@ export default function Home() {
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: "#101828" }}>
               {loading ? "Loading vessels..." : `${filtered.length} vessels found`}
-              {!loading && filtered.length > 0 && (
-                <span style={{ fontSize: 12, fontWeight: 500, color: "#1D9E75", marginLeft: 10 }}>
-                  · ${filtered.reduce((sum, v) => sum + parseFloat((v.estValue || "$0").replace(/[$M]/g, "")), 0).toFixed(1)}M total est. value
-                </span>
-              )}
+              {!loading && filtered.length > 0 && (() => {
+                const totalUSD = filtered.reduce((s, v) => s + (v.scrap_value_usd ?? 0), 0);
+                return totalUSD > 0 ? (
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "#1D9E75", marginLeft: 10 }}>
+                    · ~${(totalUSD / 1_000_000).toFixed(0)}M total est. scrap value
+                  </span>
+                ) : null;
+              })()}
             </div>
             <div style={{ fontSize: 12, color: "#98A2B3", marginTop: 2 }}>
               {sortBy === "score" ? "Sorted by scrap score — highest opportunity first" : sortBy === "age" ? "Sorted by age — oldest first" : "Sorted by estimated value — highest first"}
@@ -221,12 +229,11 @@ export default function Home() {
                   </div>
                   <div style={{ display: "flex", gap: 20, flexWrap: "wrap" as const }}>
                     {[
-                      { label: "Type",     val: v.type },
-                      { label: "Built",    val: `${v.built} · ${age}y` },
-                      v.dwt ? { label: "DWT", val: `${(v.dwt || 0).toLocaleString()} t` } : null,
-                      v.ldt ? { label: "LDT", val: `${(v.ldt || 0).toLocaleString()} t` } : null,
-                      v.location && v.location !== "—" ? { label: "Location", val: v.location } : null,
-                      { label: "Flag",     val: v.flag },
+                      v.type ? { label: "Type",  val: v.type } : null,
+                      v.built_year ? { label: "Built", val: `${v.built_year} · ${v.age ?? currentYear - v.built_year}y` } : null,
+                      v.dwt  ? { label: "DWT", val: `${(v.dwt).toLocaleString()} t` } : null,
+                      v.ldt  ? { label: "LDT", val: `${(v.ldt).toLocaleString()} t${v.ldt_estimated ? " ~" : ""}` } : null,
+                      v.flag ? { label: "Flag", val: v.flag } : null,
                     ].filter(Boolean).map(s => s && (
                       <div key={s.label}>
                         <div style={{ fontSize: 12, fontWeight: 600, color: "#344054" }}>{s.val}</div>
@@ -236,17 +243,16 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div style={{ flexShrink: 0 }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, padding: "4px 10px", borderRadius: 5, color: sc.color, background: sc.bg, border: `1px solid ${sc.border}` }}>
-                    {v.status}
-                  </span>
-                </div>
-
-                <div style={{ textAlign: "right", flexShrink: 0, minWidth: 100 }}>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: "#101828", letterSpacing: -0.5 }}>{v.estValue}</div>
-                  <div style={{ fontSize: 10, color: "#98A2B3", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginTop: 2 }}>Est. @ {v.market}</div>
-                  {v.deadline && <div style={{ fontSize: 11, fontWeight: 700, color: "#F04438", marginTop: 4 }}>{v.deadline}</div>}
-                </div>
+                {/* Scrap value */}
+                {(() => {
+                  const sv = fmtScrap(v.scrap_value_usd, v.scrap_value_estimated);
+                  return sv ? (
+                    <div style={{ textAlign: "right", flexShrink: 0, minWidth: 90 }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: "#101828", letterSpacing: -0.5 }}>{sv}</div>
+                      <div style={{ fontSize: 9, color: "#98A2B3", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginTop: 2 }}>Est. scrap value</div>
+                    </div>
+                  ) : <div style={{ minWidth: 90 }} />;
+                })()}
 
                 <div style={{ color: "#C8CDD6", fontSize: 18, flexShrink: 0 }}>→</div>
               </div>

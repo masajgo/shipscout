@@ -41,7 +41,9 @@ export async function GET(
   const builtYear = vessel?.data?.year_built;
   const age = builtYear ? new Date().getFullYear() - builtYear : null;
   const dwt = vessel?.data?.deadweight || 0;
-  const ldt = vessel?.data?.lightship || (dwt ? Math.round(dwt * 0.17) : 0);
+  const ldtRaw = vessel?.data?.lightship;
+  const ldt = ldtRaw || (dwt ? Math.round(dwt * 0.17) : 0);
+  const ldt_estimated = !ldtRaw && !!ldt;
 
   const scrapScore = computeScrapScore(
     age,
@@ -63,6 +65,7 @@ export async function GET(
       grt:          vessel?.data?.gross_tonnage,
       nrt:          vessel?.data?.net_tonnage,
       ldt,
+      ldt_estimated,
       loa:          vessel?.data?.length,
       beam:         vessel?.data?.breadth,
       draft:        vessel?.data?.draught,

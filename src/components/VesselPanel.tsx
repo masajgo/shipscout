@@ -14,6 +14,7 @@ type VesselData = {
   particulars: {
     name: string; flag: string; type: string; builtYear: number;
     builtAt: string; dwt: number; grt: number; nrt: number; ldt: number;
+    ldt_estimated: boolean;
     loa: number; beam: number; draft: number; callSign: string;
     mmsi: string; classSociety: string; status: string;
   };
@@ -243,8 +244,15 @@ ShipScout — Maritime Intelligence`;
             <Row label="Type"      value={data.particulars.type} />
             <Row label="Built"     value={data.particulars.builtYear} />
             <Row label="Built At"  value={data.particulars.builtAt} />
-            <Row label="DWT"       value={data.particulars.dwt ? `${data.particulars.dwt.toLocaleString()} t` : null} highlight />
-            <Row label="LDT"       value={data.particulars.ldt ? `${data.particulars.ldt.toLocaleString()} t` : null} highlight />
+            <Row label="DWT"       value={data.particulars.dwt ? `${data.particulars.dwt.toLocaleString()} t` : "N/A"} highlight />
+            <Row label="LDT"       value={data.particulars.ldt ? `${data.particulars.ldt.toLocaleString()} t` : "N/A"} highlight />
+            <Row
+              label="Est. Scrap Value"
+              value={data.particulars.ldt
+                ? `${data.particulars.ldt_estimated ? "~" : ""}$${((data.particulars.ldt * 332) / 1_000_000).toFixed(1)}M @ Aliağa`
+                : null}
+              highlight
+            />
             <Row label="GRT"       value={data.particulars.grt ? `${data.particulars.grt.toLocaleString()} t` : null} />
             <Row label="LOA"       value={data.particulars.loa ? `${data.particulars.loa} m` : null} />
             <Row label="Beam"      value={data.particulars.beam ? `${data.particulars.beam} m` : null} />
@@ -258,20 +266,29 @@ ShipScout — Maritime Intelligence`;
           {/* Estimated Scrap Value */}
           {data.particulars.ldt && (
             <Section title="Estimated Scrap Value">
+              {data.particulars.ldt_estimated && (
+                <div style={{ fontSize: 10, color: C.steel, fontStyle: "italic", marginBottom: 8 }}>
+                  LDT tahmin edildi (gerçek lightship verisi yok)
+                </div>
+              )}
               {[
                 { market: "Alang 🇮🇳",      price: 501 },
                 { market: "Chittagong 🇧🇩", price: 541 },
                 { market: "Gadani 🇵🇰",     price: 511 },
                 { market: "Aliağa 🇹🇷",     price: 332 },
-              ].map(({ market, price }) => (
-                <div key={market} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: "1px solid rgba(143,168,178,0.08)" }}>
-                  <span style={{ fontSize: 12, color: C.steel }}>{market}</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: C.green }}>
-                    ${((data.particulars.ldt * price) / 1000000).toFixed(2)}M
-                    <span style={{ fontWeight: 400, color: C.steel, marginLeft: 4 }}>@${price}/LDT</span>
-                  </span>
-                </div>
-              ))}
+              ].map(({ market, price }) => {
+                const val = (data.particulars.ldt * price) / 1_000_000;
+                const fmt = `${data.particulars.ldt_estimated ? "~" : ""}$${val >= 10 ? val.toFixed(1) : val.toFixed(2)}M`;
+                return (
+                  <div key={market} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: "1px solid rgba(143,168,178,0.08)" }}>
+                    <span style={{ fontSize: 12, color: C.steel }}>{market}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: C.green }}>
+                      {fmt}
+                      <span style={{ fontWeight: 400, color: C.steel, marginLeft: 4 }}>@${price}/LDT</span>
+                    </span>
+                  </div>
+                );
+              })}
             </Section>
           )}
 

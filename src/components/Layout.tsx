@@ -8,13 +8,22 @@ const NAV = [
   { href: "/",        label: "Vessels"  },
   { href: "/markets", label: "Markets"  },
   { href: "/snp",     label: "S&P"      },
+  { href: "/compare", label: "Compare"  },
   { href: "/alerts",  label: "Alerts"   },
   { href: "/crm",     label: "Deal CRM" },
   { href: "/map",     label: "Map"      },
 ];
 
+const TICKER_DELTAS: Record<string, { delta: string; up: boolean }> = {
+  "Alang":      { delta: "−3", up: false },
+  "Chittagong": { delta: "+8", up: true },
+  "Gadani":     { delta: "+2", up: true },
+  "Aliağa":     { delta: "+4", up: true },
+};
+
 const TICKER = SCRAP_MARKETS.map(m => ({
-  port: m.market, country: m.country, price: String(m.price), delta: "", up: true,
+  port: m.market, country: m.country, price: String(m.price),
+  ...( TICKER_DELTAS[m.market] ?? { delta: "", up: true }),
 }));
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -33,13 +42,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       {/* NAV */}
       <nav style={{
-        height: 56,
+        height: 64,
         display: "flex",
         alignItems: "center",
-        padding: "0 28px",
+        padding: "0 32px",
         justifyContent: "space-between",
         background: "#0B1E3D",
-        borderBottom: "1px solid rgba(255,255,255,0.08)",
+        borderBottom: "1px solid rgba(255,255,255,0.1)",
         position: "sticky",
         top: 0,
         zIndex: 100,
@@ -47,14 +56,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       }}>
         <div style={{ display: "flex", alignItems: "center" }}>
           <Link href="/" style={{ textDecoration: "none" }}>
-            <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: -0.5, color: "#FFFFFF" }}>
+            <span style={{ fontSize: 18, fontWeight: 700, letterSpacing: -0.5, color: "#FFFFFF" }}>
               Ship<span style={{ color: "#C9A84C" }}>Scout</span>
             </span>
           </Link>
-          <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.15)", margin: "0 14px" }} />
-          <span style={{ fontSize: 10, letterSpacing: "0.1em", color: "rgba(255,255,255,0.4)", textTransform: "uppercase" as const, fontWeight: 500 }}>
-            Vessel Intelligence
-          </span>
         </div>
 
         <div style={{ display: "flex", gap: 2 }}>
@@ -64,11 +69,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <Link key={href} href={href} style={{
                 fontSize: 13,
                 fontWeight: active ? 600 : 400,
-                color: active ? "#FFFFFF" : "rgba(255,255,255,0.6)",
+                color: active ? "#FFFFFF" : "rgba(255,255,255,0.7)",
                 textDecoration: "none",
                 padding: "6px 12px",
                 borderRadius: 6,
-                background: active ? "rgba(255,255,255,0.08)" : "none",
+                background: "none",
                 borderBottom: active ? "2px solid #C9A84C" : "2px solid transparent",
                 transition: "all 0.15s",
               }}>
@@ -78,14 +83,35 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           })}
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#C9A84C" }}>
             <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#C9A84C", animation: "pulse-dot 2s infinite" }} />
             Live · {aisCount !== null ? `${aisCount.toLocaleString()} vessels` : "connecting..."}
           </div>
-          <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#C9A84C", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#0B1E3D" }}>
-            A
-          </div>
+          <button style={{
+            padding: "7px 16px",
+            background: "transparent",
+            border: "1px solid rgba(255,255,255,0.5)",
+            borderRadius: 6,
+            color: "white",
+            fontSize: 13,
+            fontWeight: 500,
+            cursor: "pointer",
+          }}>
+            Sign in
+          </button>
+          <button style={{
+            padding: "7px 16px",
+            background: "#C9A84C",
+            border: "none",
+            borderRadius: 6,
+            color: "#0B1E3D",
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: "pointer",
+          }}>
+            Get Access
+          </button>
         </div>
       </nav>
 
@@ -112,6 +138,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div style={{ marginLeft: "auto", alignSelf: "center" }}>
             <span style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", letterSpacing: "0.1em", textTransform: "uppercase" as const }}>
               Jun 2026 · $/LDT benchmark
+            </span>
+            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.35)", marginLeft: 12 }}>
+              Updated 2h ago
             </span>
           </div>
         </div>

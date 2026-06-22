@@ -17,6 +17,18 @@ const STRIP_WORDS = [
   "inc","llc","sa","as","ab","bv","gmbh","oy","company","co",
 ];
 
+// Layer 1 — S&P / chartering department prefixes (highest priority)
+export const DEPARTMENT_LOCALS = new Set([
+  "sale-purchase","snp","s-p","chartering","newbuilding","new-building",
+  "sale","purchase","commercial","charter","ops","operations",
+]);
+
+// Layer 2 — generic role prefixes
+export const GENERIC_LOCALS = new Set([
+  "info","contact","hello","office","mail","support","admin","noreply","no-reply",
+  "enquiries","enquiry","service","accounts","marketing","finance","hr","crew","crewing",
+]);
+
 // ─── Domain candidates ────────────────────────────────────────────────────────
 
 export function generateDomainCandidates(name: string): string[] {
@@ -29,22 +41,19 @@ export function generateDomainCandidates(name: string): string[] {
   }
   core = core.replace(/\s+/g, " ").trim();
 
-  const cn       = core.replace(/\s/g, "");
-  const sn       = slug.replace(/\s/g, "");
-  const ch       = core.replace(/\s/g, "-");
-  const words    = slug.split(/\s+/).filter(w => w.length > 2).slice(0, 3);
-  const acronym  = words.map(w => w[0]).join("");
-  const first    = words[0] || cn;
-  const hasMar   = MARITIME_KW.some(k => raw.includes(k));
-  const msuffix  = hasMar ? "ships" : "ships";
+  const cn      = core.replace(/\s/g, "");
+  const sn      = slug.replace(/\s/g, "");
+  const ch      = core.replace(/\s/g, "-");
+  const words   = slug.split(/\s+/).filter(w => w.length > 2).slice(0, 3);
+  const acronym = words.map(w => w[0]).join("");
+  const first   = words[0] || cn;
 
   return [...new Set([
-    `${cn}${msuffix}.com`, `${cn}shipping.com`, `${cn}ships.com`,
-    `${cn}marine.com`,     `${cn}maritime.com`, `${first}${msuffix}.com`,
-    `${first}ships.com`,   `${first}shipping.com`, `${first}marine.com`,
-    `${cn}group.com`,      `${ch}.com`,          `${acronym}ships.com`,
-    `${acronym}shipping.com`, `${sn}.com`,        `${cn}.com`,
-    `${cn}mgmt.com`,       `${cn}.net`,
+    `${cn}ships.com`,    `${cn}shipping.com`,    `${cn}marine.com`,
+    `${cn}maritime.com`, `${first}ships.com`,     `${first}shipping.com`,
+    `${first}marine.com`,`${cn}group.com`,        `${ch}.com`,
+    `${acronym}ships.com`,`${acronym}shipping.com`,`${sn}.com`,
+    `${cn}.com`,         `${cn}mgmt.com`,         `${cn}.net`,
   ])].filter(d => d.length > 5 && !d.startsWith("."));
 }
 
@@ -91,10 +100,25 @@ async function fetchContactPage(baseUrl: string): Promise<{ html: string; path: 
 
 // ─── Extractors ───────────────────────────────────────────────────────────────
 
-function extractEmails(html: string): string[] {
+function extractRawEmails(html: string): string[] {
   const raw = [...html.matchAll(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g)]
     .map(m => m[0].toLowerCase());
   return [...new Set(raw.filter(e => !PERSONAL.test(e)))];
+}
+
+export function categorizeEmails(
+  emails: string[],
+): { department: string[]; generic: string[]; other: string[] } {
+  const department: string[] = [];
+  const generic:    string[] = [];
+  const other:      string[] = [];
+  for (const e of emails) {
+    const local = e.split("@")[0].toLowerCase();
+    if (DEPARTMENT_LOCALS.has(local))   department.push(e);
+    else if (GENERIC_LOCALS.has(local)) generic.push(e);
+    else                                 other.push(e);
+  }
+  return { department, generic, other };
 }
 
 function extractPhones(html: string): string[] {
@@ -109,20 +133,16 @@ function extractAddress(html: string): string | null {
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ");
 
-  // Look for street-name + number patterns (e.g. "Boltonvej 7", "Main Street 123")
-  // Street name must be at least 4 characters before the suffix keyword
   const streetRe = /\b([A-ZÆØÅ][a-zæøåÆØÅüöä]{3,}(?:[a-zæøåA-ZÆØÅ\-]*\s+)?(?:vej|gade|allé|boulevard|street|avenue|road|lane|drive|way|plads|square|str\.?))\s+(\d{1,5}[A-Za-z]?(?:[, ]+(?:[A-Z]{2}-?)?\d{4,5}[A-Za-z\s,]{0,50})?)/gi;
 
   const candidates: { pos: number; text: string }[] = [];
   let m: RegExpExecArray | null;
   // eslint-disable-next-line no-cond-assign
   while ((m = streetRe.exec(text)) !== null) {
-    const val = `${m[1].trim()} ${m[2].trim()}`;
-    // Grab a bit more context after the match for city name
+    const val   = `${m[1].trim()} ${m[2].trim()}`;
     const extra = text.slice(m.index + m[0].length, m.index + m[0].length + 60)
       .replace(/\s*(Tel|Phone|Email|Fax|Finance|Administration|Manager|Director|Chief|Copyright|All rights|\+\d).*/i, "")
       .trim();
-    // Also clean noise from the captured group itself
     const clean = (val + " " + extra)
       .replace(/\s*(Tel|Phone|Email|Fax|Finance|Administration|\+\d).*/i, "")
       .trim()
@@ -130,7 +150,6 @@ function extractAddress(html: string): string | null {
     if (clean.length > 8) candidates.push({ pos: m.index, text: clean });
   }
 
-  // Fallback: postal-code anchor (e.g. "DK-2300 Copenhagen S")
   const pcRe = /\b([A-Z]{2}-\d{4,5}\s+[A-Za-zæøåÆØÅ\s]{3,30})/g;
   // eslint-disable-next-line no-cond-assign
   while ((m = pcRe.exec(text)) !== null) {
@@ -142,7 +161,6 @@ function extractAddress(html: string): string | null {
   return candidates[0].text.trim();
 }
 
-// Common role-based email prefixes (not personal name patterns)
 const ROLE_LOCALS = new Set([
   "info","contact","hello","support","sales","admin","office","mail","noreply",
   "service","enquiries","enquiry","marketing","finance","hr","crew","crewing",
@@ -180,29 +198,64 @@ function guessEmailFormat(emails: string[], domain: string): string | null {
   return null;
 }
 
+// ─── Layer 4: Guess personal email from decision-maker name + detected format ─
+
+export function guessEmailsFromName(
+  managerName: string,
+  emailFormat: string | null,
+  domain: string,
+): { email: string; name: string; guessed: true }[] {
+  if (!managerName || !emailFormat || !domain) return [];
+  const parts = managerName.toLowerCase().replace(/[^a-z\s]/g, "").trim().split(/\s+/);
+  if (parts.length < 2) return [];
+  const first = parts[0];
+  const last  = parts[parts.length - 1];
+  const fi    = first[0];
+
+  // emailFormat is like "first_initial.last@domain" — extract the pattern part
+  const pattern = emailFormat.split("@")[0];
+  let local: string | null = null;
+  if (pattern === "first_initial.last")   local = `${fi}.${last}`;
+  else if (pattern === "first.last")      local = `${first}.${last}`;
+  else if (pattern === "first_initial-last") local = `${fi}-${last}`;
+  else if (pattern === "firstlast")       local = `${first}${last}`;
+
+  if (!local) return [];
+  return [{ email: `${local}@${domain}`, name: managerName, guessed: true as const }];
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export interface ContactResult {
-  company:          string;
-  website:          string | null;
-  emails:           string[];
-  phones:           string[];
-  address:          string | null;
-  emailFormat:      string | null;
-  linkedinSearchUrl: string;
-  contactPath:      string | null;
+  company:            string;
+  website:            string | null;
+  emails:             string[];
+  emailsByType:       { department: string[]; generic: string[]; other: string[] };
+  emailFormat:        string | null;
+  guessedEmails:      { email: string; name: string; guessed: true }[];
+  phones:             string[];
+  address:            string | null;
+  linkedinCompanyUrl: string;
+  linkedinPeopleUrl:  string;
+  contactPath:        string | null;
 }
 
-export async function enrichCompanyContact(companyName: string): Promise<ContactResult> {
+export async function enrichCompanyContact(
+  companyName: string,
+  managerName?: string,
+): Promise<ContactResult> {
   const result: ContactResult = {
-    company:          companyName,
-    website:          null,
-    emails:           [],
-    phones:           [],
-    address:          null,
-    emailFormat:      null,
-    linkedinSearchUrl: `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(companyName)}`,
-    contactPath:      null,
+    company:  companyName,
+    website:  null,
+    emails:   [],
+    emailsByType: { department: [], generic: [], other: [] },
+    emailFormat:  null,
+    guessedEmails:[],
+    phones:   [],
+    address:  null,
+    linkedinCompanyUrl: `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(companyName)}`,
+    linkedinPeopleUrl:  `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(companyName + " chartering sale purchase")}`,
+    contactPath: null,
   };
 
   const candidates = generateDomainCandidates(companyName);
@@ -224,13 +277,19 @@ export async function enrichCompanyContact(companyName: string): Promise<Contact
   const found = await fetchContactPage(baseUrl);
   if (!found) return result;
 
-  result.contactPath = found.path;
-  result.emails      = extractEmails(found.html);
-  result.phones      = extractPhones(found.html);
-  result.address     = extractAddress(found.html);
-  // Try static guess first; if role-only, probe /team /about for named emails
-  result.emailFormat = guessEmailFormat(result.emails, result.website)
+  result.contactPath  = found.path;
+  const allEmails     = extractRawEmails(found.html);
+  result.emails       = allEmails;
+  result.emailsByType = categorizeEmails(allEmails);
+  result.phones       = extractPhones(found.html);
+  result.address      = extractAddress(found.html);
+  result.emailFormat  = guessEmailFormat(allEmails, result.website)
     ?? await detectEmailFormat(result.website);
+
+  // Layer 4 — guess personal email for named decision-maker
+  if (managerName && result.emailFormat && result.website) {
+    result.guessedEmails = guessEmailsFromName(managerName, result.emailFormat, result.website);
+  }
 
   return result;
 }

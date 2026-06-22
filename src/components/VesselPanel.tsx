@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 const C = {
   navy: "#0D1F28", mid: "#0F2733", light: "#1A3A4A",
   green: "#1D9E75", steel: "#8FA8B2", fg: "#E8F0F3",
+  blue: "#6CB8E6", red: "#F87171",
 };
 
 type VesselData = {
@@ -26,14 +27,40 @@ type VesselData = {
   detentions: any[];
 };
 
+type EmailsByType = { department: string[]; generic: string[]; other: string[] };
+
+type ContactResult = {
+  company:            string;
+  website:            string | null;
+  emails:             string[];
+  emailsByType:       EmailsByType;
+  emailFormat:        string | null;
+  guessedEmails:      { email: string; name: string; guessed: true }[];
+  phones:             string[];
+  address:            string | null;
+  linkedinCompanyUrl: string;
+  linkedinPeopleUrl:  string;
+  contactPath:        string | null;
+};
+
+function bestEmail(contact: ContactResult | null, owner: VesselData["owner"] | undefined): string {
+  if (contact) {
+    if (contact.emailsByType?.department?.[0]) return contact.emailsByType.department[0];
+    if (contact.emailsByType?.generic?.[0])    return contact.emailsByType.generic[0];
+    if (contact.emails?.[0])                   return contact.emails[0];
+    if (contact.guessedEmails?.[0])            return contact.guessedEmails[0].email;
+  }
+  return owner?.email || owner?.managerEmail || "";
+}
+
 function ScoreRing({ score }: { score: number }) {
   const color = score >= 70 ? "#E24B4A" : score >= 50 ? "#FB923C" : C.green;
-  const r = 28, c = 32, circ = 2 * Math.PI * r;
+  const r = 28, cx = 32, circ = 2 * Math.PI * r;
   const fill = (score / 100) * circ;
   return (
     <svg width="64" height="64" viewBox="0 0 64 64">
-      <circle cx={c} cy={c} r={r} fill="none" stroke="rgba(143,168,178,0.15)" strokeWidth="6" />
-      <circle cx={c} cy={c} r={r} fill="none" stroke={color} strokeWidth="6"
+      <circle cx={cx} cy={cx} r={r} fill="none" stroke="rgba(143,168,178,0.15)" strokeWidth="6" />
+      <circle cx={cx} cy={cx} r={r} fill="none" stroke={color} strokeWidth="6"
         strokeDasharray={`${fill} ${circ}`} strokeLinecap="round"
         transform="rotate(-90 32 32)" />
       <text x="32" y="37" textAnchor="middle" fontSize="14" fontWeight="700" fill={color}>{score}</text>
@@ -47,8 +74,8 @@ function Row({ label, value, mono = false, highlight = false }: {
   if (!value && value !== 0) return null;
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: "1px solid rgba(143,168,178,0.08)" }}>
-      <span style={{ fontSize: 12, color: C.steel }}>{label}</span>
-      <span style={{ fontSize: 12, fontWeight: 600, color: highlight ? C.green : C.fg, fontFamily: mono ? "monospace" : "inherit" }}>
+      <span style={{ fontSize: 12, color: C.steel, flexShrink: 0 }}>{label}</span>
+      <span style={{ fontSize: 12, fontWeight: 600, color: highlight ? C.green : C.fg, fontFamily: mono ? "monospace" : "inherit", textAlign: "right", marginLeft: 8, wordBreak: "break-all" }}>
         {value}
       </span>
     </div>
@@ -66,23 +93,33 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-export default function VesselPanel({ imo, onClose }: { imo: string; onClose: () => void }) {
-  const [data, setData] = useState<VesselData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [emailDraft, setEmailDraft] = useState(false);
-  const [emailBody, setEmailBody]   = useState("");
-  const [crmAdded, setCrmAdded]     = useState(false);
-  const [watching, setWatching]     = useState(false);
+function EmailBadge({ label, email }: { label: string; email: string }) {
+  return (
+    <div style={{ padding: "7px 0", borderBottom: "1px solid rgba(143,168,178,0.08)" }}>
+      <div style={{ fontSize: 10, color: C.steel, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 11, fontFamily: "monospace", color: C.fg, wordBreak: "break-all" }}>{email}</div>
+    </div>
+  );
+}
 
+export default function VesselPanel({ imo, onClose }: { imo: string; onClose: () => void }) {
+  const [data,           setData]           = useState<VesselData | null>(null);
+  const [loading,        setLoading]        = useState(true);
+  const [error,          setError]          = useState<string | null>(null);
+  const [contact,        setContact]        = useState<ContactResult | null>(null);
+  const [contactLoading, setContactLoading] = useState(false);
+  const [emailDraft,     setEmailDraft]     = useState(false);
+  const [emailBody,      setEmailBody]      = useState("");
+  const [crmAdded,       setCrmAdded]       = useState(false);
+  const [watching,       setWatching]       = useState(false);
+
+  // Load Datalastic vessel data
   useEffect(() => {
-    setData(null);
-    setLoading(true);
-    setError(null);
-    setEmailDraft(false);
-    setEmailBody("");
-    setCrmAdded(false);
-    setWatching(false);
+    setData(null); setContact(null);
+    setLoading(true); setError(null);
+    setEmailDraft(false); setEmailBody("");
+    setCrmAdded(false); setWatching(false);
+
     fetch(`/api/vessel/${imo}`)
       .then(r => r.json())
       .then(d => {
@@ -93,11 +130,53 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
       .catch(() => { setError("Network error"); setLoading(false); });
   }, [imo]);
 
+  // Load contact enrichment using MMSI (available after vessel data loads)
+  useEffect(() => {
+    const mmsi = data?.particulars?.mmsi;
+    if (!mmsi) return;
+    setContactLoading(true);
+    fetch(`/api/vessels/${mmsi}/contact`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { setContact(d?.contact ?? null); })
+      .catch(() => {})
+      .finally(() => setContactLoading(false));
+  }, [data?.particulars?.mmsi]);
+
+  // Keyboard close
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
+
+  const toEmail = data ? bestEmail(contact, data.owner) : "";
+
+  const offerMailto = () => {
+    if (!data) return;
+    const vessel   = data.particulars.name || `IMO ${imo}`;
+    const manager  = contact?.company || data.owner?.managerName || data.owner?.name || "Ship Manager";
+    const subject  = `Sale/Purchase Inquiry — MV ${vessel} (IMO ${imo})`;
+    const body     =
+`Dear ${manager} team,
+
+We are reaching out via ShipScout regarding the vessel below.
+
+  Vessel:    ${vessel}
+  IMO:       ${imo}
+  MMSI:      ${data.particulars.mmsi || "—"}
+  Type:      ${data.particulars.type || "—"}
+  Built:     ${data.particulars.builtYear || "—"}${data.age ? ` (${data.age}y)` : ""}
+  DWT:       ${data.particulars.dwt ? data.particulars.dwt.toLocaleString() + " t" : "—"}
+  LDT:       ${data.particulars.ldt ? data.particulars.ldt.toLocaleString() + " t" : "—"}
+  Flag:      ${data.particulars.flag || "—"}
+
+We have a buyer interested in a sale/purchase opportunity for this vessel.
+Could you confirm whether it is potentially available and share the appropriate commercial contact?
+
+Best regards,
+ShipScout — Maritime Intelligence`;
+    return `mailto:${encodeURIComponent(toEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
 
   return (
     <div style={{
@@ -129,9 +208,8 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
           Loading vessel data...
         </div>
       )}
-
       {error && (
-        <div style={{ padding: 20, color: "#F87171", fontSize: 13, textAlign: "center" }}>{error}</div>
+        <div style={{ padding: 20, color: C.red, fontSize: 13, textAlign: "center" }}>{error}</div>
       )}
 
       {data && !loading && (
@@ -146,33 +224,31 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
                 {data.scrapScore >= 70 ? "High Priority" : data.scrapScore >= 50 ? "Watch" : "Low Risk"}
               </div>
               <div style={{ fontSize: 11, color: C.steel, marginTop: 2 }}>
-                {data.age ? `${data.age} yrs old` : ""} · {data.detentions.length} detention
+                {data.age ? `${data.age} yrs old` : ""} · {data.detentions.length} detention{data.detentions.length !== 1 ? "s" : ""}
               </div>
             </div>
             {data.scrapScore >= 50 && (
-              <div style={{ fontSize: 24 }}>
-                {data.scrapScore >= 70 ? "🔴" : "🟡"}
-              </div>
+              <div style={{ fontSize: 24 }}>{data.scrapScore >= 70 ? "🔴" : "🟡"}</div>
             )}
           </div>
 
           {/* Ship Particulars */}
           <Section title="Ship Particulars">
-            <Row label="Name"        value={data.particulars.name} />
-            <Row label="Flag"        value={data.particulars.flag} />
-            <Row label="Type"        value={data.particulars.type} />
-            <Row label="Built"       value={data.particulars.builtYear} />
-            <Row label="Built At"    value={data.particulars.builtAt} />
-            <Row label="DWT"         value={data.particulars.dwt ? `${data.particulars.dwt.toLocaleString()} t` : null} highlight />
-            <Row label="LDT"         value={data.particulars.ldt ? `${data.particulars.ldt.toLocaleString()} t` : null} highlight />
-            <Row label="GRT"         value={data.particulars.grt ? `${data.particulars.grt.toLocaleString()} t` : null} />
-            <Row label="LOA"         value={data.particulars.loa ? `${data.particulars.loa} m` : null} />
-            <Row label="Beam"        value={data.particulars.beam ? `${data.particulars.beam} m` : null} />
-            <Row label="Draft"       value={data.particulars.draft ? `${data.particulars.draft} m` : null} />
-            <Row label="Call Sign"   value={data.particulars.callSign} mono />
-            <Row label="MMSI"        value={data.particulars.mmsi} mono />
-            <Row label="Class"       value={data.particulars.classSociety} />
-            <Row label="Status"      value={data.particulars.status} />
+            <Row label="Name"      value={data.particulars.name} />
+            <Row label="Flag"      value={data.particulars.flag} />
+            <Row label="Type"      value={data.particulars.type} />
+            <Row label="Built"     value={data.particulars.builtYear} />
+            <Row label="Built At"  value={data.particulars.builtAt} />
+            <Row label="DWT"       value={data.particulars.dwt ? `${data.particulars.dwt.toLocaleString()} t` : null} highlight />
+            <Row label="LDT"       value={data.particulars.ldt ? `${data.particulars.ldt.toLocaleString()} t` : null} highlight />
+            <Row label="GRT"       value={data.particulars.grt ? `${data.particulars.grt.toLocaleString()} t` : null} />
+            <Row label="LOA"       value={data.particulars.loa ? `${data.particulars.loa} m` : null} />
+            <Row label="Beam"      value={data.particulars.beam ? `${data.particulars.beam} m` : null} />
+            <Row label="Draft"     value={data.particulars.draft ? `${data.particulars.draft} m` : null} />
+            <Row label="Call Sign" value={data.particulars.callSign} mono />
+            <Row label="MMSI"      value={data.particulars.mmsi} mono />
+            <Row label="Class"     value={data.particulars.classSociety} />
+            <Row label="Status"    value={data.particulars.status} />
           </Section>
 
           {/* Estimated Scrap Value */}
@@ -215,104 +291,196 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
             <Section title={`PSC Detentions (${data.detentions.length})`}>
               {data.detentions.slice(0, 5).map((d: any, i: number) => (
                 <div key={i} style={{ background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.15)", borderRadius: 8, padding: "8px 12px", marginBottom: 6 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: "#F87171" }}>{d.port} · {d.date}</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: C.red }}>{d.port} · {d.date}</div>
                   <div style={{ fontSize: 11, color: C.steel, marginTop: 2 }}>{d.authority} · {d.deficiencies} deficiencies</div>
                 </div>
               ))}
             </Section>
           )}
 
-          {/* Owner Info */}
-          {data.owner?.name ? (
-            <Section title="Owner Info">
-              <Row label="Owner"         value={data.owner.name} highlight />
-              <Row label="Email"         value={data.owner.email} mono />
-              <Row label="Phone"         value={data.owner.phone} mono />
-              <Row label="Address"       value={data.owner.address} />
-              <Row label="Country"       value={data.owner.country} />
-              <Row label="Manager"       value={data.owner.managerName} />
-              <Row label="Mgr. Email"    value={data.owner.managerEmail} mono />
-            </Section>
-          ) : (
-            <Section title="Owner Info">
-              <div style={{ fontSize: 12, color: C.steel, padding: "8px 0", fontStyle: "italic" }}>
-                Owner data requires maritime reports subscription.
+          {/* Owner & Contact — enriched first, Datalastic fallback */}
+          <Section title="Owner & Contact">
+            {/* Company names */}
+            {(data.owner?.name || data.owner?.managerName) && (
+              <div style={{ marginBottom: 10 }}>
+                {data.owner.managerName && (
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.fg }}>{data.owner.managerName}</div>
+                )}
+                {data.owner.name && data.owner.name !== data.owner.managerName && (
+                  <div style={{ fontSize: 11, color: C.steel, marginTop: 2 }}>{data.owner.name}</div>
+                )}
               </div>
-            </Section>
-          )}
+            )}
+
+            {contactLoading && (
+              <div style={{ fontSize: 11, color: C.steel, fontStyle: "italic", padding: "6px 0" }}>
+                Searching contacts…
+              </div>
+            )}
+
+            {contact ? (
+              <>
+                {/* Website — text only, no link */}
+                {contact.website && (
+                  <Row label="Website" value={contact.website} mono />
+                )}
+
+                {/* Layer 1: Department emails */}
+                {contact.emailsByType.department.map(e => (
+                  <EmailBadge key={e} label="S&P / Chartering" email={e} />
+                ))}
+
+                {/* Layer 2: Generic emails (only if no department) */}
+                {contact.emailsByType.department.length === 0 &&
+                  contact.emailsByType.generic.slice(0, 2).map(e => (
+                    <EmailBadge key={e} label="General" email={e} />
+                  ))
+                }
+
+                {/* Layer 3: Other named emails (max 2) */}
+                {contact.emailsByType.department.length === 0 &&
+                  contact.emailsByType.generic.length === 0 &&
+                  contact.emailsByType.other.slice(0, 2).map(e => (
+                    <EmailBadge key={e} label="Email" email={e} />
+                  ))
+                }
+
+                {/* Layer 4: Guessed personal email */}
+                {contact.guessedEmails.map(g => (
+                  <div key={g.email} style={{ padding: "7px 0", borderBottom: "1px solid rgba(143,168,178,0.08)" }}>
+                    <div style={{ fontSize: 10, color: C.steel, marginBottom: 2 }}>
+                      Est. {g.name}
+                      <span style={{ marginLeft: 6, color: C.blue, fontSize: 9, fontWeight: 600 }}>GUESSED</span>
+                    </div>
+                    <div style={{ fontSize: 11, fontFamily: "monospace", color: "rgba(232,240,243,0.6)", wordBreak: "break-all" }}>{g.email}</div>
+                  </div>
+                ))}
+
+                {/* Phone */}
+                {contact.phones.slice(0, 2).map(p => (
+                  <Row key={p} label="Phone" value={p} mono />
+                ))}
+
+                {/* Address */}
+                {contact.address && <Row label="Address" value={contact.address} />}
+
+                {/* Email format hint */}
+                {contact.emailFormat && (
+                  <div style={{ fontSize: 10, color: "rgba(143,168,178,0.6)", fontFamily: "monospace", marginTop: 6 }}>
+                    format: {contact.emailFormat}
+                  </div>
+                )}
+              </>
+            ) : !contactLoading && (
+              <>
+                {/* Datalastic fallback */}
+                <Row label="Email"      value={data.owner?.email} mono />
+                <Row label="Phone"      value={data.owner?.phone} mono />
+                <Row label="Address"    value={data.owner?.address} />
+                <Row label="Country"    value={data.owner?.country} />
+                <Row label="Mgr. Email" value={data.owner?.managerEmail} mono />
+                {!data.owner?.name && (
+                  <div style={{ fontSize: 12, color: C.steel, padding: "8px 0", fontStyle: "italic" }}>
+                    Owner data requires maritime reports subscription.
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* LinkedIn buttons */}
+            <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
+              <a
+                href={(contact?.linkedinCompanyUrl) || `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(data.owner?.managerName || data.owner?.name || "")}`}
+                target="_blank" rel="noreferrer"
+                style={{ flex: 1, display: "block", textAlign: "center", background: "rgba(108,184,230,0.08)", border: "1px solid rgba(108,184,230,0.25)", borderRadius: 8, padding: "8px 6px", color: C.blue, fontSize: 10, fontWeight: 600, textDecoration: "none", letterSpacing: "0.04em" }}
+              >
+                LinkedIn Şirket →
+              </a>
+              <a
+                href={(contact?.linkedinPeopleUrl) || `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent((data.owner?.managerName || data.owner?.name || "") + " chartering sale purchase")}`}
+                target="_blank" rel="noreferrer"
+                style={{ flex: 1, display: "block", textAlign: "center", background: "rgba(108,184,230,0.08)", border: "1px solid rgba(108,184,230,0.25)", borderRadius: 8, padding: "8px 6px", color: C.blue, fontSize: 10, fontWeight: 600, textDecoration: "none", letterSpacing: "0.04em" }}
+              >
+                S&P Yönetici →
+              </a>
+            </div>
+          </Section>
 
           {/* Action Buttons */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
+            {/* Offer email */}
             <button
-              onClick={() => { const draft = `Dear ${data.owner?.name || "Vessel Owner"},\n\nWe are interested in acquiring MV ${data.particulars.name} (IMO ${imo}) for recycling purposes.\n\nBased on our assessment, we can offer competitive terms for immediate demolition sale. Our team is ready to discuss further at your earliest convenience.\n\nBest regards,\nShipScout Team`; setEmailBody(draft); setEmailDraft(true); }}
+              onClick={() => {
+                const href = offerMailto();
+                if (href) window.location.href = href;
+                else {
+                  const draft = `Dear ${contact?.company || data.owner?.managerName || data.owner?.name || "Ship Manager"},\n\n` +
+                    `We are interested in discussing a sale/purchase opportunity for MV ${data.particulars.name || `IMO ${imo}`}.\n\n` +
+                    `Could you confirm availability and share the appropriate commercial contact?\n\nBest regards,\nShipScout Team`;
+                  setEmailBody(draft);
+                  setEmailDraft(true);
+                }
+              }}
               style={{ background: C.green, border: "none", borderRadius: 10, padding: "12px 20px", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "Inter, sans-serif" }}
             >
-              ✉️ Draft Offer Email
+              ✉ Teklif Emaili Yaz
             </button>
+
+            {/* Add to CRM */}
             <button
               onClick={async () => {
                 try {
                   const res = await fetch("/api/crm/add", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      imo: data.imo,
-                      name: data.particulars?.name,
-                      score: data.scrapScore,
-                      status: "new",
-                      stage: "lead",
-                      addedAt: new Date().toISOString(),
-                    }),
+                    body: JSON.stringify({ imo: data.imo, name: data.particulars?.name, score: data.scrapScore, stage: "lead" }),
                   });
                   if (res.ok) setCrmAdded(true);
-                } catch {
-                  setCrmAdded(true);
-                }
+                } catch { setCrmAdded(true); }
               }}
-              style={{ background: crmAdded ? "#1D9E75" : "rgba(108,184,230,0.08)", border: `1px solid ${crmAdded ? "#1D9E75" : "rgba(108,184,230,0.2)"}`, borderRadius: 10, padding: "12px 20px", color: crmAdded ? "#fff" : "#6CB8E6", fontSize: 13, fontWeight: 600, cursor: crmAdded ? "default" : "pointer", fontFamily: "Inter, sans-serif" }}
+              style={{ background: crmAdded ? C.green : "rgba(108,184,230,0.08)", border: `1px solid ${crmAdded ? C.green : "rgba(108,184,230,0.2)"}`, borderRadius: 10, padding: "12px 20px", color: crmAdded ? "#fff" : C.blue, fontSize: 13, fontWeight: 600, cursor: crmAdded ? "default" : "pointer", fontFamily: "Inter, sans-serif" }}
             >
-              {crmAdded ? "✓ Added to CRM" : "📋 Add to CRM"}
+              {crmAdded ? "✓ CRM'e Eklendi" : "📋 CRM'e Ekle"}
             </button>
+
+            {/* Watch */}
             <button
               onClick={async () => {
                 try {
                   const res = await fetch("/api/watch", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      imo: data.imo,
-                      name: data.particulars?.name,
-                      source: "manual",
-                    }),
+                    body: JSON.stringify({ imo: data.imo, name: data.particulars?.name, source: "manual" }),
                   });
                   if (res.ok) setWatching(true);
-                } catch {
-                  setWatching(true);
-                }
+                } catch { setWatching(true); }
               }}
-              style={{ background: watching ? "#1D9E75" : "rgba(143,168,178,0.06)", border: `1px solid ${watching ? "#1D9E75" : "rgba(143,168,178,0.15)"}`, borderRadius: 10, padding: "12px 20px", color: watching ? "#fff" : C.steel, fontSize: 13, fontWeight: 600, cursor: watching ? "default" : "pointer", fontFamily: "Inter, sans-serif" }}
+              style={{ background: watching ? C.green : "rgba(143,168,178,0.06)", border: `1px solid ${watching ? C.green : "rgba(143,168,178,0.15)"}`, borderRadius: 10, padding: "12px 20px", color: watching ? "#fff" : C.steel, fontSize: 13, fontWeight: 600, cursor: watching ? "default" : "pointer", fontFamily: "Inter, sans-serif" }}
             >
-              {watching ? "✓ Watching" : "👁 Watch Vessel"}
+              {watching ? "✓ İzleniyor" : "👁 Gemiyi İzle"}
             </button>
           </div>
 
-          {/* Email Draft */}
+          {/* Email Draft (manual fallback when mailto not possible) */}
           {emailDraft && (
             <div style={{ marginTop: 20, background: C.navy, borderRadius: 12, padding: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.steel, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Email Draft</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.steel, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Email Taslağı</div>
               <textarea
                 value={emailBody}
                 onChange={e => setEmailBody(e.target.value)}
-                style={{ width: "100%", background: "rgba(143,168,178,0.06)", border: "1px solid rgba(143,168,178,0.15)", borderRadius: 8, padding: 12, color: C.fg, fontSize: 12, lineHeight: 1.6, fontFamily: "Inter, sans-serif", resize: "vertical", minHeight: 180, boxSizing: "border-box" }}
+                style={{ width: "100%", background: "rgba(143,168,178,0.06)", border: "1px solid rgba(143,168,178,0.15)", borderRadius: 8, padding: 12, color: C.fg, fontSize: 12, lineHeight: 1.6, fontFamily: "Inter, sans-serif", resize: "vertical", minHeight: 200, boxSizing: "border-box" }}
               />
               <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                 <button
-                  onClick={() => { const to = data.owner?.email || ""; window.location.href = `mailto:${to}?subject=${encodeURIComponent(`Acquisition Inquiry — MV ${data.particulars.name}`)}&body=${encodeURIComponent(emailBody)}`; }}
+                  onClick={() => {
+                    const to = toEmail;
+                    window.location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(`Sale/Purchase Inquiry — MV ${data.particulars.name}`)}&body=${encodeURIComponent(emailBody)}`;
+                  }}
                   style={{ flex: 1, background: C.green, border: "none", borderRadius: 8, padding: "10px", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                  📤 Send
+                  📤 Gönder
                 </button>
                 <button onClick={() => setEmailDraft(false)} style={{ background: "none", border: "1px solid rgba(143,168,178,0.2)", borderRadius: 8, padding: "10px 16px", color: C.steel, fontSize: 12, cursor: "pointer" }}>
-                  Cancel
+                  İptal
                 </button>
               </div>
             </div>

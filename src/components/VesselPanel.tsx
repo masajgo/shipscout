@@ -108,6 +108,7 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
   const [error,          setError]          = useState<string | null>(null);
   const [contact,        setContact]        = useState<ContactResult | null>(null);
   const [contactLoading, setContactLoading] = useState(false);
+  const [webFetchedAt,   setWebFetchedAt]   = useState<string | null>(null);
   const [emailDraft,     setEmailDraft]     = useState(false);
   const [emailBody,      setEmailBody]      = useState("");
   const [crmAdded,       setCrmAdded]       = useState(false);
@@ -115,7 +116,7 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
 
   // Load Datalastic vessel data
   useEffect(() => {
-    setData(null); setContact(null);
+    setData(null); setContact(null); setWebFetchedAt(null);
     setLoading(true); setError(null);
     setEmailDraft(false); setEmailBody("");
     setCrmAdded(false); setWatching(false);
@@ -137,7 +138,10 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
     setContactLoading(true);
     fetch(`/api/vessels/${mmsi}/contact`)
       .then(r => r.ok ? r.json() : null)
-      .then(d => { setContact(d?.contact ?? null); })
+      .then(d => {
+        setContact(d?.contact ?? null);
+        setWebFetchedAt(d?.webFetchedAt ?? null);
+      })
       .catch(() => {})
       .finally(() => setContactLoading(false));
   }, [data?.particulars?.mmsi]);
@@ -325,15 +329,27 @@ ShipScout — Maritime Intelligence`;
                   <Row label="Website" value={contact.website} mono />
                 )}
 
-                {/* Layer 1: Department emails */}
+                {/* Layer 1: Department emails — red S&P badge */}
                 {contact.emailsByType.department.map(e => (
-                  <EmailBadge key={e} label="S&P / Chartering" email={e} />
+                  <div key={e} style={{ padding: "7px 0", borderBottom: "1px solid rgba(143,168,178,0.08)" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                      <span style={{ fontSize: 10, color: C.steel }}>S&P / Chartering</span>
+                      <span style={{ fontSize: 8, fontWeight: 700, color: "#fff", background: C.red, borderRadius: 3, padding: "1px 4px", letterSpacing: "0.04em" }}>S&P</span>
+                    </div>
+                    <div style={{ fontSize: 11, fontFamily: "monospace", color: C.fg, wordBreak: "break-all" }}>{e}</div>
+                  </div>
                 ))}
 
-                {/* Layer 2: Generic emails (only if no department) */}
+                {/* Layer 2: Generic emails — gray badge */}
                 {contact.emailsByType.department.length === 0 &&
                   contact.emailsByType.generic.slice(0, 2).map(e => (
-                    <EmailBadge key={e} label="General" email={e} />
+                    <div key={e} style={{ padding: "7px 0", borderBottom: "1px solid rgba(143,168,178,0.08)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                        <span style={{ fontSize: 10, color: C.steel }}>Genel</span>
+                        <span style={{ fontSize: 8, fontWeight: 700, color: C.steel, background: "rgba(143,168,178,0.15)", borderRadius: 3, padding: "1px 4px", letterSpacing: "0.04em" }}>GENEL</span>
+                      </div>
+                      <div style={{ fontSize: 11, fontFamily: "monospace", color: C.fg, wordBreak: "break-all" }}>{e}</div>
+                    </div>
                   ))
                 }
 
@@ -345,14 +361,14 @@ ShipScout — Maritime Intelligence`;
                   ))
                 }
 
-                {/* Layer 4: Guessed personal email */}
+                {/* Layer 4: Guessed personal email — italic + orange TAHMİNİ badge */}
                 {contact.guessedEmails.map(g => (
                   <div key={g.email} style={{ padding: "7px 0", borderBottom: "1px solid rgba(143,168,178,0.08)" }}>
-                    <div style={{ fontSize: 10, color: C.steel, marginBottom: 2 }}>
-                      Est. {g.name}
-                      <span style={{ marginLeft: 6, color: C.blue, fontSize: 9, fontWeight: 600 }}>GUESSED</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                      <span style={{ fontSize: 10, color: C.steel, fontStyle: "italic" }}>Est. {g.name}</span>
+                      <span style={{ fontSize: 8, fontWeight: 700, color: "#fff", background: "#FB923C", borderRadius: 3, padding: "1px 4px", letterSpacing: "0.04em" }}>TAHMİNİ</span>
                     </div>
-                    <div style={{ fontSize: 11, fontFamily: "monospace", color: "rgba(232,240,243,0.6)", wordBreak: "break-all" }}>{g.email}</div>
+                    <div style={{ fontSize: 11, fontFamily: "monospace", color: "rgba(232,240,243,0.55)", wordBreak: "break-all", fontStyle: "italic" }}>{g.email}</div>
                   </div>
                 ))}
 
@@ -368,6 +384,13 @@ ShipScout — Maritime Intelligence`;
                 {contact.emailFormat && (
                   <div style={{ fontSize: 10, color: "rgba(143,168,178,0.6)", fontFamily: "monospace", marginTop: 6 }}>
                     format: {contact.emailFormat}
+                  </div>
+                )}
+
+                {/* Last updated */}
+                {webFetchedAt && (
+                  <div style={{ fontSize: 10, color: "rgba(143,168,178,0.45)", marginTop: 6 }}>
+                    Son güncelleme: {Math.floor((Date.now() - new Date(webFetchedAt).getTime()) / (1000 * 60 * 60 * 24))} gün önce
                   </div>
                 )}
               </>

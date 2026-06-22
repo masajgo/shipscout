@@ -21,7 +21,7 @@ const { chromium } = require("playwright");
 require("dotenv").config({ path: path.join(__dirname, "../.env.local") });
 
 const { login, getOwner }    = require("./equasisOwner");
-const { enrichWithCache }    = require("./contactEnrichment");
+const { enrichWithDb }       = require("./contactEnrichment");
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -85,10 +85,15 @@ async function selectTargetVessels(limit) {
   const { rows } = await pool.query(`
     SELECT v.imo::text AS imo, v.name, v.scrap_score, v.scrap_category
     FROM vessels v
-    WHERE v.imo NOT IN (SELECT imo FROM owners)
-      AND v.scrap_category IN ('critical', 'high')
+    LEFT JOIN owners o ON o.imo = v.imo::bigint
+    WHERE v.scrap_category IN ('critical', 'high')
       AND v.imo >= 8000000
       AND v.imo IS NOT NULL
+      AND (
+        o.imo IS NULL
+        OR o.equasis_fetched_at IS NULL
+        OR o.equasis_fetched_at < now() - interval '90 days'
+      )
     ORDER BY v.scrap_score DESC NULLS LAST
     LIMIT $1
   `, [limit]);
@@ -102,32 +107,50 @@ async function upsertOwner(entry) {
     INSERT INTO owners
       (imo, vessel_name, owner_name, manager_name, ism_manager,
        website, emails, phones, address, email_format, linkedin_url,
+       department_emails, generic_emails, guessed_emails,
+       linkedin_company_url, linkedin_people_url,
+       contact_source, equasis_fetched_at, web_fetched_at,
        source, fetched_at)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'equasis',now())
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,now(),$18,'equasis',now())
     ON CONFLICT (imo) DO UPDATE SET
-      vessel_name  = EXCLUDED.vessel_name,
-      owner_name   = EXCLUDED.owner_name,
-      manager_name = EXCLUDED.manager_name,
-      ism_manager  = EXCLUDED.ism_manager,
-      website      = COALESCE(EXCLUDED.website,      owners.website),
-      emails       = COALESCE(EXCLUDED.emails,       owners.emails),
-      phones       = COALESCE(EXCLUDED.phones,       owners.phones),
-      address      = COALESCE(EXCLUDED.address,      owners.address),
-      email_format = COALESCE(EXCLUDED.email_format, owners.email_format),
-      linkedin_url = COALESCE(EXCLUDED.linkedin_url, owners.linkedin_url),
-      fetched_at   = now()
+      vessel_name          = EXCLUDED.vessel_name,
+      owner_name           = EXCLUDED.owner_name,
+      manager_name         = EXCLUDED.manager_name,
+      ism_manager          = EXCLUDED.ism_manager,
+      website              = COALESCE(EXCLUDED.website,              owners.website),
+      emails               = COALESCE(EXCLUDED.emails,               owners.emails),
+      phones               = COALESCE(EXCLUDED.phones,               owners.phones),
+      address              = COALESCE(EXCLUDED.address,              owners.address),
+      email_format         = COALESCE(EXCLUDED.email_format,         owners.email_format),
+      linkedin_url         = COALESCE(EXCLUDED.linkedin_url,         owners.linkedin_url),
+      department_emails    = COALESCE(EXCLUDED.department_emails,    owners.department_emails),
+      generic_emails       = COALESCE(EXCLUDED.generic_emails,       owners.generic_emails),
+      guessed_emails       = COALESCE(EXCLUDED.guessed_emails,       owners.guessed_emails),
+      linkedin_company_url = COALESCE(EXCLUDED.linkedin_company_url, owners.linkedin_company_url),
+      linkedin_people_url  = COALESCE(EXCLUDED.linkedin_people_url,  owners.linkedin_people_url),
+      contact_source       = COALESCE(EXCLUDED.contact_source,       owners.contact_source),
+      equasis_fetched_at   = now(),
+      web_fetched_at       = COALESCE(EXCLUDED.web_fetched_at,       owners.web_fetched_at),
+      fetched_at           = now()
   `, [
     entry.imo,
-    entry.vessel_name   || null,
-    entry.owner_name    || null,
-    entry.manager_name  || null,
-    entry.ism_manager   || null,
-    entry.website       || null,
-    entry.emails?.length ? entry.emails : null,
-    entry.phones?.length ? entry.phones : null,
-    entry.address       || null,
-    entry.email_format  || null,
-    entry.linkedin_url  || null,
+    entry.vessel_name        || null,
+    entry.owner_name         || null,
+    entry.manager_name       || null,
+    entry.ism_manager        || null,
+    entry.website            || null,
+    entry.emails?.length     ? entry.emails  : null,
+    entry.phones?.length     ? entry.phones  : null,
+    entry.address            || null,
+    entry.email_format       || null,
+    entry.linkedin_url       || null,
+    entry.department_emails?.length ? entry.department_emails : null,
+    entry.generic_emails?.length    ? entry.generic_emails    : null,
+    entry.guessed_emails?.length    ? JSON.stringify(entry.guessed_emails) : null,
+    entry.linkedin_company_url || null,
+    entry.linkedin_people_url  || null,
+    entry.contact_source       || null,
+    entry.web_fetched_at       || null,
   ]);
 }
 
@@ -221,12 +244,12 @@ async function main() {
         currentUsage.count++;
         saveUsage(currentUsage);
 
-        // Contact enrichment (manager veya owner adını kullan)
+        // Contact enrichment (DB-first, 30-day TTL)
         const companyForEnrich = ownerData.managerName || ownerData.ownerName;
         let contact = null;
         if (companyForEnrich) {
           try {
-            contact = await enrichWithCache(companyForEnrich);
+            contact = await enrichWithDb(companyForEnrich, vessel.imo, pool, ownerData.managerName);
           } catch (e) {
             log(`  Contact enrichment hatası (${companyForEnrich}): ${e.message}`);
           }
@@ -234,17 +257,24 @@ async function main() {
 
         // owners tablosuna UPSERT
         const entry = {
-          imo:          vessel.imo,
-          vessel_name:  ownerData.shipName || vessel.name || null,
-          owner_name:   ownerData.ownerName || null,
-          manager_name: ownerData.managerName || null,
-          ism_manager:  ownerData.companies?.["ISM Manager"]?.name || null,
-          website:      contact?.website || null,
-          emails:       contact?.emails || [],
-          phones:       contact?.phones || [],
-          address:      contact?.address || ownerData.ownerAddress || ownerData.managerAddress || null,
-          email_format: contact?.emailFormat || null,
-          linkedin_url: contact?.linkedinSearchUrl || null,
+          imo:                 vessel.imo,
+          vessel_name:         ownerData.shipName || vessel.name || null,
+          owner_name:          ownerData.ownerName || null,
+          manager_name:        ownerData.managerName || null,
+          ism_manager:         ownerData.companies?.["ISM Manager"]?.name || null,
+          website:             contact?.website || null,
+          emails:              contact?.emails || [],
+          phones:              contact?.phones || [],
+          address:             contact?.address || ownerData.ownerAddress || ownerData.managerAddress || null,
+          email_format:        contact?.emailFormat || null,
+          linkedin_url:        contact?.linkedinSearchUrl || null,
+          department_emails:   contact?.emailsByType?.department || [],
+          generic_emails:      contact?.emailsByType?.generic    || [],
+          guessed_emails:      contact?.guessedEmails || [],
+          linkedin_company_url: contact?.linkedinCompanyUrl || null,
+          linkedin_people_url:  contact?.linkedinPeopleUrl  || null,
+          contact_source:      contact?.source || null,
+          web_fetched_at:      contact?.source === "db" ? undefined : (contact ? new Date().toISOString() : null),
         };
         await upsertOwner(entry);
 

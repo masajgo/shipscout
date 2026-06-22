@@ -48,6 +48,46 @@ const ROLE_LOCALS = new Set([
   "reception","press","media","careers","jobs","recruitment","welcome",
 ]);
 
+// Layer 1 — S&P / chartering department prefixes (highest priority)
+const DEPARTMENT_LOCALS = new Set([
+  "sale-purchase","snp","s-p","chartering","newbuilding","new-building",
+  "sale","purchase","commercial","charter","ops","operations",
+]);
+
+// Layer 2 — generic role prefixes
+const GENERIC_LOCALS = new Set([
+  "info","contact","hello","office","mail","support","admin","noreply","no-reply",
+  "enquiries","enquiry","service","accounts","marketing","finance","hr","crew","crewing",
+]);
+
+function categorizeEmails(emails) {
+  const department = [], generic = [], other = [];
+  for (const e of emails) {
+    const local = e.split("@")[0].toLowerCase();
+    if (DEPARTMENT_LOCALS.has(local))   department.push(e);
+    else if (GENERIC_LOCALS.has(local)) generic.push(e);
+    else                                other.push(e);
+  }
+  return { department, generic, other };
+}
+
+function guessEmailsFromName(managerName, emailFormat, domain) {
+  if (!managerName || !emailFormat || !domain) return [];
+  const parts = managerName.toLowerCase().replace(/[^a-z\s]/g, "").trim().split(/\s+/);
+  if (parts.length < 2) return [];
+  const first = parts[0];
+  const last  = parts[parts.length - 1];
+  const fi    = first[0];
+  const pattern = emailFormat.split("@")[0];
+  let local = null;
+  if (pattern === "first_initial.last")      local = `${fi}.${last}`;
+  else if (pattern === "first.last")         local = `${first}.${last}`;
+  else if (pattern === "first_initial-last") local = `${fi}-${last}`;
+  else if (pattern === "firstlast")          local = `${first}${last}`;
+  if (!local) return [];
+  return [{ email: `${local}@${domain}`, name: managerName, guessed: true }];
+}
+
 // ─── Domain candidate generator ───────────────────────────────────────────────
 
 // Maritime keywords found in the original name (used to boost specific candidates)
@@ -293,19 +333,27 @@ async function detectEmailFormat(domain) {
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
-async function enrichCompanyContact(companyName) {
+async function enrichCompanyContact(companyName, managerName) {
   console.log(`[contactEnrichment] Searching: "${companyName}"`);
 
+  const linkedinCompanyUrl = `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(companyName)}`;
+  const linkedinPeopleUrl  = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(companyName + " chartering sale purchase")}`;
+
   const result = {
-    company:          companyName,
-    website:          null,
-    emails:           [],
-    phones:           [],
-    address:          null,
-    emailFormat:      null,
-    linkedinSearchUrl: `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(companyName)}`,
-    source:           "web",
-    contactPath:      null,
+    company:            companyName,
+    website:            null,
+    emails:             [],
+    emailsByType:       { department: [], generic: [], other: [] },
+    phones:             [],
+    address:            null,
+    emailFormat:        null,
+    guessedEmails:      [],
+    linkedinCompanyUrl,
+    linkedinPeopleUrl,
+    // backward-compat alias
+    linkedinSearchUrl:  linkedinCompanyUrl,
+    source:             "web",
+    contactPath:        null,
   };
 
   const baseUrl = await findWebsite(companyName);
@@ -326,12 +374,16 @@ async function enrichCompanyContact(companyName) {
   result.contactPath = found.path;
   console.log(`[contactEnrichment]   Contact page: ${baseUrl}${found.path}`);
 
-  result.emails  = extractEmails(found.html);
-  result.phones  = extractPhones(found.html);
-  result.address = extractAddress(found.html);
-  // Try static guess first; if no named pattern found, probe /team /about etc.
+  result.emails      = extractEmails(found.html);
+  result.emailsByType = categorizeEmails(result.emails);
+  result.phones      = extractPhones(found.html);
+  result.address     = extractAddress(found.html);
   result.emailFormat = guessEmailFormat(result.emails, result.website)
     || await detectEmailFormat(result.website);
+
+  if (managerName && result.emailFormat && result.website) {
+    result.guessedEmails = guessEmailsFromName(managerName, result.emailFormat, result.website);
+  }
 
   console.log(`[contactEnrichment]   emails: ${result.emails.slice(0, 3).join(", ") || "none"}`);
   console.log(`[contactEnrichment]   phones: ${result.phones.slice(0, 2).join(", ") || "none"}`);
@@ -353,6 +405,105 @@ function saveCache(cache) {
   fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
 }
 
+// DB-first enrichment: checks owners table (30-day TTL), scrapes on miss, persists result.
+// Falls back to file cache if pool/imo not provided.
+async function enrichWithDb(companyName, imo, pool, managerName) {
+  const TTL_30D = 30 * 24 * 60 * 60 * 1000;
+
+  // 1. DB cache check
+  if (pool && imo) {
+    try {
+      const { rows } = await pool.query(`
+        SELECT website, emails, phones, address, email_format,
+               department_emails, generic_emails, guessed_emails,
+               linkedin_company_url, linkedin_people_url, web_fetched_at
+        FROM owners WHERE imo = $1::bigint
+      `, [imo]);
+      const row = rows[0];
+      if (row?.web_fetched_at) {
+        const ageMs = Date.now() - new Date(row.web_fetched_at).getTime();
+        if (ageMs < TTL_30D) {
+          console.log(`[contactEnrichment] DB cache hit: IMO ${imo}`);
+          const emails = row.emails || [];
+          return {
+            company:            companyName,
+            website:            row.website || null,
+            emails,
+            emailsByType: {
+              department: row.department_emails || [],
+              generic:    row.generic_emails    || [],
+              other:      emails.filter(e => {
+                const local = e.split("@")[0];
+                return !DEPARTMENT_LOCALS.has(local) && !GENERIC_LOCALS.has(local);
+              }),
+            },
+            emailFormat:        row.email_format  || null,
+            guessedEmails:      row.guessed_emails || [],
+            phones:             row.phones || [],
+            address:            null,
+            linkedinCompanyUrl: row.linkedin_company_url || `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(companyName)}`,
+            linkedinPeopleUrl:  row.linkedin_people_url  || `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(companyName + " chartering sale purchase")}`,
+            linkedinSearchUrl:  row.linkedin_company_url || `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(companyName)}`,
+            contactPath:        null,
+            source:             "db",
+          };
+        }
+      }
+    } catch (e) {
+      console.warn(`[contactEnrichment] DB cache check error: ${e.message}`);
+    }
+  }
+
+  // 2. Scrape
+  const result = await enrichCompanyContact(companyName, managerName);
+
+  // 3. Persist to DB
+  if (pool && imo) {
+    try {
+      await pool.query(`
+        UPDATE owners SET
+          website              = COALESCE($2, website),
+          emails               = COALESCE($3::text[], emails),
+          phones               = COALESCE($4::text[], phones),
+          address              = COALESCE($5, address),
+          email_format         = COALESCE($6, email_format),
+          department_emails    = $7::text[],
+          generic_emails       = $8::text[],
+          guessed_emails       = $9::jsonb,
+          linkedin_company_url = $10,
+          linkedin_people_url  = $11,
+          contact_source       = 'web',
+          web_fetched_at       = now()
+        WHERE imo = $1::bigint
+      `, [
+        imo,
+        result.website || null,
+        result.emails?.length   ? result.emails   : null,
+        result.phones?.length   ? result.phones   : null,
+        result.address          || null,
+        result.emailFormat      || null,
+        result.emailsByType?.department || [],
+        result.emailsByType?.generic    || [],
+        JSON.stringify(result.guessedEmails || []),
+        result.linkedinCompanyUrl,
+        result.linkedinPeopleUrl,
+      ]);
+      console.log(`[contactEnrichment] DB updated: IMO ${imo}`);
+    } catch (e) {
+      console.warn(`[contactEnrichment] DB persist error: ${e.message}`);
+    }
+  } else {
+    // File cache fallback
+    const cache = loadCache();
+    const key   = companyName.toLowerCase().trim();
+    cache[key]  = { ...result, cachedAt: new Date().toISOString() };
+    saveCache(cache);
+  }
+
+  return result;
+}
+
+// Legacy file-cache wrapper (kept for backward compat with standalone scripts)
 async function enrichWithCache(companyName) {
   const cache = loadCache();
   const key   = companyName.toLowerCase().trim();
@@ -366,7 +517,14 @@ async function enrichWithCache(companyName) {
   return result;
 }
 
-module.exports = { enrichCompanyContact, enrichWithCache, generateDomainCandidates };
+module.exports = {
+  enrichCompanyContact,
+  enrichWithCache,
+  enrichWithDb,
+  categorizeEmails,
+  guessEmailsFromName,
+  generateDomainCandidates,
+};
 
 // ─── CLI ──────────────────────────────────────────────────────────────────────
 

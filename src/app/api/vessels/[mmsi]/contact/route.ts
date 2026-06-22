@@ -48,7 +48,7 @@ export async function GET(
       `SELECT imo::text, vessel_name, owner_name, manager_name, ism_manager,
               website, emails, phones, address, email_format,
               linkedin_url, linkedin_company_url, linkedin_people_url,
-              department_emails
+              department_emails, generic_emails, guessed_emails, web_fetched_at
        FROM owners WHERE imo = $1::bigint`,
       [imo],
     );
@@ -69,19 +69,24 @@ export async function GET(
   const managerName  = (ownerRow.manager_name || ownerRow.ism_manager || "") as string;
   const allEmails    = (ownerRow.emails as string[] | null) ?? [];
   const deptEmails   = (ownerRow.department_emails as string[] | null) ?? [];
+  const genEmails    = (ownerRow.generic_emails as string[] | null) ?? [];
+  const dbGuessed    = (ownerRow.guessed_emails as { email: string; name: string; guessed: true }[] | null) ?? [];
   const website      = (ownerRow.website as string | null) ?? null;
   const emailFormat  = (ownerRow.email_format as string | null) ?? null;
+  const webFetchedAt = (ownerRow.web_fetched_at as string | null) ?? null;
 
-  // Categorise all emails; merge stored department_emails array at top
+  // Prefer DB-stored categorised arrays; fall back to runtime categorisation
   const categorized  = categorizeEmails(allEmails);
-  const department   = [...new Set([...deptEmails, ...categorized.department])];
-  const generic      = categorized.generic;
+  const department   = deptEmails.length ? deptEmails : [...new Set([...categorized.department])];
+  const generic      = genEmails.length  ? genEmails  : categorized.generic;
   const other        = categorized.other.filter(e => !GENERIC_LOCALS.has(e.split("@")[0]));
 
-  // Layer 4 — guessed personal email
-  const guessedEmails = (website && emailFormat && managerName)
-    ? guessEmailsFromName(managerName, emailFormat, website)
-    : [];
+  // Layer 4 — prefer DB-stored guessed emails, fall back to runtime guess
+  const guessedEmails = dbGuessed.length
+    ? dbGuessed
+    : (website && emailFormat && managerName)
+      ? guessEmailsFromName(managerName, emailFormat, website)
+      : [];
 
   const linkedinCompanyUrl = (ownerRow.linkedin_company_url as string | null)
     || `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(company)}`;
@@ -108,6 +113,7 @@ export async function GET(
       ownerName:   ownerRow.owner_name   as string | null,
       managerName: ownerRow.manager_name as string | null,
       contact,
+      webFetchedAt: webFetchedAt,
       cached: "db",
     },
     { headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=3600" } },

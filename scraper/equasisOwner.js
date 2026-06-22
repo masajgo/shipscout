@@ -330,11 +330,18 @@ async function main() {
     return;
   }
 
-  // Checkpoint: zaten işlenmiş IMO'ları atla
+  // Checkpoint: 90 gün içinde işlenmiş IMO'ları atla
   const owners = loadOwners();
-  const pending = imos.filter(imo => !owners[String(imo)]);
+  const TTL_90D = 90 * 24 * 60 * 60 * 1000;
+  const pending = imos.filter(imo => {
+    const row = owners[String(imo)];
+    if (!row) return true;
+    if (row.error) return true; // retry errors
+    const age = row.fetchedAt ? Date.now() - new Date(row.fetchedAt).getTime() : Infinity;
+    return age >= TTL_90D;
+  });
   const skipped = imos.length - pending.length;
-  if (skipped > 0) console.log(`[equasis] ${skipped} IMO zaten işlenmiş, atlandı.`);
+  if (skipped > 0) console.log(`[equasis] ${skipped} IMO 90 gün içinde işlenmiş, atlandı.`);
 
   if (pending.length === 0) {
     console.log("[equasis] Tüm IMO'lar zaten owners.json'da. Çıkılıyor.");

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { scoreFromAge } from "@/lib/scoring";
+import { SCRAP_MARKETS } from "@/lib/scrapMarkets";
 
 const API_KEY = process.env.DATALASTIC_API_KEY;
 const BASE    = "https://api.datalastic.com/api/v0";
@@ -9,9 +10,9 @@ const TRACKED_IMOS = [
   "9038880", "8912522", "9108128", "9015101", "9083940", "9040089",
 ];
 
-const MARKET_PRICES: Record<string, number> = {
-  Alang: 501, Chittagong: 541, Gadani: 511, "Aliağa": 332,
-};
+const MARKET_PRICES: Record<string, number> = Object.fromEntries(
+  SCRAP_MARKETS.map(m => [m.market, m.price])
+);
 
 function typeLabel(raw: string): string {
   if (!raw) return "General Cargo";

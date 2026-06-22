@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { SCRAP_MARKETS } from "@/lib/scrapMarkets";
 
 const C = {
   navy: "#0D1F28", mid: "#0F2733", light: "#1A3A4A",
@@ -249,7 +250,7 @@ ShipScout — Maritime Intelligence`;
             <Row
               label="Est. Scrap Value"
               value={data.particulars.ldt
-                ? `${data.particulars.ldt_estimated ? "~" : ""}$${((data.particulars.ldt * 332) / 1_000_000).toFixed(1)}M @ Aliağa`
+                ? `${data.particulars.ldt_estimated ? "~" : ""}$${((data.particulars.ldt * (SCRAP_MARKETS.find(m => m.market === "Aliağa")?.price ?? 420)) / 1_000_000).toFixed(1)}M @ Aliağa`
                 : null}
               highlight
             />
@@ -271,17 +272,13 @@ ShipScout — Maritime Intelligence`;
                   LDT tahmin edildi (gerçek lightship verisi yok)
                 </div>
               )}
-              {[
-                { market: "Alang 🇮🇳",      price: 501 },
-                { market: "Chittagong 🇧🇩", price: 541 },
-                { market: "Gadani 🇵🇰",     price: 511 },
-                { market: "Aliağa 🇹🇷",     price: 332 },
-              ].map(({ market, price }) => {
+              {SCRAP_MARKETS.map(({ market, emoji, price }) => {
+                const market_label = `${market} ${emoji}`;
                 const val = (data.particulars.ldt * price) / 1_000_000;
                 const fmt = `${data.particulars.ldt_estimated ? "~" : ""}$${val >= 10 ? val.toFixed(1) : val.toFixed(2)}M`;
                 return (
                   <div key={market} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: "1px solid rgba(143,168,178,0.08)" }}>
-                    <span style={{ fontSize: 12, color: C.steel }}>{market}</span>
+                    <span style={{ fontSize: 12, color: C.steel }}>{market_label}</span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: C.green }}>
                       {fmt}
                       <span style={{ fontWeight: 400, color: C.steel, marginLeft: 4 }}>@${price}/LDT</span>

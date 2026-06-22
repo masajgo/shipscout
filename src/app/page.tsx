@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import VesselPanel from "@/components/VesselPanel";
 
 const SHIP_TYPES = ["All", "Bulk Carrier", "Tanker", "Container", "General Cargo", "Cruise", "Offshore"];
@@ -27,6 +28,14 @@ function fmtScrap(usd: number | null | undefined, est: boolean | null | undefine
   return `${est ? "~" : ""}$${m >= 10 ? m.toFixed(1) : m.toFixed(2)}M`;
 }
 
+type Stats = {
+  totalVessels: number;
+  critical: number;
+  highRisk: number;
+  withImo: number;
+  ownersFound: number;
+};
+
 export default function Home() {
   const [vessels, setVessels]       = useState<any[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -35,6 +44,9 @@ export default function Home() {
   const [signalFilter, setSignalFilter] = useState("All Signals");
   const [selectedIMO, setSelectedIMO]  = useState<string | null>(null);
   const [sortBy, setSortBy]             = useState<"score"|"age"|"value">("score");
+  const [stats, setStats]               = useState<Stats | null>(null);
+  const [search, setSearch]             = useState("");
+  const router = useRouter();
 
   useEffect(() => {
     fetch("/api/vessels?list=1")
@@ -42,6 +54,18 @@ export default function Home() {
       .then(d => { setVessels(d.vessels || []); setLoading(false); })
       .catch(() => { setFetchError(true); setLoading(false); });
   }, []);
+
+  useEffect(() => {
+    fetch("/api/stats")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && !d.error) setStats(d); })
+      .catch(() => {});
+  }, []);
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    if (search.trim()) router.push(`/map?search=${encodeURIComponent(search.trim())}`);
+  }
 
   const currentYear = new Date().getFullYear();
   const filtered = vessels
@@ -73,9 +97,34 @@ export default function Home() {
           <p style={{ fontSize: 15, color: "#475467", lineHeight: 1.7, maxWidth: 560, margin: "0 auto 26px" }}>
             Scrap-eligible and second-hand vessels — surfaced before the market moves. Routed only to HKC-compliant, green recycling yards.
           </p>
-          <div style={{ display: "inline-flex", gap: 10 }}>
+          <form onSubmit={handleSearch} style={{ display: "flex", gap: 8, marginBottom: 24, maxWidth: 480, margin: "0 auto 24px" }}>
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search vessel name, IMO, MMSI..."
+              style={{ flex: 1, padding: "11px 16px", borderRadius: 8, border: "1px solid #D0D5DD", fontSize: 13, fontFamily: "Inter, sans-serif", outline: "none", boxShadow: "0 1px 2px rgba(16,24,40,0.05)" }}
+            />
+            <button type="submit" style={{ background: "#1D9E75", color: "#fff", fontSize: 13, fontWeight: 600, padding: "11px 20px", borderRadius: 8, border: "none", cursor: "pointer", flexShrink: 0 }}>Search →</button>
+          </form>
+
+          <div style={{ display: "inline-flex", gap: 10, marginBottom: 28 }}>
             <button onClick={() => document.getElementById("vessels")?.scrollIntoView({ behavior: "smooth" })} style={{ background: "#1D9E75", color: "#fff", fontSize: 13, fontWeight: 600, padding: "12px 24px", borderRadius: 8, border: "none", cursor: "pointer", boxShadow: "0 2px 8px rgba(29,158,117,0.25)" }}>Explore vessels</button>
             <button onClick={() => window.location.href = "mailto:ardavcioglu@gmail.com?subject=ShipScout%20Demo%20Request&body=Hello%2C%20I'd%20like%20to%20request%20a%20demo%20of%20ShipScout."} style={{ background: "#fff", color: "#344054", fontSize: 13, fontWeight: 600, padding: "12px 24px", borderRadius: 8, border: "1px solid #D0D5DD", cursor: "pointer" }}>Request demo</button>
+          </div>
+
+          {/* Real stats strip */}
+          <div style={{ display: "flex", gap: 24, justifyContent: "center", paddingTop: 16, borderTop: "1px solid rgba(29,158,117,0.15)" }}>
+            {[
+              { label: "Vessels tracked", value: stats ? stats.totalVessels.toLocaleString() : "—" },
+              { label: "Critical risk",   value: stats ? stats.critical.toLocaleString()      : "—" },
+              { label: "Owners found",    value: stats ? stats.ownersFound.toLocaleString()   : "—" },
+            ].map(s => (
+              <div key={s.label} style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: "#101828", letterSpacing: -0.5 }}>{s.value}</div>
+                <div style={{ fontSize: 11, color: "#667085", marginTop: 2 }}>{s.label}</div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

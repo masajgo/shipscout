@@ -42,8 +42,15 @@ export async function GET(
   const age = builtYear ? new Date().getFullYear() - builtYear : null;
   const dwt = vessel?.data?.deadweight || 0;
   const ldtRaw = vessel?.data?.lightship;
-  const ldt = ldtRaw || (dwt ? Math.round(dwt * 0.17) : 0);
-  const ldt_estimated = !ldtRaw && !!ldt;
+  const vesselType = (vessel?.data?.type_specific || "").toLowerCase();
+  // DWT-to-LDT ratio by vessel type
+  const ldtRatio = vesselType.includes("passenger") || vesselType.includes("cruise") ? 0.20
+    : vesselType.includes("tanker") ? 0.18
+    : 0.17; // bulk, general cargo, container default
+  const ldtFromDwt = dwt ? Math.round(dwt * ldtRatio) : 0;
+  // Use raw LDT only if plausible (>= 500); otherwise estimate from DWT
+  const ldt = (ldtRaw && ldtRaw >= 500) ? ldtRaw : ldtFromDwt;
+  const ldt_estimated = !(ldtRaw && ldtRaw >= 500) && !!ldt;
 
   const scrapScore = computeScrapScore(
     age,

@@ -2,6 +2,7 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { SCRAP_MARKETS } from "@/lib/scrapMarkets";
 
 const NAV = [
   { href: "/",        label: "Vessels"  },
@@ -12,12 +13,9 @@ const NAV = [
   { href: "/map",     label: "Map"      },
 ];
 
-const TICKER = [
-  { port: "Alang",      country: "India",      price: "501", delta: "−3", up: false },
-  { port: "Chittagong", country: "Bangladesh", price: "541", delta: "+8", up: true  },
-  { port: "Gadani",     country: "Pakistan",   price: "511", delta: "+2", up: true  },
-  { port: "Aliağa",     country: "Turkey",     price: "332", delta: "+4", up: true  },
-];
+const TICKER = SCRAP_MARKETS.map(m => ({
+  port: m.market, country: m.country, price: String(m.price), delta: "", up: true,
+}));
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const path = usePathname();

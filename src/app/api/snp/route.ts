@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { list }         from "@vercel/blob";
 import { scoreFromAge } from "@/lib/scoring";
+import { SCRAP_MARKETS } from "@/lib/scrapMarkets";
 
 const API_KEY = process.env.DATALASTIC_API_KEY;
 const BASE    = "https://api.datalastic.com/api/v0";
@@ -11,9 +12,9 @@ const TRACKED_IMOS = [
   "7625811", // OCEAN ENDEAVOUR — Equasis verified, 1982 Passenger, mgr: Sunstone Ships Inc
 ];
 
-const MARKET_PRICES: Record<string, number> = {
-  Alang: 501, Chittagong: 541, Gadani: 511, "Aliağa": 332,
-};
+const MARKET_PRICES: Record<string, number> = Object.fromEntries(
+  SCRAP_MARKETS.map(m => [m.market, m.price])
+);
 
 function typeLabel(raw: string): string {
   if (!raw) return "General Cargo";
@@ -130,7 +131,7 @@ export async function GET() {
       flag: "Portugal", type: "Passenger",
       group: "Passenger", built: 1982, dwt: 1762, ldt: 3100,
       location: "Funchal, Madeira",
-      price: `$${((3100 * 332) / 1_000_000).toFixed(1)}M`,
+      price: `$${((3100 * (MARKET_PRICES["Aliağa"] ?? 420)) / 1_000_000).toFixed(1)}M`,
       priceType: "Asking",
       saleType: "voluntary",
       tags: [{ label: `${age}y old`, type: "urgent" }, { label: "Survey Due", type: "idle" }],

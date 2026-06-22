@@ -13,7 +13,7 @@ export async function GET() {
     );
     const { total, at_risk } = rows[0];
     return NextResponse.json(
-      { vessels: Array(total).fill(null), total, at_risk, ts: Date.now() },
+      { total, at_risk, ts: Date.now() },
       { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } },
     );
   } catch {

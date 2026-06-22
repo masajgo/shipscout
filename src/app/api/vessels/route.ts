@@ -6,6 +6,22 @@ import pool from "@/lib/db";
 const CLUSTER_ZOOM = 12;
 const MAX_RESULTS  = 2000;
 
+// Simple in-memory rate limiter (resets on cold start)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 60; // requests per minute per IP
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + 60_000 });
+    return true;
+  }
+  if (entry.count >= RATE_LIMIT) return false;
+  entry.count++;
+  return true;
+}
+
 function gridDeg(zoom: number): number {
   if (zoom <=  4) return 8;
   if (zoom <=  6) return 2;
@@ -126,11 +142,19 @@ async function listVessels(limit = 1000): Promise<any[]> {
 }
 
 export async function GET(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+  }
+
   const { searchParams } = new URL(req.url);
   const bboxParam  = searchParams.get("bbox");
   const zoom       = parseInt(searchParams.get("zoom") ?? "8", 10);
   const scrapParam = searchParams.get("scrap");
-  const scrapFilter = scrapParam ? scrapParam.split(",").map(s => s.trim()).filter(Boolean) : undefined;
+  const VALID_CATEGORIES = new Set(["critical", "high", "medium", "low"]);
+  const scrapFilter = scrapParam
+    ? scrapParam.split(",").map(s => s.trim()).filter(s => VALID_CATEGORIES.has(s))
+    : undefined;
 
   // Dashboard list mode — no bbox required
   if (searchParams.get("list") === "1") {
@@ -141,7 +165,8 @@ export async function GET(req: NextRequest) {
         { headers: { "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300" } },
       );
     } catch (err: any) {
-      return NextResponse.json({ error: "database unavailable", detail: err.message }, { status: 503 });
+      console.error("[/api/vessels list]", err);
+      return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
     }
   }
 
@@ -159,7 +184,8 @@ export async function GET(req: NextRequest) {
   try {
     vessels = await fromSupabase(minLon, minLat, maxLon, maxLat, scrapFilter);
   } catch (err: any) {
-    return NextResponse.json({ error: "database unavailable", detail: err.message }, { status: 503 });
+    console.error("[/api/vessels bbox]", err);
+    return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
   }
 
   const payload =

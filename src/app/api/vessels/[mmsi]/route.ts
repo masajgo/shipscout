@@ -77,6 +77,7 @@ export async function GET(
       { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" } },
     );
   } catch (err: any) {
-    return NextResponse.json({ error: "database error", detail: err.message }, { status: 503 });
+    console.error("[/api/vessels/:mmsi]", err);
+    return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
   }
 }

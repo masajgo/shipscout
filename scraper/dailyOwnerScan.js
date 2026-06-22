@@ -250,10 +250,21 @@ async function main() {
       try {
         await randomDelay();
 
-        // Equasis'ten owner/manager çek
-        const ownerData = await getOwner(page, vessel.imo);
+        // Equasis'ten owner/manager çek — session expire olursa bir kez re-login yap
+        let ownerData;
+        try {
+          ownerData = await getOwner(page, vessel.imo);
+        } catch (e) {
+          if (e.message === "EQUASIS_SESSION_EXPIRED") {
+            log(`  Session expire — yeniden giriş yapılıyor...`);
+            await login(page);
+            ownerData = await getOwner(page, vessel.imo); // retry once
+          } else {
+            throw e; // EQUASIS_BLOCK veya başka hata → dışarıya fırlat
+          }
+        }
 
-        // Blok kontrolü
+        // Gerçek rate-limit blok kontrolü
         if (!ownerData || (ownerData.error && detectBlock(ownerData.error))) {
           log(`EQUASIS BLOK ALGILANDI — ${ownerData?.error}. Duruyorum.`);
           blocked = true;

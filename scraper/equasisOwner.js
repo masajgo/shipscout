@@ -178,7 +178,12 @@ async function getOwner(page, imo) {
   let html = await page.content();
   saveDebugHtml(`${imo}_search`, html);
 
-  // Blok kontrolü (arama sonuç sayfasında)
+  // Session expire kontrolü (login formuna geri atıldık)
+  const lower0 = html.toLowerCase();
+  if (lower0.includes("j_password") && lower0.includes("j_email") && !lower0.includes("logout")) {
+    throw new Error("EQUASIS_SESSION_EXPIRED");
+  }
+  // Gerçek rate-limit / blok kontrolü
   if (detectBlock(html)) {
     throw new Error("EQUASIS_BLOCK: limit veya blok algılandı");
   }

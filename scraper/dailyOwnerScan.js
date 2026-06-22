@@ -81,6 +81,7 @@ function detectBlock(html) {
 
 // ─── DB: hedef gemi seçimi ────────────────────────────────────────────────────
 
+// Equasis TTL: 90 gün — owner/manager verisi eskimiş veya hiç alınmamış gemiler
 async function selectTargetVessels(limit) {
   const { rows } = await pool.query(`
     SELECT v.imo::text AS imo, v.name, v.scrap_score, v.scrap_category
@@ -93,6 +94,25 @@ async function selectTargetVessels(limit) {
         o.imo IS NULL
         OR o.equasis_fetched_at IS NULL
         OR o.equasis_fetched_at < now() - interval '90 days'
+      )
+    ORDER BY v.scrap_score DESC NULLS LAST
+    LIMIT $1
+  `, [limit]);
+  return rows;
+}
+
+// Web-contact TTL: 30 gün — equasis'ten alınmış ama web contact verisi eski/hiç yok
+async function selectWebStaleVessels(limit) {
+  const { rows } = await pool.query(`
+    SELECT v.imo::text AS imo, v.name, o.manager_name, o.owner_name
+    FROM vessels v
+    JOIN owners o ON o.imo = v.imo::bigint
+    WHERE v.scrap_category IN ('critical', 'high')
+      AND v.imo IS NOT NULL
+      AND o.equasis_fetched_at IS NOT NULL
+      AND (
+        o.web_fetched_at IS NULL
+        OR o.web_fetched_at < now() - interval '30 days'
       )
     ORDER BY v.scrap_score DESC NULLS LAST
     LIMIT $1
@@ -297,14 +317,35 @@ async function main() {
     await browser.close();
   }
 
-  await pool.end();
-
   const finalUsage = loadUsage();
   if (blocked) {
     log(`=== BLOK NEDENİYLE DURULDU — ${found} owner bulundu, ${skipped} boş, ${errors} hata | bugün: ${finalUsage.count}/${DAILY_LIMIT} ===`);
   } else {
-    log(`=== Tamamlandı — ${found} owner bulundu, ${skipped} boş, ${errors} hata | bugün: ${finalUsage.count}/${DAILY_LIMIT} (kalan: ${DAILY_LIMIT - finalUsage.count}) ===`);
+    log(`=== Equasis tamamlandı — ${found} owner bulundu, ${skipped} boş, ${errors} hata | bugün: ${finalUsage.count}/${DAILY_LIMIT} (kalan: ${DAILY_LIMIT - finalUsage.count}) ===`);
   }
+
+  // ── Phase 2: Web contact yenileme (30 günlük TTL, Equasis'ten bağımsız) ──────
+  if (!isDryRun && !blocked) {
+    const webStale = await selectWebStaleVessels(50);
+    log(`Web contact yenilenecek: ${webStale.length} gemi (web_fetched_at > 30 gün)`);
+    let webUpdated = 0, webErrors = 0;
+    for (let i = 0; i < webStale.length; i++) {
+      const vessel = webStale[i];
+      const company = vessel.manager_name || vessel.owner_name;
+      if (!company) continue;
+      try {
+        await enrichWithDb(company, vessel.imo, pool, vessel.manager_name);
+        webUpdated++;
+        log(`[web ${i + 1}/${webStale.length}] ✓ IMO ${vessel.imo} — ${company}`);
+      } catch (e) {
+        webErrors++;
+        log(`[web ${i + 1}/${webStale.length}] ✗ IMO ${vessel.imo} — ${e.message}`);
+      }
+    }
+    log(`=== Web contact tamamlandı — ${webUpdated} güncellendi, ${webErrors} hata ===`);
+  }
+
+  await pool.end();
 }
 
 main().catch(err => {

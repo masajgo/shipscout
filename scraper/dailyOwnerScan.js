@@ -73,7 +73,7 @@ function saveUsage(usage) {
 }
 
 function detectBlock(html) {
-  return /limit|blocked|too many request|maximum number|quota|exceeded/i.test(html) ||
+  return /rate.?limit|daily.?limit|access.?limit|query.?limit|too many request|maximum number of|quota.?exceed|you have been blocked|your access/i.test(html) ||
     (html.toLowerCase().includes("j_password") &&
      html.toLowerCase().includes("j_email") &&
      !html.toLowerCase().includes("logout"));

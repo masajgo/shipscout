@@ -101,7 +101,8 @@ function incrementUsage() {
 function detectBlock(html) {
   const lower = html.toLowerCase();
   return (
-    /limit|blocked|too many request|maximum number|quota|exceeded/i.test(html) ||
+    // Specific rate-limit phrases only — "limit" alone matches "Alixity Limited" on search page
+    /rate.?limit|daily.?limit|access.?limit|query.?limit|too many request|maximum number of|quota.?exceed|you have been blocked|your access/i.test(html) ||
     // Login sayfasına geri atılma: restricted sayfada login formu görünmesi
     (lower.includes("j_password") && lower.includes("j_email") && !lower.includes("logout"))
   );

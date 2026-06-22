@@ -139,6 +139,44 @@ h3, h4 {
 ::-webkit-scrollbar-track { background: var(--color-surface); }
 ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
 
+/* ─── Card hover effects ─────────────────────────────────────────────────── */
+
+.vessel-card {
+  transition: box-shadow 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+.vessel-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10) !important;
+  border-color: #C9A84C !important;
+  transform: translateY(-1px);
+}
+
+.snp-card {
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.snp-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10) !important;
+  border-color: #C9A84C !important;
+}
+
+/* ─── Loading skeleton ───────────────────────────────────────────────────── */
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+@keyframes skeleton-pulse {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .hero-right { display: none !important; }
+}
+
 /* ─── Animations ─────────────────────────────────────────────────────────── */
 
 @keyframes pulse-dot {

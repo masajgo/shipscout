@@ -261,13 +261,15 @@ export default function SNPPage() {
             const age = year - v.built;
             const code = TYPE_CODE[v.type] || "VS";
             return (
-              <div key={v.id} onClick={() => {
-                if (v.source === "GRS" && v.detailUrl) {
-                  window.open(v.detailUrl, "_blank", "noopener,noreferrer");
-                } else {
-                  setSelectedIMO(v.imo);
-                }
-              }} style={{
+              <div key={v.id}
+                className="snp-card"
+                onClick={() => {
+                  if (v.source === "GRS" && v.detailUrl) {
+                    window.open(v.detailUrl, "_blank", "noopener,noreferrer");
+                  } else {
+                    setSelectedIMO(v.imo);
+                  }
+                }} style={{
                 background: "#fff",
                 border: "1px solid #EAECF0",
                 borderLeft: v.urgent ? "3px solid #F04438" : "1px solid #EAECF0",
@@ -276,15 +278,21 @@ export default function SNPPage() {
                 display: "flex", alignItems: "center", gap: 16,
                 cursor: "pointer",
                 boxShadow: "0 1px 2px rgba(16,24,40,0.04)",
-                transition: "box-shadow 0.15s, border-color 0.15s",
-              }}
-              onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 4px 12px rgba(16,24,40,0.08)"; e.currentTarget.style.borderColor = "#1D9E75"; }}
-              onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 1px 2px rgba(16,24,40,0.04)"; e.currentTarget.style.borderColor = v.urgent ? "#F04438" : "#EAECF0"; }}
-              >
-                {/* Type code */}
-                <div style={{ width: 44, height: 44, borderRadius: 10, background: "#F9FAFB", border: "1px solid #EAECF0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: "#344054", letterSpacing: 0.5 }}>{code}</span>
-                </div>
+              }}>
+                {/* Type code — category tinted */}
+                {(() => {
+                  const catBg     = v.scrap_category === "critical" ? "#FEF2F2" : v.scrap_category === "high" ? "#FFFBEB" : "#F9FAFB";
+                  const catBorder = v.scrap_category === "critical" ? "#FECACA" : v.scrap_category === "high" ? "#FDE68A" : "#EAECF0";
+                  const catText   = v.scrap_category === "critical" ? "#DC2626" : v.scrap_category === "high" ? "#D97706" : "#344054";
+                  return (
+                    <div style={{ width: 52, height: 52, borderRadius: 10, background: catBg, border: `1px solid ${catBorder}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: catText, letterSpacing: 0.5 }}>{code}</span>
+                      {v.scrap_category && v.scrap_category !== "low" && (
+                        <span style={{ fontSize: 7, fontWeight: 600, color: catText, opacity: 0.7, marginTop: 1 }}>{v.scrap_category.toUpperCase().slice(0, 4)}</span>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Main info */}
                 <div style={{ flex: 1, minWidth: 0 }}>

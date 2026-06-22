@@ -83,49 +83,132 @@ export default function Home() {
     <div style={{ background: "#F9FAFB", minHeight: "100vh" }}>
 
       {/* HERO */}
-      <div style={{ background: "linear-gradient(180deg, #F0FBF6 0%, #FCFCFD 100%)", borderBottom: "1px solid #E4E7EC", padding: "52px 32px 40px", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", top: -100, left: "50%", transform: "translateX(-50%)", width: 700, height: 300, background: "radial-gradient(ellipse, rgba(29,158,117,0.1), transparent 70%)" }} />
+      <div style={{ background: "#F8F9FA", padding: "72px 48px 60px", position: "relative", overflow: "hidden", borderBottom: "1px solid #E2E8F0" }}>
+        {/* Dot grid */}
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle, rgba(11,30,61,0.05) 1px, transparent 1px)", backgroundSize: "28px 28px", pointerEvents: "none" }} />
+        {/* Navy glow bottom-left */}
+        <div style={{ position: "absolute", bottom: -100, left: -100, width: 500, height: 500, background: "radial-gradient(ellipse, rgba(11,30,61,0.07), transparent 65%)", pointerEvents: "none" }} />
 
-        <div style={{ position: "relative", zIndex: 2, textAlign: "center", maxWidth: 760, margin: "0 auto" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid #A9EFC5", borderRadius: 100, padding: "6px 14px 6px 8px", marginBottom: 22 }}>
-            <span style={{ fontSize: 9, fontWeight: 700, color: "#fff", background: "#1D9E75", padding: "2px 9px", borderRadius: 100, letterSpacing: "0.06em" }}>HKC READY</span>
-            <span style={{ fontSize: 11, color: "#027A48", fontWeight: 600 }}>Aligned with the Hong Kong Convention, in force since June 2025</span>
-          </div>
-          <h1 style={{ fontSize: 44, fontWeight: 800, color: "#101828", letterSpacing: "-1.8px", lineHeight: 1.05, margin: "0 0 16px" }}>
-            Find it. Scout it. <span style={{ color: "#1D9E75" }}>Close it.</span>
-          </h1>
-          <p style={{ fontSize: 15, color: "#475467", lineHeight: 1.7, maxWidth: 560, margin: "0 auto 26px" }}>
-            Scrap-eligible and second-hand vessels — surfaced before the market moves. Routed only to HKC-compliant, green recycling yards.
-          </p>
-          <form onSubmit={handleSearch} style={{ display: "flex", gap: 8, marginBottom: 24, maxWidth: 480, margin: "0 auto 24px" }}>
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search vessel name, IMO, MMSI..."
-              style={{ flex: 1, padding: "11px 16px", borderRadius: 8, border: "1px solid #D0D5DD", fontSize: 13, fontFamily: "Inter, sans-serif", outline: "none", boxShadow: "0 1px 2px rgba(16,24,40,0.05)" }}
-            />
-            <button type="submit" style={{ background: "#1D9E75", color: "#fff", fontSize: 13, fontWeight: 600, padding: "11px 20px", borderRadius: 8, border: "none", cursor: "pointer", flexShrink: 0 }}>Search →</button>
-          </form>
+        <div style={{ position: "relative", zIndex: 2, maxWidth: 1200, margin: "0 auto", display: "flex", gap: 64, alignItems: "center" }}>
 
-          <div style={{ display: "inline-flex", gap: 10, marginBottom: 28 }}>
-            <button onClick={() => document.getElementById("vessels")?.scrollIntoView({ behavior: "smooth" })} style={{ background: "#1D9E75", color: "#fff", fontSize: 13, fontWeight: 600, padding: "12px 24px", borderRadius: 8, border: "none", cursor: "pointer", boxShadow: "0 2px 8px rgba(29,158,117,0.25)" }}>Explore vessels</button>
-            <button onClick={() => window.location.href = "mailto:ardavcioglu@gmail.com?subject=ShipScout%20Demo%20Request&body=Hello%2C%20I'd%20like%20to%20request%20a%20demo%20of%20ShipScout."} style={{ background: "#fff", color: "#344054", fontSize: 13, fontWeight: 600, padding: "12px 24px", borderRadius: 8, border: "1px solid #D0D5DD", cursor: "pointer" }}>Request demo</button>
+          {/* LEFT */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {/* Live badge */}
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1px solid #C9A84C", borderRadius: 100, padding: "5px 14px", marginBottom: 24, background: "rgba(201,168,76,0.06)" }}>
+              <span style={{ color: "#1D9E75", fontSize: 10 }}>●</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: "#0B1E3D", letterSpacing: "0.06em", textTransform: "uppercase" as const }}>Live AIS Tracking</span>
+            </div>
+
+            <h1 style={{ fontSize: 52, fontWeight: 800, color: "#0B1E3D", letterSpacing: "-2px", lineHeight: 1.05, margin: "0 0 20px" }}>
+              The World&apos;s Most<br />
+              Comprehensive Vessel<br />
+              Intelligence <span style={{ color: "#C9A84C" }}>Platform</span>
+            </h1>
+
+            <p style={{ fontSize: 18, color: "#4A5568", lineHeight: 1.6, margin: "0 0 36px", fontWeight: 400 }}>
+              Search. Compare. Contact Owners.
+            </p>
+
+            {/* Search box */}
+            <form onSubmit={handleSearch} style={{ display: "flex", background: "#fff", borderRadius: 12, border: "1px solid #E2E8F0", boxShadow: "0 4px 20px rgba(0,0,0,0.08)", overflow: "hidden", marginBottom: 44 }}>
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search by vessel name, IMO, MMSI..."
+                style={{ flex: 1, padding: "18px 22px", fontSize: 14, border: "none", outline: "none", color: "#1A1A2E", background: "transparent", fontFamily: "Inter, sans-serif" }}
+              />
+              <button type="submit" style={{ padding: "18px 32px", background: "#0B1E3D", color: "#fff", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", letterSpacing: "0.04em", flexShrink: 0 }}>
+                Search
+              </button>
+            </form>
+
+            {/* Stats row */}
+            <div style={{ display: "flex", gap: 36, flexWrap: "wrap" as const }}>
+              {[
+                { icon: "⚓", value: stats ? stats.totalVessels.toLocaleString() : "—", label: "Vessels Tracked" },
+                { icon: "👤", value: stats ? stats.ownersFound.toLocaleString() : "—", label: "Owners Found" },
+                { icon: "🌍", value: "150+", label: "Countries" },
+                { icon: "🕐", value: "24/7", label: "Real-time AIS" },
+              ].map(s => (
+                <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ fontSize: 22 }}>{s.icon}</div>
+                  <div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: "#0B1E3D", lineHeight: 1 }}>{s.value}</div>
+                    <div style={{ fontSize: 11, color: "#8896A5", textTransform: "uppercase" as const, letterSpacing: "0.04em", marginTop: 2 }}>{s.label}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Real stats strip */}
-          <div style={{ display: "flex", gap: 24, justifyContent: "center", paddingTop: 16, borderTop: "1px solid rgba(29,158,117,0.15)" }}>
-            {[
-              { label: "Vessels tracked", value: stats ? stats.totalVessels.toLocaleString() : "—" },
-              { label: "Critical risk",   value: stats ? stats.critical.toLocaleString()      : "—" },
-              { label: "Owners found",    value: stats ? stats.ownersFound.toLocaleString()   : "—" },
-            ].map(s => (
-              <div key={s.label} style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: "#101828", letterSpacing: -0.5 }}>{s.value}</div>
-                <div style={{ fontSize: 11, color: "#667085", marginTop: 2 }}>{s.label}</div>
-              </div>
-            ))}
+          {/* RIGHT — featured vessel card */}
+          <div className="hero-right" style={{ width: 380, flexShrink: 0 }}>
+            {(() => {
+              const featured = vessels[0];
+              if (!featured) return (
+                <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2E8F0", padding: 40, textAlign: "center", color: "#8896A5" }}>
+                  <div style={{ fontSize: 36, marginBottom: 12 }}>⚓</div>
+                  <div style={{ fontSize: 13 }}>{loading ? "Loading..." : "No data"}</div>
+                </div>
+              );
+              const catColors: Record<string, { bg: string; color: string }> = {
+                critical: { bg: "#7F1D1D", color: "#FCA5A5" },
+                high:     { bg: "#78350F", color: "#FCD34D" },
+                medium:   { bg: "#1C3D5A", color: "#93C5FD" },
+                low:      { bg: "#1A2E1A", color: "#86EFAC" },
+              };
+              const cat = catColors[featured.scrap_category] ?? catColors.low;
+              const sv = featured.scrap_value_usd && featured.scrap_value_usd > 100_000
+                ? `${featured.scrap_value_estimated ? "~" : ""}$${(featured.scrap_value_usd / 1_000_000).toFixed(1)}M`
+                : null;
+              return (
+                <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2E8F0", padding: 24, boxShadow: "0 8px 32px rgba(11,30,61,0.10)" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#C9A84C", letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 16 }}>
+                    Featured Vessel
+                  </div>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: "#0B1E3D", lineHeight: 1.2 }}>
+                      {featured.name || `IMO ${featured.imo}`}
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100, background: cat.bg, color: cat.color, flexShrink: 0 }}>
+                      {(featured.scrap_category || "").toUpperCase()}
+                    </span>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 16px", marginBottom: 20 }}>
+                    {[
+                      { label: "IMO",   value: featured.imo },
+                      { label: "Type",  value: featured.type || "—" },
+                      { label: "Built", value: featured.built_year ? `${featured.built_year} · ${featured.age}y` : "—" },
+                      { label: "Flag",  value: featured.flag || "—" },
+                    ].map(r => (
+                      <div key={r.label}>
+                        <div style={{ fontSize: 10, color: "#8896A5", textTransform: "uppercase" as const, letterSpacing: "0.04em", marginBottom: 2 }}>{r.label}</div>
+                        <div style={{ fontSize: 13, color: "#0B1E3D", fontWeight: 500 }}>{r.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {sv && (
+                    <div style={{ background: "rgba(201,168,76,0.08)", borderRadius: 8, padding: "10px 14px", marginBottom: 16 }}>
+                      <div style={{ fontSize: 10, color: "#8896A5", textTransform: "uppercase" as const, letterSpacing: "0.04em", marginBottom: 2 }}>Est. Scrap Value</div>
+                      <div style={{ fontSize: 24, fontWeight: 800, color: "#C9A84C" }}>{sv}</div>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setSelectedIMO(featured.imo)}
+                    style={{ width: "100%", padding: "11px 20px", background: "#C9A84C", color: "#0B1E3D", fontSize: 13, fontWeight: 700, border: "none", borderRadius: 8, cursor: "pointer", marginBottom: 12 }}
+                  >
+                    View Details →
+                  </button>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: "#1D9E75", border: "1px solid rgba(29,158,117,0.3)", borderRadius: 100, padding: "3px 10px" }}>● LIVE AIS</span>
+                    <span style={{ fontSize: 10, fontWeight: 600, color: "#0B1E3D", border: "1px solid #E2E8F0", borderRadius: 100, padding: "3px 10px" }}>✓ VERIFIED</span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
+
         </div>
       </div>
 
@@ -245,6 +328,7 @@ export default function Home() {
             const typeCode = SHIP_TYPE_ICONS[v.type] || "VS";
             return (
               <div key={v.imo}
+                className="vessel-card"
                 onClick={() => setSelectedIMO(v.imo)}
                 style={{
                   background: "#fff",
@@ -254,11 +338,8 @@ export default function Home() {
                   padding: "16px 20px",
                   display: "flex", alignItems: "center", gap: 16,
                   cursor: "pointer",
-                  transition: "border-color 0.15s, box-shadow 0.15s",
                   boxShadow: "0 1px 2px rgba(16,24,40,0.04)",
                 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "#1D9E75"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(29,158,117,0.08)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = v.statusType === "r" ? "#F04438" : v.statusType === "a" ? "#DC6803" : "#EAECF0"; e.currentTarget.style.boxShadow = "0 1px 2px rgba(16,24,40,0.04)"; }}
               >
                 <div style={{ width: 44, height: 44, borderRadius: 10, background: "#F9FAFB", border: "1px solid #EAECF0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <div style={{ fontSize: 11, fontWeight: 800, color: "#344054", letterSpacing: 0.5 }}>{typeCode}</div>

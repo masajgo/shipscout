@@ -40,21 +40,21 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         alignItems: "center",
         padding: "0 28px",
         justifyContent: "space-between",
-        background: "#fff",
-        borderBottom: "1px solid #EAECF0",
+        background: "#0B1E3D",
+        borderBottom: "1px solid rgba(255,255,255,0.08)",
         position: "sticky",
         top: 0,
         zIndex: 100,
-        boxShadow: "0 1px 3px rgba(16,24,40,0.04)",
+        boxShadow: "0 1px 8px rgba(0,0,0,0.25)",
       }}>
         <div style={{ display: "flex", alignItems: "center" }}>
           <Link href="/" style={{ textDecoration: "none" }}>
-            <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: -0.5, color: "#101828" }}>
-              Ship<span style={{ color: "#1D9E75" }}>Scout</span>
+            <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: -0.5, color: "#FFFFFF" }}>
+              Ship<span style={{ color: "#C9A84C" }}>Scout</span>
             </span>
           </Link>
-          <div style={{ width: 1, height: 16, background: "#EAECF0", margin: "0 14px" }} />
-          <span style={{ fontSize: 10, letterSpacing: "0.1em", color: "#98A2B3", textTransform: "uppercase" as const, fontWeight: 500 }}>
+          <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.15)", margin: "0 14px" }} />
+          <span style={{ fontSize: 10, letterSpacing: "0.1em", color: "rgba(255,255,255,0.4)", textTransform: "uppercase" as const, fontWeight: 500 }}>
             Vessel Intelligence
           </span>
         </div>
@@ -66,12 +66,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <Link key={href} href={href} style={{
                 fontSize: 13,
                 fontWeight: active ? 600 : 400,
-                color: active ? "#101828" : "#667085",
+                color: active ? "#FFFFFF" : "rgba(255,255,255,0.6)",
                 textDecoration: "none",
                 padding: "6px 12px",
                 borderRadius: 6,
-                background: active ? "#F2F4F7" : "none",
-                borderBottom: active ? "2px solid #1D9E75" : "2px solid transparent",
+                background: active ? "rgba(255,255,255,0.08)" : "none",
+                borderBottom: active ? "2px solid #C9A84C" : "2px solid transparent",
                 transition: "all 0.15s",
               }}>
                 {label}
@@ -81,11 +81,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#98A2B3" }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#1D9E75", animation: "pulse-dot 2s infinite" }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#C9A84C" }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#C9A84C", animation: "pulse-dot 2s infinite" }} />
             Live · {aisCount !== null ? `${aisCount.toLocaleString()} vessels` : "connecting..."}
           </div>
-          <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#1D9E75", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff" }}>
+          <div style={{ width: 30, height: 30, borderRadius: "50%", background: "#C9A84C", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#0B1E3D" }}>
             A
           </div>
         </div>

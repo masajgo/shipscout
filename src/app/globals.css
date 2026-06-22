@@ -2,43 +2,146 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Design tokens ──────────────────────────────────────────────────────── */
+
 :root {
-  --bg: #FFFFFF;
-  --surface: #F9FAFB;
-  --card: #FFFFFF;
-  --border: #EAECF0;
-  --border-mid: #D0D5DD;
-  --navy: #101828;
-  --navy-mid: #1D2939;
-  --text: #101828;
-  --text-secondary: #344054;
-  --muted: #667085;
-  --placeholder: #98A2B3;
-  --green: #1D9E75;
-  --green-bg: #ECFDF3;
-  --green-text: #027A48;
-  --red: #F04438;
-  --red-bg: #FEF3F2;
-  --amber: #DC6803;
-  --amber-bg: #FFFAEB;
-  --blue: #2563EB;
-  --blue-bg: #EFF8FF;
+  /* Brand */
+  --color-navy:        #0B1E3D;
+  --color-gold:        #C9A84C;
+  --color-gold-light:  #E8D5A3;
+  --color-scout-green: #1D9E75;
+
+  /* Surfaces */
+  --color-surface:   #F8F9FA;
+  --color-surface-2: #FFFFFF;
+
+  /* Text */
+  --color-text-primary:   #1A1A2E;
+  --color-text-secondary: #4A5568;
+  --color-text-muted:     #8896A5;
+
+  /* Borders */
+  --color-border: #E2E8F0;
+
+  /* Legacy aliases — kept for components that still reference them */
+  --bg:           var(--color-surface-2);
+  --surface:      var(--color-surface);
+  --card:         var(--color-surface-2);
+  --border:       var(--color-border);
+  --border-mid:   #D0D5DD;
+  --navy:         var(--color-navy);
+  --navy-mid:     #1D2939;
+  --text:         var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --muted:        var(--color-text-muted);
+  --placeholder:  #98A2B3;
+  --green:        var(--color-scout-green);
+  --green-bg:     #ECFDF3;
+  --green-text:   #027A48;
+  --red:          #F04438;
+  --red-bg:       #FEF3F2;
+  --amber:        #DC6803;
+  --amber-bg:     #FFFAEB;
+  --blue:         #2563EB;
+  --blue-bg:      #EFF8FF;
 }
+
+/* ─── Tailwind v4 theme extension ────────────────────────────────────────── */
+
+@theme {
+  --color-navy:        #0B1E3D;
+  --color-gold:        #C9A84C;
+  --color-gold-light:  #E8D5A3;
+  --color-scout-green: #1D9E75;
+}
+
+/* ─── Base reset ─────────────────────────────────────────────────────────── */
 
 * { box-sizing: border-box; }
 
 body {
-  background: #F9FAFB;
-  color: #101828;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
   font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 400;
   -webkit-font-smoothing: antialiased;
 }
 
+/* ─── Typography ─────────────────────────────────────────────────────────── */
+
+h1, h2 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+h3, h4 {
+  font-weight: 600;
+}
+
+/* Utility class for uppercase labels */
+.label {
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+/* ─── Button utility classes ─────────────────────────────────────────────── */
+
+.btn-primary {
+  background: var(--color-gold);
+  color: var(--color-navy);
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-primary:hover {
+  background: var(--color-gold-light);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-navy);
+  font-weight: 600;
+  border: 1.5px solid var(--color-navy);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-secondary:hover {
+  background: var(--color-navy);
+  color: #ffffff;
+}
+
+/* ─── Scrap score badge utility classes ──────────────────────────────────── */
+
+.badge-critical {
+  background: #7F1D1D;
+  color: #FCA5A5;
+}
+.badge-high {
+  background: #78350F;
+  color: #FCD34D;
+}
+.badge-medium {
+  background: #1C3D5A;
+  color: #93C5FD;
+}
+.badge-low {
+  background: #1A2E1A;
+  color: #86EFAC;
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────────── */
+
 ::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: #F9FAFB; }
-::-webkit-scrollbar-thumb { background: #D0D5DD; border-radius: 3px; }
+::-webkit-scrollbar-track { background: var(--color-surface); }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+
+/* ─── Animations ─────────────────────────────────────────────────────────── */
 
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+  50%       { opacity: 0.3; }
 }

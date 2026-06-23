@@ -47,7 +47,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         alignItems: "center",
         padding: "0 32px",
         justifyContent: "space-between",
-        background: "#0B1E3D",
+        background: "#07122E",
         borderBottom: "1px solid rgba(255,255,255,0.1)",
         position: "sticky",
         top: 0,
@@ -105,7 +105,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             background: "#C9A84C",
             border: "none",
             borderRadius: 6,
-            color: "#0B1E3D",
+            color: "#07122E",
             fontSize: 13,
             fontWeight: 700,
             cursor: "pointer",
@@ -117,7 +117,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       {/* TICKER — hidden on /map to give map full height */}
       {path !== "/map" && (
-        <div style={{ background: "#101828", display: "flex", padding: "0 32px" }}>
+        <div style={{ background: "#050F24", display: "flex", padding: "0 32px" }}>
           {TICKER.map((t, i) => (
             <div key={t.port} style={{
               padding: "12px 26px",

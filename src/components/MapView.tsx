@@ -53,6 +53,7 @@ interface VesselDetail {
   scrapScore:           number;
   scrapCategory:        string;
   scrapReasons:         string[];
+  flag:                 string | null;
   staticDataAge:        number | null;
   updatedAt:            string | null;
   dwt:                  number | null;
@@ -60,6 +61,17 @@ interface VesselDetail {
   ldtEstimated:         boolean | null;
   scrapValueUsd:        number | null;
   scrapValueEstimated:  boolean | null;
+}
+
+interface SearchResult {
+  mmsi:           string;
+  imo:            string | null;
+  name:           string;
+  type:           string | null;
+  lat:            string;
+  lon:            string;
+  scrap_score:    string;
+  scrap_category: string;
 }
 
 interface ScrapCounts { critical: number; high: number; medium: number; low: number; }
@@ -82,9 +94,9 @@ const DEBOUNCE_MS  = 300;
 const MAX_VESSELS  = 2000;
 
 const S = {
-  bg: "#0A0E14", mid: "#0C1118", card: "rgba(255,255,255,0.04)",
-  border:      "rgba(255,255,255,0.06)",
-  glassBorder: "rgba(255,255,255,0.11)",
+  bg: "#07122E", mid: "#07122E", card: "rgba(255,255,255,0.04)",
+  border:      "rgba(255,255,255,0.08)",
+  glassBorder: "rgba(255,255,255,0.10)",
   text: "#E8EDF2", muted: "rgba(255,255,255,0.35)",
   green: "#1D9E75", gold: "#C9A84C",
 };
@@ -203,6 +215,7 @@ export default function MapView() {
   const fetchRef          = useRef<() => void>(() => {});
   const debounceRef       = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef          = useRef<AbortController | null>(null);
+  const searchAbortRef    = useRef<AbortController | null>(null);
 
   const [mapReady,      setMapReady]      = useState(false);
   const [loading,       setLoading]       = useState(false);
@@ -217,6 +230,9 @@ export default function MapView() {
   const [showScrap,       setShowScrap]       = useState(false);
   const [contact,         setContact]         = useState<ContactResult | null>(null);
   const [contactLoading,  setContactLoading]  = useState(false);
+  const [searchQuery,     setSearchQuery]     = useState("");
+  const [searchResults,   setSearchResults]   = useState<SearchResult[]>([]);
+  const [searchOpen,      setSearchOpen]      = useState(false);
 
   // ── Init map ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -459,6 +475,40 @@ export default function MapView() {
     setTrackPoints(0);
   }
 
+  async function searchVessels(q: string) {
+    setSearchQuery(q);
+    if (!q.trim()) { setSearchResults([]); setSearchOpen(false); return; }
+    searchAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    searchAbortRef.current = ctrl;
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&limit=6`, { signal: ctrl.signal });
+      if (!res.ok) return;
+      const data = await res.json();
+      setSearchResults(data.results || []);
+      setSearchOpen(true);
+    } catch (e: any) {
+      if (e.name !== "AbortError") console.error(e);
+    }
+  }
+
+  function selectSearchResult(r: SearchResult) {
+    const lat = parseFloat(r.lat);
+    const lon = parseFloat(r.lon);
+    if (!isNaN(lat) && !isNaN(lon)) {
+      mapInstanceRef.current?.flyTo([lat, lon], 14, { animate: true, duration: 0.8 });
+    }
+    const v: ApiVessel = {
+      mmsi: r.mmsi, name: r.name, type: r.type || "",
+      speed: "0", course: "0", nav: "0",
+      lat: r.lat, lon: r.lon,
+      scrap_score: r.scrap_score, scrap_category: r.scrap_category, ts: "",
+    };
+    setSelected(v); setDetail(null); setContact(null);
+    loadVesselDetail(r.mmsi); loadTrack(r.mmsi); loadContact(r.mmsi);
+    setSearchQuery(""); setSearchResults([]); setSearchOpen(false);
+  }
+
   function closePanel() {
     setSelected(null);
     setDetail(null);
@@ -482,13 +532,13 @@ export default function MapView() {
         .cs { border-radius:50%; background:#1D9E75; border:2px solid rgba(255,255,255,0.25); box-shadow:0 2px 8px rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:transform 0.15s; }
         .cs:hover { transform:scale(1.12); }
         .cs-n { color:#fff; font-size:11px; font-weight:700; font-family:'Inter',sans-serif; letter-spacing:-0.3px; }
-        .vt.leaflet-tooltip { background:#0B1E3D !important; border:1px solid rgba(255,255,255,0.12) !important; color:#E8EDF2 !important; font-size:11px !important; font-family:'Inter',sans-serif !important; border-radius:6px !important; padding:5px 9px !important; pointer-events:none; backdrop-filter:blur(8px); }
+        .vt.leaflet-tooltip { background:#07122E !important; border:1px solid rgba(255,255,255,0.10) !important; color:#E8EDF2 !important; font-size:11px !important; font-family:'Inter',sans-serif !important; border-radius:6px !important; padding:5px 9px !important; pointer-events:none; backdrop-filter:blur(8px); }
         .vt.leaflet-tooltip::before { border-top-color:rgba(255,255,255,0.08) !important; }
-        .leaflet-control-attribution { background:rgba(11,30,61,0.75) !important; color:rgba(255,255,255,0.22) !important; font-size:9px !important; backdrop-filter:blur(6px); }
+        .leaflet-control-attribution { background:rgba(7,18,48,0.80) !important; color:rgba(255,255,255,0.22) !important; font-size:9px !important; backdrop-filter:blur(6px); }
         .leaflet-control-attribution a { color:rgba(255,255,255,0.35) !important; }
         .leaflet-control-zoom { margin-right:14px !important; margin-bottom:14px !important; }
-        .leaflet-control-zoom a { background:rgba(11,30,61,0.75) !important; color:#E8EDF2 !important; border-color:rgba(255,255,255,0.12) !important; backdrop-filter:blur(12px); font-size:16px !important; width:30px !important; height:30px !important; line-height:30px !important; }
-        .leaflet-control-zoom a:hover { background:rgba(11,30,61,0.92) !important; color:#C9A84C !important; }
+        .leaflet-control-zoom a { background:rgba(7,18,48,0.80) !important; color:#E8EDF2 !important; border-color:rgba(255,255,255,0.10) !important; backdrop-filter:blur(16px); font-size:16px !important; width:30px !important; height:30px !important; line-height:30px !important; }
+        .leaflet-control-zoom a:hover { background:rgba(7,18,48,0.96) !important; color:#C9A84C !important; }
         @keyframes loading-sweep { from{transform:translateX(-100%)} to{transform:translateX(100%)} }
       `}</style>
 
@@ -502,7 +552,7 @@ export default function MapView() {
 
       {/* Vessel count badge */}
       {total !== null && !loading && (
-        <div style={{ position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)", background: "rgba(11,30,61,0.75)", backdropFilter: "blur(12px)", border: `1px solid ${S.glassBorder}`, borderRadius: 20, padding: "5px 14px", zIndex: 400, display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)", background: "rgba(7,18,48,0.82)", backdropFilter: "blur(16px)", border: `1px solid ${S.glassBorder}`, borderRadius: 20, padding: "5px 14px", zIndex: 400, display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 5, height: 5, borderRadius: "50%", background: S.green }} />
           <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", fontFamily: "monospace" }}>{total.toLocaleString()} vessels · {dataSource}</span>
         </div>
@@ -511,12 +561,46 @@ export default function MapView() {
       {/* ── Left glass panel ── */}
       <aside style={{
         position: "absolute", top: 14, left: 14, bottom: 14, width: 196,
-        background: "rgba(11,30,61,0.66)", backdropFilter: "blur(18px)",
+        background: "rgba(7,18,48,0.55)", backdropFilter: "blur(24px)",
         border: `1px solid ${S.glassBorder}`, borderRadius: 12,
-        padding: "16px 14px", overflowY: "auto",
-        display: "flex", flexDirection: "column", gap: 18,
+        padding: "14px 12px", overflowY: "auto",
+        display: "flex", flexDirection: "column", gap: 16,
         zIndex: 500,
       }}>
+
+        {/* Search */}
+        <div style={{ position: "relative" }}>
+          <input
+            value={searchQuery}
+            onChange={e => searchVessels(e.target.value)}
+            onBlur={() => setTimeout(() => setSearchOpen(false), 150)}
+            placeholder="Search vessel or IMO..."
+            style={{
+              width: "100%", padding: "7px 10px", borderRadius: 6, boxSizing: "border-box" as const,
+              background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)",
+              color: "rgba(255,255,255,0.8)", fontSize: 11, outline: "none", fontFamily: "Inter, sans-serif",
+            }}
+          />
+          {searchOpen && searchResults.length > 0 && (
+            <div style={{
+              position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+              background: "rgba(7,18,48,0.96)", backdropFilter: "blur(20px)",
+              border: "1px solid rgba(255,255,255,0.12)", borderRadius: 7, zIndex: 600, overflow: "hidden",
+            }}>
+              {searchResults.map(r => (
+                <button key={r.mmsi} onMouseDown={() => selectSearchResult(r)} style={{
+                  display: "block", width: "100%", textAlign: "left" as const,
+                  padding: "7px 10px", background: "none", border: "none",
+                  borderBottom: "1px solid rgba(255,255,255,0.06)",
+                  color: S.text, cursor: "pointer", fontFamily: "Inter, sans-serif",
+                }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name || r.mmsi}</div>
+                  <div style={{ fontSize: 9, color: S.muted }}>{r.type || "—"} · {r.imo ? `IMO ${r.imo}` : `MMSI ${r.mmsi}`}</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Status */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -594,31 +678,31 @@ export default function MapView() {
       {/* ── Right glass mini popup ── */}
       {selected && (
         <aside style={{
-          position: "absolute", top: 14, right: 48, width: 190,
+          position: "absolute", top: 14, right: 48, width: 175,
           maxHeight: "calc(100% - 28px)",
-          background: "rgba(11,30,61,0.74)", backdropFilter: "blur(20px)",
+          background: "rgba(7,18,48,0.60)", backdropFilter: "blur(24px)",
           border: `1px solid ${S.glassBorder}`, borderRadius: 11,
           overflowY: "auto", zIndex: 500,
           display: "flex", flexDirection: "column",
         }}>
 
           {/* Header */}
-          <div style={{ padding: "12px 14px 10px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+          <div style={{ padding: "8px 10px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 3 }}>Live Vessel</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: S.text, letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 2 }}>Live Vessel</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: S.text, letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {detail?.name || selected.name || `MMSI ${selected.mmsi}`}
                 </div>
-                <div style={{ fontSize: 9, color: S.muted, marginTop: 2, fontFamily: "monospace" }}>MMSI {selected.mmsi}</div>
+                <div style={{ fontSize: 8, color: S.muted, marginTop: 1, fontFamily: "monospace" }}>MMSI {selected.mmsi}</div>
               </div>
-              <button onClick={closePanel} style={{ background: "none", border: "none", color: S.muted, cursor: "pointer", fontSize: 16, padding: "0 0 0 4px", lineHeight: 1, flexShrink: 0 }}>×</button>
+              <button onClick={closePanel} style={{ background: "none", border: "none", color: S.muted, cursor: "pointer", fontSize: 15, padding: "0 0 0 4px", lineHeight: 1, flexShrink: 0 }}>×</button>
             </div>
 
             {/* Badges */}
-            <div style={{ display: "flex", gap: 5, flexWrap: "wrap" as const, marginTop: 8 }}>
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" as const, marginTop: 6 }}>
               {(detail?.type || selected.type) && (
-                <span style={{ fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 9, background: `${vesselColor(detail?.type || selected.type)}22`, color: vesselColor(detail?.type || selected.type), border: `1px solid ${vesselColor(detail?.type || selected.type)}44` }}>
+                <span style={{ fontSize: 8, fontWeight: 600, padding: "1px 6px", borderRadius: 8, background: `${vesselColor(detail?.type || selected.type)}22`, color: vesselColor(detail?.type || selected.type), border: `1px solid ${vesselColor(detail?.type || selected.type)}44` }}>
                   {detail?.type || selected.type}
                 </span>
               )}
@@ -633,33 +717,49 @@ export default function MapView() {
 
           {/* Scrap value — gold highlight */}
           {detail && (
-            <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 4 }}>Est. Scrap Value</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: fmtScrapVal(detail.scrapValueUsd, detail.scrapValueEstimated) ? S.gold : S.muted, letterSpacing: "-0.3px" }}>
+            <div style={{ padding: "6px 10px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+              <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 3 }}>Est. Scrap Value</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: fmtScrapVal(detail.scrapValueUsd, detail.scrapValueEstimated) ? S.gold : S.muted, letterSpacing: "-0.3px" }}>
                 {fmtScrapVal(detail.scrapValueUsd, detail.scrapValueEstimated) ?? "N/A"}
               </div>
               {detail.ldt && (
-                <div style={{ fontSize: 9, color: S.muted, marginTop: 2 }}>
+                <div style={{ fontSize: 8, color: S.muted, marginTop: 1 }}>
                   LDT {detail.ldt.toLocaleString()}t{detail.ldtEstimated ? " ~est." : ""}
                 </div>
               )}
             </div>
           )}
 
-          {/* Vessel fields */}
-          <div style={{ padding: "10px 14px" }}>
-            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 8 }}>
+          {/* Compact 4-field data grid */}
+          <div style={{ padding: "6px 10px" }}>
+            <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 6 }}>
               {detailLoading ? "Fetching…" : "Vessel data"}
             </div>
-            <VesselPanel vessel={detailLoading ? null : detail} />
+            {detailLoading ? (
+              [1,2,3,4].map(i => <div key={i} style={{ height: 8, background: "rgba(255,255,255,0.04)", borderRadius: 3, marginBottom: 6, width: i%2===0?"55%":"75%" }} />)
+            ) : detail ? (
+              <div>
+                {([
+                  ["Built",  detail.builtYear ? `${detail.builtYear} (${new Date().getFullYear()-detail.builtYear}y)` : "—"],
+                  ["Flag",   detail.flag || "—"],
+                  ["Length", detail.length ? `${detail.length} m` : "—"],
+                  ["Status", NAV_STATUS[detail.navStatus] ?? `Code ${detail.navStatus}`],
+                ] as [string, string][]).map(([l, v]) => (
+                  <div key={l} style={{ display: "flex", justifyContent: "space-between", gap: 6, marginBottom: 5 }}>
+                    <span style={{ fontSize: 9, color: S.muted, flexShrink: 0 }}>{l}</span>
+                    <span style={{ fontSize: 9, fontWeight: 500, color: S.text, textAlign: "right" as const, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "65%" }}>{v}</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           {/* 24h Track */}
-          <div style={{ padding: "10px 14px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const }}>24h Track</div>
-              <span style={{ fontSize: 9, color: trackPoints ? S.green : S.muted }}>
-                {trackPoints ? `${trackPoints} pts` : "Loading…"}
+          <div style={{ padding: "6px 10px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+              <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const }}>24h Track</div>
+              <span style={{ fontSize: 8, color: trackPoints ? S.green : S.muted }}>
+                {trackPoints ? `${trackPoints} pts` : "…"}
               </span>
             </div>
             <div style={{ height: 2, background: "rgba(255,255,255,0.08)", borderRadius: 2, overflow: "hidden" }}>
@@ -668,37 +768,29 @@ export default function MapView() {
           </div>
 
           {/* Owner / Manager */}
-          <div style={{ padding: "10px 14px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 8 }}>Owner / Manager</div>
+          <div style={{ padding: "6px 10px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 6 }}>Owner / Manager</div>
             {contactLoading ? (
-              <div style={{ fontSize: 10, color: S.muted }}>Searching contacts…</div>
+              <div style={{ fontSize: 9, color: S.muted }}>Searching…</div>
             ) : contact ? (
               <div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: S.text, marginBottom: 6 }}>{contact.company}</div>
-                {contact.website && (
-                  <div style={{ fontSize: 9, color: "#94A3B8", marginBottom: 5, fontFamily: "monospace", wordBreak: "break-all" as const }}>
-                    {contact.website}
-                  </div>
+                <div style={{ fontSize: 10, fontWeight: 600, color: S.text, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{contact.company}</div>
+                {contact.emails[0] && (
+                  <div style={{ fontSize: 9, color: "#94A3B8", marginBottom: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>✉ {contact.emails[0]}</div>
                 )}
-                {contact.emails.slice(0, 2).map(e => (
-                  <div key={e} style={{ fontSize: 9, color: "#94A3B8", marginBottom: 3 }}>✉ {e}</div>
-                ))}
-                {contact.phones.slice(0, 1).map(p => (
-                  <div key={p} style={{ fontSize: 9, color: "#94A3B8", marginBottom: 3 }}>📞 {p}</div>
-                ))}
-                <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 8 }}>
-                  <a href={contact.linkedinSearchUrl} target="_blank" rel="noreferrer" style={{ display: "block", textAlign: "center" as const, background: "rgba(96,165,250,0.10)", border: "1px solid rgba(96,165,250,0.28)", borderRadius: 5, padding: "6px 8px", color: "#60A5FA", fontSize: 9, fontWeight: 600, textDecoration: "none" }}>
-                    LinkedIn'de ara →
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <a href={contact.linkedinSearchUrl} target="_blank" rel="noreferrer" style={{ display: "block", textAlign: "center" as const, background: "rgba(96,165,250,0.10)", border: "1px solid rgba(96,165,250,0.28)", borderRadius: 4, padding: "5px 6px", color: "#60A5FA", fontSize: 9, fontWeight: 600, textDecoration: "none" }}>
+                    LinkedIn →
                   </a>
                   {contact.emails.length > 0 && (
-                    <a href={buildOfferMailto(contact, detail, selected)} style={{ display: "block", textAlign: "center" as const, background: "rgba(29,158,117,0.10)", border: "1px solid rgba(29,158,117,0.28)", borderRadius: 5, padding: "6px 8px", color: S.green, fontSize: 9, fontWeight: 600, textDecoration: "none" }}>
-                      ✉ Teklif emaili yaz
+                    <a href={buildOfferMailto(contact, detail, selected)} style={{ display: "block", textAlign: "center" as const, background: "rgba(29,158,117,0.10)", border: "1px solid rgba(29,158,117,0.28)", borderRadius: 4, padding: "5px 6px", color: S.green, fontSize: 9, fontWeight: 600, textDecoration: "none" }}>
+                      ✉ Email teklifi
                     </a>
                   )}
                 </div>
               </div>
             ) : (
-              <div style={{ fontSize: 10, color: S.muted, fontStyle: "italic" }}>Owner bilgisi toplanıyor — yarın güncellenir</div>
+              <div style={{ fontSize: 9, color: S.muted, fontStyle: "italic" }}>Owner bilgisi toplanıyor — yarın güncellenir</div>
             )}
           </div>
 

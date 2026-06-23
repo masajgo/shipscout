@@ -34,27 +34,32 @@ interface ApiResponse {
 }
 
 interface VesselDetail {
-  mmsi:          string;
-  imo:           string | null;
-  name:          string;
-  callSign:      string | null;
-  type:          string | null;
-  position:      { lat: number; lon: number };
-  speed:         number;
-  course:        number;
-  heading:       number | null;
-  navStatus:     number;
-  length:        number | null;
-  beam:          number | null;
-  draught:       number | null;
-  destination:   string | null;
-  eta:           string | null;
-  builtYear:     number | null;
-  scrapScore:    number;
-  scrapCategory: string;
-  scrapReasons:  string[];
-  staticDataAge: number | null;
-  updatedAt:     string | null;
+  mmsi:                 string;
+  imo:                  string | null;
+  name:                 string;
+  callSign:             string | null;
+  type:                 string | null;
+  position:             { lat: number; lon: number };
+  speed:                number;
+  course:               number;
+  heading:              number | null;
+  navStatus:            number;
+  length:               number | null;
+  beam:                 number | null;
+  draught:              number | null;
+  destination:          string | null;
+  eta:                  string | null;
+  builtYear:            number | null;
+  scrapScore:           number;
+  scrapCategory:        string;
+  scrapReasons:         string[];
+  staticDataAge:        number | null;
+  updatedAt:            string | null;
+  dwt:                  number | null;
+  ldt:                  number | null;
+  ldtEstimated:         boolean | null;
+  scrapValueUsd:        number | null;
+  scrapValueEstimated:  boolean | null;
 }
 
 interface ScrapCounts { critical: number; high: number; medium: number; low: number; }
@@ -77,10 +82,11 @@ const DEBOUNCE_MS  = 300;
 const MAX_VESSELS  = 2000;
 
 const S = {
-  bg: "#0A0E14", mid: "#0C1118", card: "#0F1520",
-  border: "rgba(255,255,255,0.06)",
-  text: "#E8EDF2", muted: "rgba(255,255,255,0.25)",
-  green: "#1D9E75",
+  bg: "#0A0E14", mid: "#0C1118", card: "rgba(255,255,255,0.04)",
+  border:      "rgba(255,255,255,0.06)",
+  glassBorder: "rgba(255,255,255,0.11)",
+  text: "#E8EDF2", muted: "rgba(255,255,255,0.35)",
+  green: "#1D9E75", gold: "#C9A84C",
 };
 
 const SCRAP_COLORS: Record<string, string> = {
@@ -462,25 +468,55 @@ export default function MapView() {
 
   const totalScrap = scrapCounts.critical + scrapCounts.high + scrapCounts.medium + scrapCounts.low;
 
+  const fmtScrapVal = (usd: number | null | undefined, est: boolean | null | undefined) => {
+    if (!usd || usd < 100_000) return null;
+    const m = usd / 1_000_000;
+    return `${est ? "~" : ""}$${m >= 10 ? m.toFixed(1) : m.toFixed(2)}M`;
+  };
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ background: S.bg, color: S.text, display: "flex", height: "calc(100vh - 56px)", fontFamily: "Inter, sans-serif" }}>
+    <div style={{ position: "relative", height: "calc(100vh - 64px)", overflow: "hidden", fontFamily: "Inter, sans-serif", color: S.text }}>
 
       <style>{`
         .cs { border-radius:50%; background:#1D9E75; border:2px solid rgba(255,255,255,0.25); box-shadow:0 2px 8px rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:transform 0.15s; }
         .cs:hover { transform:scale(1.12); }
         .cs-n { color:#fff; font-size:11px; font-weight:700; font-family:'Inter',sans-serif; letter-spacing:-0.3px; }
-        .vt.leaflet-tooltip { background:#0F1520 !important; border:1px solid rgba(255,255,255,0.1) !important; color:#E8EDF2 !important; font-size:11px !important; font-family:'Inter',monospace !important; border-radius:5px !important; padding:5px 9px !important; pointer-events:none; }
+        .vt.leaflet-tooltip { background:#0B1E3D !important; border:1px solid rgba(255,255,255,0.12) !important; color:#E8EDF2 !important; font-size:11px !important; font-family:'Inter',sans-serif !important; border-radius:6px !important; padding:5px 9px !important; pointer-events:none; backdrop-filter:blur(8px); }
         .vt.leaflet-tooltip::before { border-top-color:rgba(255,255,255,0.08) !important; }
-        .leaflet-control-attribution { background:rgba(10,14,20,0.85) !important; color:rgba(255,255,255,0.18) !important; font-size:9px !important; }
-        .leaflet-control-attribution a { color:rgba(255,255,255,0.28) !important; }
-        .leaflet-control-zoom a { background:#0C1118 !important; color:#E8EDF2 !important; border-color:rgba(255,255,255,0.08) !important; }
-        .leaflet-control-zoom a:hover { background:#0F1520 !important; }
+        .leaflet-control-attribution { background:rgba(11,30,61,0.75) !important; color:rgba(255,255,255,0.22) !important; font-size:9px !important; backdrop-filter:blur(6px); }
+        .leaflet-control-attribution a { color:rgba(255,255,255,0.35) !important; }
+        .leaflet-control-zoom { margin-right:14px !important; margin-bottom:14px !important; }
+        .leaflet-control-zoom a { background:rgba(11,30,61,0.75) !important; color:#E8EDF2 !important; border-color:rgba(255,255,255,0.12) !important; backdrop-filter:blur(12px); font-size:16px !important; width:30px !important; height:30px !important; line-height:30px !important; }
+        .leaflet-control-zoom a:hover { background:rgba(11,30,61,0.92) !important; color:#C9A84C !important; }
         @keyframes loading-sweep { from{transform:translateX(-100%)} to{transform:translateX(100%)} }
       `}</style>
 
-      {/* ── Left sidebar ── */}
-      <aside style={{ width: 200, background: S.mid, borderRight: `1px solid ${S.border}`, padding: "18px 16px", flexShrink: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* ── Full-screen map ── */}
+      <div ref={mapRef} style={{ position: "absolute", inset: 0 }} />
+
+      {/* Loading bar */}
+      {loading && (
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, zIndex: 900, background: "linear-gradient(90deg,transparent,#C9A84C,transparent)", animation: "loading-sweep 1.2s linear infinite" }} />
+      )}
+
+      {/* Vessel count badge */}
+      {total !== null && !loading && (
+        <div style={{ position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)", background: "rgba(11,30,61,0.75)", backdropFilter: "blur(12px)", border: `1px solid ${S.glassBorder}`, borderRadius: 20, padding: "5px 14px", zIndex: 400, display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 5, height: 5, borderRadius: "50%", background: S.green }} />
+          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", fontFamily: "monospace" }}>{total.toLocaleString()} vessels · {dataSource}</span>
+        </div>
+      )}
+
+      {/* ── Left glass panel ── */}
+      <aside style={{
+        position: "absolute", top: 14, left: 14, bottom: 14, width: 196,
+        background: "rgba(11,30,61,0.66)", backdropFilter: "blur(18px)",
+        border: `1px solid ${S.glassBorder}`, borderRadius: 12,
+        padding: "16px 14px", overflowY: "auto",
+        display: "flex", flexDirection: "column", gap: 18,
+        zIndex: 500,
+      }}>
 
         {/* Status */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -490,7 +526,7 @@ export default function MapView() {
           </span>
         </div>
 
-        {/* Scrap risk legend (only when vessels visible) */}
+        {/* Scrap risk legend */}
         {totalScrap > 0 && (
           <div>
             <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 8 }}>Scrap risk</div>
@@ -503,19 +539,17 @@ export default function MapView() {
                     <span style={{ fontSize: 10, color: SCRAP_COLORS[cat] }}>{cat}</span>
                     <span style={{ fontSize: 10, color: S.muted, fontFamily: "monospace" }}>{n}</span>
                   </div>
-                  <div style={{ height: 3, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${pct}%`, background: SCRAP_COLORS[cat], borderRadius: 2, opacity: 0.7 }} />
+                  <div style={{ height: 3, background: "rgba(255,255,255,0.08)", borderRadius: 2, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${pct}%`, background: SCRAP_COLORS[cat], borderRadius: 2, opacity: 0.75 }} />
                   </div>
                 </div>
               );
             })}
-
-            {/* Scrap-only toggle */}
             <button onClick={() => setShowScrap(s => !s)} style={{
               marginTop: 6, display: "block", width: "100%", textAlign: "left" as const,
-              background: showScrap ? "rgba(239,68,68,0.1)" : "transparent",
-              border: `1px solid ${showScrap ? "rgba(239,68,68,0.3)" : "rgba(255,255,255,0.06)"}`,
-              borderRadius: 4, padding: "5px 10px",
+              background: showScrap ? "rgba(239,68,68,0.12)" : "rgba(255,255,255,0.04)",
+              border: `1px solid ${showScrap ? "rgba(239,68,68,0.3)" : "rgba(255,255,255,0.08)"}`,
+              borderRadius: 5, padding: "5px 10px",
               color: showScrap ? "#EF4444" : S.muted,
               fontSize: 10, cursor: "pointer", fontFamily: "Inter, sans-serif",
             }}>
@@ -530,10 +564,10 @@ export default function MapView() {
           {["All", "Cargo", "Tanker", "Passenger", "Fishing", "Tug", "Sailing"].map(t => (
             <button key={t} onClick={() => setTypeFilter(t)} style={{
               display: "block", width: "100%", textAlign: "left" as const,
-              background: typeFilter === t ? "rgba(29,158,117,0.1)" : "transparent",
-              border: `1px solid ${typeFilter === t ? "rgba(29,158,117,0.25)" : "transparent"}`,
-              borderRadius: 4, padding: "5px 10px",
-              color: typeFilter === t ? S.green : "rgba(255,255,255,0.3)",
+              background: typeFilter === t ? "rgba(201,168,76,0.12)" : "transparent",
+              border: `1px solid ${typeFilter === t ? "rgba(201,168,76,0.3)" : "transparent"}`,
+              borderRadius: 5, padding: "5px 10px",
+              color: typeFilter === t ? S.gold : "rgba(255,255,255,0.32)",
               fontSize: 11, cursor: "pointer", marginBottom: 2, fontFamily: "Inter, sans-serif",
             }}>
               {t !== "All" && <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: vesselColor(t), marginRight: 7, verticalAlign: "middle" }} />}
@@ -543,13 +577,13 @@ export default function MapView() {
         </div>
 
         {/* Stats footer */}
-        <div style={{ borderTop: `1px solid ${S.border}`, paddingTop: 16, marginTop: "auto" }}>
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 14, marginTop: "auto" }}>
           {[
             ["In viewport", total !== null ? total.toLocaleString() : "—"],
             ["Renderer",    "Canvas"],
             ["Source",      dataSource || "—"],
           ].map(([l, v]) => (
-            <div key={String(l)} style={{ display: "flex", justifyContent: "space-between", marginBottom: 7 }}>
+            <div key={String(l)} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
               <span style={{ fontSize: 10, color: S.muted }}>{l}</span>
               <span style={{ fontSize: 10, fontWeight: 600, color: S.text }}>{v}</span>
             </div>
@@ -557,145 +591,107 @@ export default function MapView() {
         </div>
       </aside>
 
-      {/* ── Map ── */}
-      <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
-        <div ref={mapRef} style={{ position: "absolute", inset: 0 }} />
-        {loading && (
-          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, zIndex: 900, background: "linear-gradient(90deg,transparent,#1D9E75,transparent)", animation: "loading-sweep 1.2s linear infinite" }} />
-        )}
-        {total !== null && !loading && (
-          <div style={{ position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)", background: "rgba(10,14,20,0.88)", border: `1px solid ${S.border}`, borderRadius: 20, padding: "5px 14px", zIndex: 400, display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 5, height: 5, borderRadius: "50%", background: S.green }} />
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", fontFamily: "monospace" }}>{total.toLocaleString()} vessels · {dataSource}</span>
-          </div>
-        )}
-      </div>
-
-      {/* ── Right detail panel ── */}
+      {/* ── Right glass mini popup ── */}
       {selected && (
-        <aside style={{ width: 268, background: S.mid, borderLeft: `1px solid ${S.border}`, padding: 18, overflowY: "auto", flexShrink: 0, display: "flex", flexDirection: "column", gap: 14 }}>
+        <aside style={{
+          position: "absolute", top: 14, right: 48, width: 190,
+          maxHeight: "calc(100% - 28px)",
+          background: "rgba(11,30,61,0.74)", backdropFilter: "blur(20px)",
+          border: `1px solid ${S.glassBorder}`, borderRadius: 11,
+          overflowY: "auto", zIndex: 500,
+          display: "flex", flexDirection: "column",
+        }}>
 
           {/* Header */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 4 }}>Live Vessel</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: S.text, letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {detail?.name || selected.name || `MMSI ${selected.mmsi}`}
+          <div style={{ padding: "12px 14px 10px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 3 }}>Live Vessel</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: S.text, letterSpacing: "-0.3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {detail?.name || selected.name || `MMSI ${selected.mmsi}`}
+                </div>
+                <div style={{ fontSize: 9, color: S.muted, marginTop: 2, fontFamily: "monospace" }}>MMSI {selected.mmsi}</div>
               </div>
-              <div style={{ fontSize: 10, color: S.muted, marginTop: 3, fontFamily: "monospace" }}>MMSI {selected.mmsi}</div>
+              <button onClick={closePanel} style={{ background: "none", border: "none", color: S.muted, cursor: "pointer", fontSize: 16, padding: "0 0 0 4px", lineHeight: 1, flexShrink: 0 }}>×</button>
             </div>
-            <button onClick={closePanel} style={{ background: "none", border: "none", color: S.muted, cursor: "pointer", fontSize: 18, padding: 2, lineHeight: 1, flexShrink: 0 }}>×</button>
+
+            {/* Badges */}
+            <div style={{ display: "flex", gap: 5, flexWrap: "wrap" as const, marginTop: 8 }}>
+              {(detail?.type || selected.type) && (
+                <span style={{ fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 9, background: `${vesselColor(detail?.type || selected.type)}22`, color: vesselColor(detail?.type || selected.type), border: `1px solid ${vesselColor(detail?.type || selected.type)}44` }}>
+                  {detail?.type || selected.type}
+                </span>
+              )}
+              {detail
+                ? <ScrapBadge category={detail.scrapCategory} score={detail.scrapScore} />
+                : selected.scrap_category !== "low" && (
+                    <ScrapBadge category={selected.scrap_category} score={parseInt(selected.scrap_score) || 0} />
+                  )
+              }
+            </div>
           </div>
 
-          {/* Badges */}
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
-            {(detail?.type || selected.type) && (
-              <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 10, background: `${vesselColor(detail?.type || selected.type)}22`, color: vesselColor(detail?.type || selected.type), border: `1px solid ${vesselColor(detail?.type || selected.type)}44` }}>
-                {detail?.type || selected.type}
-              </span>
-            )}
-            {detail
-              ? <ScrapBadge category={detail.scrapCategory} score={detail.scrapScore} />
-              : selected.scrap_category !== "low" && (
-                  <ScrapBadge category={selected.scrap_category} score={parseInt(selected.scrap_score) || 0} />
-                )
-            }
-          </div>
+          {/* Scrap value — gold highlight */}
+          {detail && (
+            <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 4 }}>Est. Scrap Value</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: fmtScrapVal(detail.scrapValueUsd, detail.scrapValueEstimated) ? S.gold : S.muted, letterSpacing: "-0.3px" }}>
+                {fmtScrapVal(detail.scrapValueUsd, detail.scrapValueEstimated) ?? "N/A"}
+              </div>
+              {detail.ldt && (
+                <div style={{ fontSize: 9, color: S.muted, marginTop: 2 }}>
+                  LDT {detail.ldt.toLocaleString()}t{detail.ldtEstimated ? " ~est." : ""}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Vessel fields */}
-          <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 8, padding: "12px 14px" }}>
-            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 10 }}>
-              {detailLoading ? "Fetching detail…" : "Vessel data"}
+          <div style={{ padding: "10px 14px" }}>
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 8 }}>
+              {detailLoading ? "Fetching…" : "Vessel data"}
             </div>
             <VesselPanel vessel={detailLoading ? null : detail} />
           </div>
 
-          {/* Scrap signals */}
-          {detail && detail.scrapReasons.length > 0 && (
-            <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 8, padding: "10px 14px" }}>
-              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 8 }}>Scrap signals</div>
-              {detail.scrapReasons.map((r, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                  <div style={{ width: 4, height: 4, borderRadius: "50%", background: SCRAP_COLORS[detail.scrapCategory] ?? S.muted, flexShrink: 0 }} />
-                  <span style={{ fontSize: 10, color: S.text }}>{r}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
           {/* 24h Track */}
-          <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 8, padding: "12px 14px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: S.muted, textTransform: "uppercase" as const }}>24h Track</div>
-              <span style={{ fontSize: 10, color: trackPoints ? S.green : S.muted }}>
+          <div style={{ padding: "10px 14px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const }}>24h Track</div>
+              <span style={{ fontSize: 9, color: trackPoints ? S.green : S.muted }}>
                 {trackPoints ? `${trackPoints} pts` : "Loading…"}
               </span>
             </div>
-            <div style={{ height: 3, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
+            <div style={{ height: 2, background: "rgba(255,255,255,0.08)", borderRadius: 2, overflow: "hidden" }}>
               <div style={{ height: "100%", width: trackPoints ? "100%" : "40%", background: trackPoints ? S.green : "rgba(255,255,255,0.12)", borderRadius: 2, transition: "width 0.6s" }} />
             </div>
           </div>
 
-          {/* ── Contact ── */}
-          <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 8, padding: "12px 14px" }}>
-            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 10 }}>
-              Owner / Manager
-            </div>
+          {/* Owner / Manager */}
+          <div style={{ padding: "10px 14px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 8 }}>Owner / Manager</div>
             {contactLoading ? (
               <div style={{ fontSize: 10, color: S.muted }}>Searching contacts…</div>
             ) : contact ? (
               <div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: S.text, marginBottom: 8 }}>{contact.company}</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: S.text, marginBottom: 6 }}>{contact.company}</div>
                 {contact.website && (
-                  <div style={{ fontSize: 10, color: "#94A3B8", marginBottom: 6, fontFamily: "monospace" }}>
+                  <div style={{ fontSize: 9, color: "#94A3B8", marginBottom: 5, fontFamily: "monospace", wordBreak: "break-all" as const }}>
                     {contact.website}
                   </div>
                 )}
-                {contact.emails.slice(0, 3).map(e => (
-                  <div key={e} style={{ fontSize: 10, color: "#94A3B8", marginBottom: 4 }}>
-                    ✉ {e}
-                  </div>
+                {contact.emails.slice(0, 2).map(e => (
+                  <div key={e} style={{ fontSize: 9, color: "#94A3B8", marginBottom: 3 }}>✉ {e}</div>
                 ))}
-                {contact.phones.slice(0, 2).map(p => (
-                  <div key={p} style={{ fontSize: 10, color: "#94A3B8", marginBottom: 4 }}>
-                    📞 {p}
-                  </div>
+                {contact.phones.slice(0, 1).map(p => (
+                  <div key={p} style={{ fontSize: 9, color: "#94A3B8", marginBottom: 3 }}>📞 {p}</div>
                 ))}
-                {contact.emailFormat && (
-                  <div style={{ fontSize: 9, color: S.muted, marginTop: 6, fontFamily: "monospace" }}>
-                    format: {contact.emailFormat}
-                  </div>
-                )}
-
-                {/* Action buttons */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 }}>
-                  <a
-                    href={contact.linkedinSearchUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{
-                      display: "block", textAlign: "center" as const,
-                      background: "rgba(96,165,250,0.10)",
-                      border: "1px solid rgba(96,165,250,0.30)",
-                      borderRadius: 6, padding: "7px 10px",
-                      color: "#60A5FA", fontSize: 10, fontWeight: 600,
-                      textDecoration: "none", letterSpacing: "0.04em",
-                    }}
-                  >
+                <div style={{ display: "flex", flexDirection: "column", gap: 5, marginTop: 8 }}>
+                  <a href={contact.linkedinSearchUrl} target="_blank" rel="noreferrer" style={{ display: "block", textAlign: "center" as const, background: "rgba(96,165,250,0.10)", border: "1px solid rgba(96,165,250,0.28)", borderRadius: 5, padding: "6px 8px", color: "#60A5FA", fontSize: 9, fontWeight: 600, textDecoration: "none" }}>
                     LinkedIn'de ara →
                   </a>
                   {contact.emails.length > 0 && (
-                    <a
-                      href={buildOfferMailto(contact, detail, selected)}
-                      style={{
-                        display: "block", textAlign: "center" as const,
-                        background: "rgba(29,158,117,0.10)",
-                        border: "1px solid rgba(29,158,117,0.30)",
-                        borderRadius: 6, padding: "7px 10px",
-                        color: S.green, fontSize: 10, fontWeight: 600,
-                        textDecoration: "none", letterSpacing: "0.04em",
-                      }}
-                    >
+                    <a href={buildOfferMailto(contact, detail, selected)} style={{ display: "block", textAlign: "center" as const, background: "rgba(29,158,117,0.10)", border: "1px solid rgba(29,158,117,0.28)", borderRadius: 5, padding: "6px 8px", color: S.green, fontSize: 9, fontWeight: 600, textDecoration: "none" }}>
                       ✉ Teklif emaili yaz
                     </a>
                   )}

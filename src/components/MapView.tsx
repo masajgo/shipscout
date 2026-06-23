@@ -213,6 +213,8 @@ export default function MapView() {
   const abortRef          = useRef<AbortController | null>(null);
   const searchAbortRef    = useRef<AbortController | null>(null);
   const searchInputRef    = useRef<HTMLInputElement>(null);
+  const lastVesselsRef    = useRef<ApiVessel[]>([]);
+  const typeFilterRef     = useRef<string>("All");
 
   const [mapReady,      setMapReady]      = useState(false);
   const [loading,       setLoading]       = useState(false);
@@ -256,6 +258,12 @@ export default function MapView() {
         if (debounceRef.current) clearTimeout(debounceRef.current);
         debounceRef.current = setTimeout(() => fetchRef.current(), DEBOUNCE_MS);
       });
+      map.on("zoomend", () => {
+        if (!lastVesselsRef.current.length || !leafletRef.current) return;
+        const zoom = map.getZoom();
+        clearVesselMarkers(map);
+        diffVesselMarkers(map, leafletRef.current, lastVesselsRef.current, typeFilterRef.current, zoom);
+      });
       // Ensure Leaflet picks up the correct container size after React renders
       setTimeout(() => map.invalidateSize(), 0);
       setMapReady(true);
@@ -278,6 +286,7 @@ export default function MapView() {
 
     const filter   = typeFilter;
     const scrapOnly = showScrap;
+    typeFilterRef.current = typeFilter;
 
     async function fetchViewport() {
       const bounds = map.getBounds();
@@ -301,13 +310,14 @@ export default function MapView() {
         setDataSource(data.source ?? "");
 
         if (data.vessels) {
+          lastVesselsRef.current = data.vessels;
           const counts = { critical: 0, high: 0, medium: 0, low: 0 };
           for (const v of data.vessels) {
             const cat = v.scrap_category as keyof ScrapCounts;
             if (cat in counts) counts[cat]++;
           }
           setScrapCounts(counts);
-          diffVesselMarkers(map, L, data.vessels, filter);
+          diffVesselMarkers(map, L, data.vessels, filter, zoom);
         }
       } catch (e: any) {
         if (e.name !== "AbortError") console.error("[MapView]", e.message);
@@ -321,31 +331,41 @@ export default function MapView() {
   }, [mapReady, typeFilter, showScrap]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Vessel icon factory ───────────────────────────────────────────────────
-  function vesselIcon(L: any, v: ApiVessel): any {
+  function vesselIcon(L: any, v: ApiVessel, zoom: number): any {
     const color  = MARKER_COLORS[v.scrap_category] ?? MARKER_COLORS.low;
     const speed  = parseFloat(v.speed  ?? "0");
     const course = parseFloat(v.course ?? "0");
     const moving = speed > 0.5;
-    const type   = (v.type || "").toLowerCase();
 
     let markerHtml: string;
-    if (!moving) {
-      markerHtml = `<svg width="12" height="12" viewBox="0 0 12 12" style="display:block"><circle cx="6" cy="6" r="4.5" fill="${color}" stroke="white" stroke-width="1.2"/></svg>`;
+    let size: number;
+
+    if (zoom < 8) {
+      // Zoomed out: plain dot, no arrow
+      size = zoom < 5 ? 4 : zoom < 7 ? 5 : 6;
+      markerHtml = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="display:block"><circle cx="${size/2}" cy="${size/2}" r="${size/2 - 0.5}" fill="${color}" stroke="none"/></svg>`;
+    } else if (!moving) {
+      // Zoomed in + anchored: circle with white border
+      size = 10;
+      markerHtml = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="display:block"><circle cx="5" cy="5" r="4" fill="${color}" stroke="white" stroke-width="1"/></svg>`;
     } else {
+      // Zoomed in + moving: directional arrow
+      size = 14;
       markerHtml = `<svg width="14" height="14" viewBox="0 0 14 14" style="display:block;transform:rotate(${course}deg);transform-origin:7px 7px"><polygon points="7,1 12,13 7,10 2,13" fill="${color}" stroke="white" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
     }
 
     return L.divIcon({
       html:       markerHtml,
-      className:  "vessel-marker",
-      iconSize:   moving ? [14, 14] : [12, 12],
-      iconAnchor: moving ? [7,  7]  : [6,  6],
+      className:  "",
+      iconSize:   [size, size],
+      iconAnchor: [size / 2, size / 2],
     });
   }
 
   // ── Vessel markers ────────────────────────────────────────────────────────
-  function diffVesselMarkers(map: any, L: any, vessels: ApiVessel[], filter: string) {
+  function diffVesselMarkers(map: any, L: any, vessels: ApiVessel[], filter: string, zoom?: number) {
     const active = new Set<string>();
+    const currentZoom = zoom ?? mapInstanceRef.current?.getZoom() ?? 8;
 
     for (const v of vessels) {
       if (active.size >= MAX_VESSELS) break;
@@ -365,7 +385,7 @@ export default function MapView() {
       const speed = parseFloat(v.speed ?? "0");
       const cat   = v.scrap_category;
 
-      const marker = L.marker([lat, lon], { icon: vesselIcon(L, v) });
+      const marker = L.marker([lat, lon], { icon: vesselIcon(L, v, currentZoom) });
 
       marker.bindTooltip(
         `<b>${v.name || v.mmsi}</b><br>${v.type || "—"} · ${speed.toFixed(1)} kn` +

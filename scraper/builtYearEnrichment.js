@@ -164,6 +164,12 @@ async function getVesselInfo(imo) {
       log(`Auth error ${res.status} — check DATALASTIC_API_KEY`);
       return null;
     }
+    if (res.status === 402) {
+      // Payment Required — plan sınırı veya quota. Cache'e yaz, tekrar deneme.
+      cache[key] = { builtYear: null, source: "quota_exceeded", cachedAt: new Date().toISOString() };
+      saveCache();
+      return null;
+    }
     if (res.status === 404) {
       cache[key] = { builtYear: null, source: "datalastic", cachedAt: new Date().toISOString() };
       saveCache();
@@ -336,29 +342,36 @@ async function updateStaticsToDB(pool, vessels) {
   if (!pool) return;
 
   const toUpdate = vessels.filter(v =>
-    v.imo && (v.grossTonnage || v.deadweight || v.ldt || v.typeSpecific)
+    v.imo && (v.grossTonnage || v.deadweight || v.ldt || v.typeSpecific || v.builtYear)
   );
   if (!toUpdate.length) return;
 
+  const currentYear = new Date().getFullYear();
   let updated = 0;
   for (const v of toUpdate) {
     try {
+      const builtYear = v.builtYear || null;
+      const age       = builtYear ? currentYear - builtYear : null;
       const res = await pool.query(`
         UPDATE vessels SET
-          gross_tonnage        = COALESCE(gross_tonnage,        $1),
-          deadweight           = COALESCE(deadweight,           $2),
-          ldt                  = COALESCE(ldt,                  $3),
-          ldt_estimated        = COALESCE(ldt_estimated,        $4),
-          type_specific        = COALESCE(type_specific,        $5),
-          teu                  = COALESCE(teu,                  $6),
-          home_port            = COALESCE(home_port,            $7),
-          speed_max            = COALESCE(speed_max,            $8),
-          callsign             = COALESCE(callsign,             $9),
-          scrap_value_usd      = $10,
-          scrap_value_estimated= $11,
-          flag                 = COALESCE(flag, NULLIF($12,''))
-        WHERE imo = $13::bigint
+          built_year           = COALESCE(built_year,           $1),
+          age                  = COALESCE(age,                  $2),
+          gross_tonnage        = COALESCE(gross_tonnage,        $3),
+          deadweight           = COALESCE(deadweight,           $4),
+          ldt                  = COALESCE(ldt,                  $5),
+          ldt_estimated        = COALESCE(ldt_estimated,        $6),
+          type_specific        = COALESCE(type_specific,        $7),
+          teu                  = COALESCE(teu,                  $8),
+          home_port            = COALESCE(home_port,            $9),
+          speed_max            = COALESCE(speed_max,            $10),
+          callsign             = COALESCE(callsign,             $11),
+          scrap_value_usd      = $12,
+          scrap_value_estimated= $13,
+          flag                 = COALESCE(flag, NULLIF($14,''))
+        WHERE imo = $15::bigint
       `, [
+        builtYear,
+        age,
         v.grossTonnage        || null,
         v.deadweight          || null,
         v.ldt                 || null,

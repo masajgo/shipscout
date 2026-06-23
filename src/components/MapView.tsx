@@ -549,7 +549,7 @@ export default function MapView() {
       {/* ── Left glass panel ── */}
       <aside style={{
         position: "absolute", top: 14, left: 14, bottom: 14, width: 196,
-        background: "rgba(4,12,35,0.75)", backdropFilter: "blur(24px) saturate(180%)", WebkitBackdropFilter: "blur(24px) saturate(180%)",
+        background: "rgba(4,12,35,0.82)", backdropFilter: "blur(20px) saturate(160%)", WebkitBackdropFilter: "blur(20px) saturate(160%)",
         border: `1px solid ${S.glassBorder}`, borderRadius: 12,
         padding: "14px 12px", overflowY: "auto",
         display: "flex", flexDirection: "column", gap: 16,
@@ -698,7 +698,7 @@ export default function MapView() {
         <aside style={{
           position: "absolute", top: 14, right: 48, width: 175,
           maxHeight: "calc(100% - 28px)",
-          background: "rgba(4,12,35,0.75)", backdropFilter: "blur(24px) saturate(180%)", WebkitBackdropFilter: "blur(24px) saturate(180%)",
+          background: "rgba(4,12,35,0.82)", backdropFilter: "blur(20px) saturate(160%)", WebkitBackdropFilter: "blur(20px) saturate(160%)",
           border: `1px solid ${S.glassBorder}`, borderRadius: 12,
           overflowY: "auto", zIndex: 500,
           display: "flex", flexDirection: "column",

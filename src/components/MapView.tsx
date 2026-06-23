@@ -17,20 +17,11 @@ interface ApiVessel {
   ts:             string;
 }
 
-interface ApiCluster {
-  lon:           number;
-  lat:           number;
-  count:         number;
-  mmsis:         string[];
-  maxScrapScore: number;
-}
-
 interface ApiResponse {
-  type:      "vessels" | "clusters";
-  source:    string;
-  vessels?:  ApiVessel[];
-  clusters?: ApiCluster[];
-  total:     number;
+  type:     "vessels";
+  source:   string;
+  vessels?: ApiVessel[];
+  total:    number;
 }
 
 interface VesselDetail {
@@ -89,8 +80,6 @@ interface ContactResult {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const CLUSTER_ZOOM = 7;
-const ARROW_ZOOM   = 9;
 const DEBOUNCE_MS  = 300;
 const MAX_VESSELS  = 2000;
 
@@ -113,7 +102,7 @@ const MARKER_COLORS: Record<string, string> = {
   critical: "#EF4444",
   high:     "#F59E0B",
   medium:   "#3B82F6",
-  low:      "#94A3B8",
+  low:      "#64748B",
 };
 
 const TYPE_COLORS: Record<string, string> = {
@@ -218,14 +207,12 @@ export default function MapView() {
   const leafletRef        = useRef<any>(null);
   const canvasRef         = useRef<any>(null);
   const vesselMarkersRef  = useRef<Map<string, any>>(new Map());
-  const clusterMarkersRef = useRef<Map<string, any>>(new Map());
   const trackLayerRef     = useRef<any>(null);
   const fetchRef          = useRef<() => void>(() => {});
   const debounceRef       = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef          = useRef<AbortController | null>(null);
   const searchAbortRef    = useRef<AbortController | null>(null);
   const searchInputRef    = useRef<HTMLInputElement>(null);
-  const zoomModeRef       = useRef<"dot" | "arrow">("dot");
 
   const [mapReady,      setMapReady]      = useState(false);
   const [loading,       setLoading]       = useState(false);
@@ -313,20 +300,14 @@ export default function MapView() {
         setTotal(data.total ?? 0);
         setDataSource(data.source ?? "");
 
-        if (data.type === "clusters" && data.clusters) {
-          clearVesselMarkers(map);
-          setScrapCounts({ critical: 0, high: 0, medium: 0, low: 0 });
-          diffClusterMarkers(map, L, data.clusters);
-        } else if (data.type === "vessels" && data.vessels) {
-          clearClusterMarkers(map);
-          // Compute scrap distribution
+        if (data.vessels) {
           const counts = { critical: 0, high: 0, medium: 0, low: 0 };
           for (const v of data.vessels) {
             const cat = v.scrap_category as keyof ScrapCounts;
             if (cat in counts) counts[cat]++;
           }
           setScrapCounts(counts);
-          diffVesselMarkers(map, L, data.vessels, filter, zoom);
+          diffVesselMarkers(map, L, data.vessels, filter);
         }
       } catch (e: any) {
         if (e.name !== "AbortError") console.error("[MapView]", e.message);
@@ -339,60 +320,54 @@ export default function MapView() {
     fetchViewport();
   }, [mapReady, typeFilter, showScrap]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Cluster markers ───────────────────────────────────────────────────────
-  function diffClusterMarkers(map: any, L: any, clusters: ApiCluster[]) {
-    const active = new Set<string>();
-    for (const c of clusters) {
-      const key = `${c.lon.toFixed(3)},${c.lat.toFixed(3)}`;
-      active.add(key);
-      if (clusterMarkersRef.current.has(key)) {
-        const inner = clusterMarkersRef.current.get(key).getElement?.()?.querySelector?.(".cs-n");
-        if (inner) inner.textContent = fmtCount(c.count);
-        continue;
-      }
-      const sz   = clamp(28 + Math.log2(c.count + 1) * 5, 28, 52);
-      const icon = L.divIcon({
-        className: "", iconSize: [sz, sz], iconAnchor: [sz / 2, sz / 2],
-        html: `<div class="cs" style="width:${sz}px;height:${sz}px"><div class="cs-n">${fmtCount(c.count)}</div></div>`,
-      });
-      const marker = L.marker([c.lat, c.lon], { icon, interactive: true });
-      marker.on("click", () => {
-        const z = Math.min(map.getZoom() + 3, ARROW_ZOOM);
-        map.flyTo([c.lat, c.lon], z, { animate: true, duration: 0.5 });
-      });
-      marker.addTo(map);
-      clusterMarkersRef.current.set(key, marker);
+  // ── Vessel icon factory ───────────────────────────────────────────────────
+  function vesselIcon(L: any, v: ApiVessel): any {
+    const color  = MARKER_COLORS[v.scrap_category] ?? MARKER_COLORS.low;
+    const speed  = parseFloat(v.speed  ?? "0");
+    const course = parseFloat(v.course ?? "0");
+    const moving = speed > 0.5;
+    const type   = (v.type || "").toLowerCase();
+
+    let shape: string;
+    if (!moving) {
+      // Anchored / moored — always circle, no direction
+      shape = `<circle cx="7" cy="7" r="5" fill="${color}" stroke="white" stroke-width="1.2"/>`;
+    } else if (type.includes("tanker")) {
+      // Tanker — narrow elongated arrow
+      shape = `<polygon points="7,1 10,13 7,10 4,13" fill="${color}" stroke="white" stroke-width="1" stroke-linejoin="round"/>`;
+    } else if (type.includes("tug") || type.includes("pilot")) {
+      // Tug / pilot — small square
+      shape = `<rect x="2.5" y="2.5" width="9" height="9" rx="1.5" fill="${color}" stroke="white" stroke-width="1.2"/>`;
+    } else if (type.includes("fish")) {
+      // Fishing — diamond
+      shape = `<polygon points="7,1 13,7 7,13 1,7" fill="${color}" stroke="white" stroke-width="1" stroke-linejoin="round"/>`;
+    } else if (type.includes("passenger") || type.includes("ferry")) {
+      // Passenger / ferry — wide blunt arrow
+      shape = `<polygon points="7,1 12,11 7,9 2,11" fill="${color}" stroke="white" stroke-width="1" stroke-linejoin="round"/>`;
+    } else {
+      // Cargo, container, other — standard arrow
+      shape = `<polygon points="7,1 11,12 7,9 3,12" fill="${color}" stroke="white" stroke-width="1" stroke-linejoin="round"/>`;
     }
-    clusterMarkersRef.current.forEach((m, key) => {
-      if (!active.has(key)) { map.removeLayer(m); clusterMarkersRef.current.delete(key); }
+
+    const rotation = moving ? course : 0;
+    return L.divIcon({
+      html: `<svg width="14" height="14" viewBox="0 0 14 14" style="transform:rotate(${rotation}deg);display:block;overflow:visible">${shape}</svg>`,
+      className: "vessel-marker",
+      iconSize:   [14, 14],
+      iconAnchor: [7, 7],
     });
   }
 
-  function clearClusterMarkers(map: any) {
-    clusterMarkersRef.current.forEach(m => map.removeLayer(m));
-    clusterMarkersRef.current.clear();
-  }
-
   // ── Vessel markers ────────────────────────────────────────────────────────
-  function diffVesselMarkers(map: any, L: any, vessels: ApiVessel[], filter: string, zoom: number) {
-    const useArrows = zoom >= ARROW_ZOOM;
-    const newMode   = useArrows ? "arrow" : "dot";
-
-    // When switching render mode, purge all existing markers so they get recreated
-    if (zoomModeRef.current !== newMode) {
-      clearVesselMarkers(map);
-      zoomModeRef.current = newMode;
-    }
-
-    const renderer = canvasRef.current;
-    const active   = new Set<string>();
+  function diffVesselMarkers(map: any, L: any, vessels: ApiVessel[], filter: string) {
+    const active = new Set<string>();
 
     for (const v of vessels) {
       if (active.size >= MAX_VESSELS) break;
       if (filter !== "All" && !v.type?.toLowerCase().includes(filter.toLowerCase())) continue;
 
-      const lat    = parseFloat(v.lat);
-      const lon    = parseFloat(v.lon);
+      const lat = parseFloat(v.lat);
+      const lon = parseFloat(v.lon);
       if (isNaN(lat) || isNaN(lon)) continue;
 
       active.add(v.mmsi);
@@ -402,38 +377,10 @@ export default function MapView() {
         continue;
       }
 
-      const cat     = v.scrap_category;
-      const speed   = parseFloat(v.speed  ?? "0");
-      const course  = parseFloat(v.course ?? "0");
-      const color   = MARKER_COLORS[cat] ?? MARKER_COLORS.low;
-      const moving  = speed > 0.5;
+      const speed = parseFloat(v.speed ?? "0");
+      const cat   = v.scrap_category;
 
-      let marker: any;
-
-      if (useArrows) {
-        const icon = moving
-          ? L.divIcon({
-              className: "vessel-arrow",
-              iconSize:   [14, 14],
-              iconAnchor: [7, 9],
-              html: `<svg width="14" height="14" viewBox="0 0 14 14" style="transform:rotate(${course}deg);display:block;overflow:visible"><polygon points="7,1 12,13 7,10 2,13" fill="${color}" stroke="white" stroke-width="1.2" stroke-linejoin="round"/></svg>`,
-            })
-          : L.divIcon({
-              className: "vessel-arrow",
-              iconSize:   [10, 10],
-              iconAnchor: [5, 5],
-              html: `<svg width="10" height="10" viewBox="0 0 10 10" style="display:block"><circle cx="5" cy="5" r="4" fill="${color}" stroke="white" stroke-width="1.2"/></svg>`,
-            });
-        marker = L.marker([lat, lon], { icon });
-      } else {
-        // Zoom 7-8: lightweight canvas dot
-        const radius = cat === "critical" ? 6 : cat === "high" ? 5 : speed > 5 ? 5 : speed > 1 ? 4 : 3;
-        marker = L.circleMarker([lat, lon], {
-          renderer, radius,
-          fillColor: color, fillOpacity: 0.88,
-          color: "rgba(0,0,0,0.25)", weight: 0.8,
-        });
-      }
+      const marker = L.marker([lat, lon], { icon: vesselIcon(L, v) });
 
       marker.bindTooltip(
         `<b>${v.name || v.mmsi}</b><br>${v.type || "—"} · ${speed.toFixed(1)} kn` +
@@ -570,11 +517,8 @@ export default function MapView() {
     <div style={{ position: "relative", height: "calc(100vh - 64px)", overflow: "hidden", fontFamily: "Inter, sans-serif", color: S.text }}>
 
       <style>{`
-        .cs { border-radius:50%; background:rgba(11,30,61,0.82); border:2px solid #C9A84C; box-shadow:0 2px 10px rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:transform 0.15s, box-shadow 0.15s; backdrop-filter:blur(4px); }
-        .cs:hover { transform:scale(1.12); box-shadow:0 4px 16px rgba(201,168,76,0.4); }
-        .cs-n { color:#C9A84C; font-size:11px; font-weight:700; font-family:'Inter',sans-serif; letter-spacing:-0.3px; }
-        .vessel-arrow { background:none !important; border:none !important; cursor:pointer; }
-        .vessel-arrow:hover { filter:brightness(1.4) drop-shadow(0 0 3px rgba(255,255,255,0.6)); }
+        .vessel-marker { background:none !important; border:none !important; cursor:pointer; }
+        .vessel-marker:hover { filter:brightness(1.5) drop-shadow(0 0 4px rgba(255,255,255,0.7)); }
         .vt.leaflet-tooltip { background:rgba(4,12,35,0.92) !important; border:1px solid rgba(255,255,255,0.10) !important; color:#E8EDF2 !important; font-size:11px !important; font-family:'Inter',sans-serif !important; border-radius:6px !important; padding:5px 9px !important; pointer-events:none; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
         .vt.leaflet-tooltip::before { border-top-color:rgba(255,255,255,0.08) !important; }
         .leaflet-control-attribution { background:rgba(4,12,35,0.80) !important; color:rgba(255,255,255,0.22) !important; font-size:9px !important; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
@@ -664,41 +608,61 @@ export default function MapView() {
           </span>
         </div>
 
-        {/* Scrap risk legend */}
-        {totalScrap > 0 && (
-          <div>
-            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 8 }}>Scrap risk</div>
-            {(["critical","high","medium","low"] as const).map(cat => {
-              const n   = scrapCounts[cat];
-              const pct = totalScrap > 0 ? Math.round(n / totalScrap * 100) : 0;
-              return (
-                <div key={cat} style={{ marginBottom: 7 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
-                    <span style={{ fontSize: 10, color: SCRAP_COLORS[cat] }}>{cat}</span>
-                    <span style={{ fontSize: 10, color: S.muted, fontFamily: "monospace" }}>{n}</span>
+        {/* SCRAP RISK legend — color swatches */}
+        <div>
+          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 8 }}>Scrap Risk</div>
+          {(["critical","high","medium","low"] as const).map(cat => {
+            const n   = scrapCounts[cat];
+            const pct = totalScrap > 0 ? Math.round(n / totalScrap * 100) : 0;
+            return (
+              <div key={cat} style={{ marginBottom: 6 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 3 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                    <div style={{ width: 9, height: 9, borderRadius: "50%", background: MARKER_COLORS[cat], border: "1.5px solid rgba(255,255,255,0.3)", flexShrink: 0 }} />
+                    <span style={{ fontSize: 10, color: MARKER_COLORS[cat] }}>{cat}</span>
                   </div>
-                  <div style={{ height: 3, background: "rgba(255,255,255,0.08)", borderRadius: 2, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${pct}%`, background: SCRAP_COLORS[cat], borderRadius: 2, opacity: 0.75 }} />
-                  </div>
+                  <span style={{ fontSize: 9, color: S.muted, fontFamily: "monospace" }}>{n > 0 ? n : "—"}</span>
                 </div>
-              );
-            })}
-            <button onClick={() => setShowScrap(s => !s)} style={{
-              marginTop: 6, display: "block", width: "100%", textAlign: "left" as const,
-              background: showScrap ? "rgba(239,68,68,0.12)" : "rgba(255,255,255,0.04)",
-              border: `1px solid ${showScrap ? "rgba(239,68,68,0.3)" : "rgba(255,255,255,0.08)"}`,
-              borderRadius: 5, padding: "5px 10px",
-              color: showScrap ? "#EF4444" : S.muted,
-              fontSize: 10, cursor: "pointer", fontFamily: "Inter, sans-serif",
-            }}>
-              {showScrap ? "✓ " : ""}critical + high only
-            </button>
+                {n > 0 && (
+                  <div style={{ height: 2, background: "rgba(255,255,255,0.08)", borderRadius: 2, overflow: "hidden", marginLeft: 16 }}>
+                    <div style={{ height: "100%", width: `${pct}%`, background: MARKER_COLORS[cat], borderRadius: 2, opacity: 0.7 }} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          <button onClick={() => setShowScrap(s => !s)} style={{
+            marginTop: 6, display: "block", width: "100%", textAlign: "left" as const,
+            background: showScrap ? "rgba(239,68,68,0.12)" : "rgba(255,255,255,0.04)",
+            border: `1px solid ${showScrap ? "rgba(239,68,68,0.3)" : "rgba(255,255,255,0.08)"}`,
+            borderRadius: 5, padding: "5px 10px",
+            color: showScrap ? "#EF4444" : S.muted,
+            fontSize: 10, cursor: "pointer", fontFamily: "Inter, sans-serif",
+          }}>
+            {showScrap ? "✓ " : ""}critical + high only
+          </button>
+        </div>
+
+        {/* STATUS legend — shape meanings */}
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 12 }}>
+          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 8 }}>Status</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
+            <svg width="14" height="14" viewBox="0 0 14 14" style={{ flexShrink: 0 }}>
+              <polygon points="7,1 11,12 7,9 3,12" fill="rgba(255,255,255,0.55)" stroke="rgba(255,255,255,0.2)" strokeWidth="1" strokeLinejoin="round"/>
+            </svg>
+            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>Underway (arrow = course)</span>
           </div>
-        )}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <svg width="14" height="14" viewBox="0 0 14 14" style={{ flexShrink: 0 }}>
+              <circle cx="7" cy="7" r="5" fill="rgba(255,255,255,0.55)" stroke="rgba(255,255,255,0.2)" strokeWidth="1.2"/>
+            </svg>
+            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>Anchored / moored</span>
+          </div>
+        </div>
 
         {/* Vessel type filter */}
         <div>
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 8 }}>Vessel type</div>
+          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 8 }}>Filter type</div>
           {["All", "Cargo", "Tanker", "Passenger", "Fishing", "Tug", "Sailing"].map(t => (
             <button key={t} onClick={() => setTypeFilter(t)} className={typeFilter !== t ? "map-hover" : ""} style={{
               display: "block", width: "100%", textAlign: "left" as const,
@@ -717,9 +681,9 @@ export default function MapView() {
         {/* Stats footer */}
         <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 14, marginTop: "auto" }}>
           {[
-            ["In viewport", total !== null ? total.toLocaleString() : "—"],
-            ["Renderer",    "Canvas"],
-            ["Source",      dataSource || "—"],
+            ["Visible",  total !== null ? total.toLocaleString() : "—"],
+            ["Rendered", `≤${MAX_VESSELS.toLocaleString()}`],
+            ["Source",   dataSource || "—"],
           ].map(([l, v]) => (
             <div key={String(l)} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
               <span style={{ fontSize: 10, color: S.muted }}>{l}</span>

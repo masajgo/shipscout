@@ -3,7 +3,6 @@ import pool from "@/lib/db";
 
 // GET /api/vessels?bbox=minLon,minLat,maxLon,maxLat&zoom=8
 
-const CLUSTER_ZOOM = 7;
 const MAX_RESULTS  = 2000;
 
 // Simple in-memory rate limiter (resets on cold start)
@@ -20,14 +19,6 @@ function checkRateLimit(ip: string): boolean {
   if (entry.count >= RATE_LIMIT) return false;
   entry.count++;
   return true;
-}
-
-function gridDeg(zoom: number): number {
-  if (zoom <=  4) return 8;
-  if (zoom <=  6) return 2;
-  if (zoom <=  8) return 0.5;
-  if (zoom <= 10) return 0.15;
-  return 0.05;
 }
 
 interface RawVessel {
@@ -79,40 +70,6 @@ async function fromSupabase(
   return rows as RawVessel[];
 }
 
-interface Cluster {
-  lon:           number;
-  lat:           number;
-  count:         number;
-  mmsis:         string[];
-  maxScrapScore: number;
-}
-
-function clusterVessels(vessels: RawVessel[], cellDeg: number): Cluster[] {
-  const cells = new Map<string, Cluster>();
-
-  for (const v of vessels) {
-    const lon   = parseFloat(v.lon);
-    const lat   = parseFloat(v.lat);
-    const score = parseInt(v.scrap_score) || 0;
-    const cx    = Math.floor(lon / cellDeg) * cellDeg + cellDeg / 2;
-    const cy    = Math.floor(lat / cellDeg) * cellDeg + cellDeg / 2;
-    const key   = `${cx.toFixed(6)},${cy.toFixed(6)}`;
-
-    const cell = cells.get(key);
-    if (cell) {
-      cell.lon   = (cell.lon * cell.count + lon) / (cell.count + 1);
-      cell.lat   = (cell.lat * cell.count + lat) / (cell.count + 1);
-      cell.count++;
-      if (cell.mmsis.length < 10) cell.mmsis.push(v.mmsi);
-      if (score > cell.maxScrapScore) cell.maxScrapScore = score;
-    } else {
-      cells.set(key, { lon, lat, count: 1, mmsis: [v.mmsi], maxScrapScore: score });
-    }
-  }
-
-  return [...cells.values()];
-}
-
 // GET /api/vessels?list=1  — dashboard list mode (no bbox needed)
 async function listVessels(limit = 1000): Promise<any[]> {
   const { rows } = await pool.query(
@@ -149,7 +106,6 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const bboxParam  = searchParams.get("bbox");
-  const zoom       = parseInt(searchParams.get("zoom") ?? "8", 10);
   const scrapParam = searchParams.get("scrap");
   const VALID_CATEGORIES = new Set(["critical", "high", "medium", "low"]);
   const scrapFilter = scrapParam
@@ -188,13 +144,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 });
   }
 
-  const payload =
-    zoom < CLUSTER_ZOOM
-      ? { type: "clusters" as const, source: "postgis", clusters: clusterVessels(vessels, gridDeg(zoom)), total: vessels.length }
-      : { type: "vessels"  as const, source: "postgis", vessels,  total: vessels.length };
-
   return NextResponse.json(
-    payload,
+    { type: "vessels" as const, source: "postgis", vessels, total: vessels.length },
     { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" } },
   );
 }

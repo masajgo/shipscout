@@ -216,6 +216,7 @@ export default function MapView() {
   const debounceRef       = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef          = useRef<AbortController | null>(null);
   const searchAbortRef    = useRef<AbortController | null>(null);
+  const searchInputRef    = useRef<HTMLInputElement>(null);
 
   const [mapReady,      setMapReady]      = useState(false);
   const [loading,       setLoading]       = useState(false);
@@ -233,6 +234,7 @@ export default function MapView() {
   const [searchQuery,     setSearchQuery]     = useState("");
   const [searchResults,   setSearchResults]   = useState<SearchResult[]>([]);
   const [searchOpen,      setSearchOpen]      = useState(false);
+  const [searchExpanded,  setSearchExpanded]  = useState(false);
 
   // ── Init map ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -532,13 +534,14 @@ export default function MapView() {
         .cs { border-radius:50%; background:#1D9E75; border:2px solid rgba(255,255,255,0.25); box-shadow:0 2px 8px rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:transform 0.15s; }
         .cs:hover { transform:scale(1.12); }
         .cs-n { color:#fff; font-size:11px; font-weight:700; font-family:'Inter',sans-serif; letter-spacing:-0.3px; }
-        .vt.leaflet-tooltip { background:#07122E !important; border:1px solid rgba(255,255,255,0.10) !important; color:#E8EDF2 !important; font-size:11px !important; font-family:'Inter',sans-serif !important; border-radius:6px !important; padding:5px 9px !important; pointer-events:none; backdrop-filter:blur(8px); }
+        .vt.leaflet-tooltip { background:rgba(4,12,35,0.92) !important; border:1px solid rgba(255,255,255,0.10) !important; color:#E8EDF2 !important; font-size:11px !important; font-family:'Inter',sans-serif !important; border-radius:6px !important; padding:5px 9px !important; pointer-events:none; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
         .vt.leaflet-tooltip::before { border-top-color:rgba(255,255,255,0.08) !important; }
-        .leaflet-control-attribution { background:rgba(7,18,48,0.80) !important; color:rgba(255,255,255,0.22) !important; font-size:9px !important; backdrop-filter:blur(6px); }
+        .leaflet-control-attribution { background:rgba(4,12,35,0.80) !important; color:rgba(255,255,255,0.22) !important; font-size:9px !important; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
         .leaflet-control-attribution a { color:rgba(255,255,255,0.35) !important; }
         .leaflet-control-zoom { margin-right:14px !important; margin-bottom:14px !important; }
-        .leaflet-control-zoom a { background:rgba(7,18,48,0.80) !important; color:#E8EDF2 !important; border-color:rgba(255,255,255,0.10) !important; backdrop-filter:blur(16px); font-size:16px !important; width:30px !important; height:30px !important; line-height:30px !important; }
-        .leaflet-control-zoom a:hover { background:rgba(7,18,48,0.96) !important; color:#C9A84C !important; }
+        .leaflet-control-zoom a { background:rgba(4,12,35,0.80) !important; color:#E8EDF2 !important; border-color:rgba(255,255,255,0.10) !important; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); font-size:16px !important; width:30px !important; height:30px !important; line-height:30px !important; transition:background 0.15s, color 0.15s !important; }
+        .leaflet-control-zoom a:hover { background:rgba(4,12,35,0.96) !important; color:#C9A84C !important; }
+        .map-hover:hover { background:rgba(255,255,255,0.04) !important; }
         @keyframes loading-sweep { from{transform:translateX(-100%)} to{transform:translateX(100%)} }
       `}</style>
 
@@ -552,7 +555,7 @@ export default function MapView() {
 
       {/* Vessel count badge */}
       {total !== null && !loading && (
-        <div style={{ position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)", background: "rgba(7,18,48,0.82)", backdropFilter: "blur(16px)", border: `1px solid ${S.glassBorder}`, borderRadius: 20, padding: "5px 14px", zIndex: 400, display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)", background: "rgba(4,12,35,0.82)", backdropFilter: "blur(16px) saturate(180%)", WebkitBackdropFilter: "blur(16px) saturate(180%)", border: `1px solid ${S.glassBorder}`, borderRadius: 20, padding: "5px 14px", zIndex: 400, display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 5, height: 5, borderRadius: "50%", background: S.green }} />
           <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", fontFamily: "monospace" }}>{total.toLocaleString()} vessels · {dataSource}</span>
         </div>
@@ -561,39 +564,49 @@ export default function MapView() {
       {/* ── Left glass panel ── */}
       <aside style={{
         position: "absolute", top: 14, left: 14, bottom: 14, width: 196,
-        background: "rgba(7,18,48,0.55)", backdropFilter: "blur(24px)",
+        background: "rgba(4,12,35,0.75)", backdropFilter: "blur(24px) saturate(180%)", WebkitBackdropFilter: "blur(24px) saturate(180%)",
         border: `1px solid ${S.glassBorder}`, borderRadius: 12,
         padding: "14px 12px", overflowY: "auto",
         display: "flex", flexDirection: "column", gap: 16,
         zIndex: 500,
       }}>
 
-        {/* Search */}
+        {/* Search — collapsible */}
         <div style={{ position: "relative" }}>
-          <input
-            value={searchQuery}
-            onChange={e => searchVessels(e.target.value)}
-            onBlur={() => setTimeout(() => setSearchOpen(false), 150)}
-            placeholder="Search vessel or IMO..."
-            style={{
-              width: "100%", padding: "7px 10px", borderRadius: 6, boxSizing: "border-box" as const,
-              background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)",
-              color: "rgba(255,255,255,0.8)", fontSize: 11, outline: "none", fontFamily: "Inter, sans-serif",
-            }}
-          />
+          {searchExpanded ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 7, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "7px 10px", transition: "all 0.2s" }}>
+              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
+                <circle cx="5" cy="5" r="3.5" stroke="rgba(255,255,255,0.45)" strokeWidth="1.3" />
+                <line x1="7.8" y1="7.8" x2="11" y2="11" stroke="rgba(255,255,255,0.45)" strokeWidth="1.3" strokeLinecap="round" />
+              </svg>
+              <input
+                ref={searchInputRef}
+                value={searchQuery}
+                onChange={e => searchVessels(e.target.value)}
+                onKeyDown={e => { if (e.key === "Escape") { setSearchExpanded(false); setSearchQuery(""); setSearchResults([]); setSearchOpen(false); } }}
+                onBlur={() => setTimeout(() => { setSearchOpen(false); if (!searchQuery.trim()) setSearchExpanded(false); }, 160)}
+                placeholder="Vessel name or IMO..."
+                style={{ flex: 1, background: "none", border: "none", outline: "none", color: "rgba(255,255,255,0.85)", fontSize: 11, fontFamily: "Inter, sans-serif", minWidth: 0 }}
+              />
+              <button onClick={() => { setSearchExpanded(false); setSearchQuery(""); setSearchResults([]); setSearchOpen(false); }} style={{ background: "none", border: "none", color: S.muted, cursor: "pointer", fontSize: 15, padding: 0, lineHeight: 1, flexShrink: 0 }}>×</button>
+            </div>
+          ) : (
+            <button
+              onClick={() => { setSearchExpanded(true); setTimeout(() => searchInputRef.current?.focus(), 50); }}
+              style={{ width: 28, height: 28, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s" }}
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <circle cx="5" cy="5" r="3.5" stroke="rgba(255,255,255,0.5)" strokeWidth="1.3" />
+                <line x1="7.8" y1="7.8" x2="11" y2="11" stroke="rgba(255,255,255,0.5)" strokeWidth="1.3" strokeLinecap="round" />
+              </svg>
+            </button>
+          )}
+
+          {/* Results dropdown */}
           {searchOpen && searchResults.length > 0 && (
-            <div style={{
-              position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
-              background: "rgba(7,18,48,0.96)", backdropFilter: "blur(20px)",
-              border: "1px solid rgba(255,255,255,0.12)", borderRadius: 7, zIndex: 600, overflow: "hidden",
-            }}>
+            <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "rgba(4,12,35,0.96)", backdropFilter: "blur(20px) saturate(180%)", WebkitBackdropFilter: "blur(20px) saturate(180%)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 7, zIndex: 600, overflow: "hidden" }}>
               {searchResults.map(r => (
-                <button key={r.mmsi} onMouseDown={() => selectSearchResult(r)} style={{
-                  display: "block", width: "100%", textAlign: "left" as const,
-                  padding: "7px 10px", background: "none", border: "none",
-                  borderBottom: "1px solid rgba(255,255,255,0.06)",
-                  color: S.text, cursor: "pointer", fontFamily: "Inter, sans-serif",
-                }}>
+                <button key={r.mmsi} onMouseDown={() => selectSearchResult(r)} className="map-hover" style={{ display: "block", width: "100%", textAlign: "left" as const, padding: "7px 10px", background: "none", border: "none", borderBottom: "1px solid rgba(255,255,255,0.06)", color: S.text, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
                   <div style={{ fontSize: 11, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name || r.mmsi}</div>
                   <div style={{ fontSize: 9, color: S.muted }}>{r.type || "—"} · {r.imo ? `IMO ${r.imo}` : `MMSI ${r.mmsi}`}</div>
                 </button>
@@ -646,7 +659,7 @@ export default function MapView() {
         <div>
           <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 8 }}>Vessel type</div>
           {["All", "Cargo", "Tanker", "Passenger", "Fishing", "Tug", "Sailing"].map(t => (
-            <button key={t} onClick={() => setTypeFilter(t)} style={{
+            <button key={t} onClick={() => setTypeFilter(t)} className={typeFilter !== t ? "map-hover" : ""} style={{
               display: "block", width: "100%", textAlign: "left" as const,
               background: typeFilter === t ? "rgba(201,168,76,0.12)" : "transparent",
               border: `1px solid ${typeFilter === t ? "rgba(201,168,76,0.3)" : "transparent"}`,
@@ -661,7 +674,7 @@ export default function MapView() {
         </div>
 
         {/* Stats footer */}
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 14, marginTop: "auto" }}>
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 14, marginTop: "auto" }}>
           {[
             ["In viewport", total !== null ? total.toLocaleString() : "—"],
             ["Renderer",    "Canvas"],
@@ -680,14 +693,14 @@ export default function MapView() {
         <aside style={{
           position: "absolute", top: 14, right: 48, width: 175,
           maxHeight: "calc(100% - 28px)",
-          background: "rgba(7,18,48,0.60)", backdropFilter: "blur(24px)",
-          border: `1px solid ${S.glassBorder}`, borderRadius: 11,
+          background: "rgba(4,12,35,0.75)", backdropFilter: "blur(24px) saturate(180%)", WebkitBackdropFilter: "blur(24px) saturate(180%)",
+          border: `1px solid ${S.glassBorder}`, borderRadius: 12,
           overflowY: "auto", zIndex: 500,
           display: "flex", flexDirection: "column",
         }}>
 
           {/* Header */}
-          <div style={{ padding: "8px 10px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+          <div style={{ padding: "8px 10px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 2 }}>Live Vessel</div>
@@ -717,7 +730,7 @@ export default function MapView() {
 
           {/* Scrap value — gold highlight */}
           {detail && (
-            <div style={{ padding: "6px 10px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+            <div style={{ padding: "6px 10px", background: "rgba(201,168,76,0.06)", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
               <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 3 }}>Est. Scrap Value</div>
               <div style={{ fontSize: 14, fontWeight: 800, color: fmtScrapVal(detail.scrapValueUsd, detail.scrapValueEstimated) ? S.gold : S.muted, letterSpacing: "-0.3px" }}>
                 {fmtScrapVal(detail.scrapValueUsd, detail.scrapValueEstimated) ?? "N/A"}
@@ -755,7 +768,7 @@ export default function MapView() {
           </div>
 
           {/* 24h Track */}
-          <div style={{ padding: "6px 10px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+          <div style={{ padding: "6px 10px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
               <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const }}>24h Track</div>
               <span style={{ fontSize: 8, color: trackPoints ? S.green : S.muted }}>
@@ -768,7 +781,7 @@ export default function MapView() {
           </div>
 
           {/* Owner / Manager */}
-          <div style={{ padding: "6px 10px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+          <div style={{ padding: "6px 10px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
             <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 6 }}>Owner / Manager</div>
             {contactLoading ? (
               <div style={{ fontSize: 9, color: S.muted }}>Searching…</div>

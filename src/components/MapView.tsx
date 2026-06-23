@@ -84,10 +84,10 @@ const DEBOUNCE_MS  = 300;
 const MAX_VESSELS  = 2000;
 
 const S = {
-  bg: "#07122E", mid: "#07122E", card: "rgba(255,255,255,0.04)",
+  bg: "#0B1E3D", mid: "#0B1E3D", card: "rgba(255,255,255,0.05)",
   border:      "rgba(255,255,255,0.08)",
   glassBorder: "rgba(255,255,255,0.10)",
-  text: "#E8EDF2", muted: "rgba(255,255,255,0.35)",
+  text: "#ffffff", muted: "rgba(255,255,255,0.45)",
   green: "#1D9E75", gold: "#C9A84C",
 };
 
@@ -519,13 +519,13 @@ export default function MapView() {
       <style>{`
         .vessel-marker { background:none !important; border:none !important; cursor:pointer; }
         .vessel-marker:hover { filter:brightness(1.5) drop-shadow(0 0 4px rgba(255,255,255,0.7)); }
-        .vt.leaflet-tooltip { background:rgba(4,12,35,0.92) !important; border:1px solid rgba(255,255,255,0.10) !important; color:#E8EDF2 !important; font-size:11px !important; font-family:'Inter',sans-serif !important; border-radius:6px !important; padding:5px 9px !important; pointer-events:none; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
+        .vt.leaflet-tooltip { background:rgba(11,30,61,0.96) !important; border:1px solid rgba(255,255,255,0.10) !important; color:#fff !important; font-size:11px !important; font-family:'Inter',sans-serif !important; border-radius:6px !important; padding:5px 9px !important; pointer-events:none; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
         .vt.leaflet-tooltip::before { border-top-color:rgba(255,255,255,0.08) !important; }
-        .leaflet-control-attribution { background:rgba(4,12,35,0.80) !important; color:rgba(255,255,255,0.22) !important; font-size:9px !important; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
-        .leaflet-control-attribution a { color:rgba(255,255,255,0.35) !important; }
+        .leaflet-control-attribution { background:rgba(11,30,61,0.85) !important; color:rgba(255,255,255,0.25) !important; font-size:9px !important; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
+        .leaflet-control-attribution a { color:rgba(255,255,255,0.4) !important; }
         .leaflet-control-zoom { margin-right:14px !important; margin-bottom:14px !important; }
-        .leaflet-control-zoom a { background:rgba(4,12,35,0.80) !important; color:#E8EDF2 !important; border-color:rgba(255,255,255,0.10) !important; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); font-size:16px !important; width:30px !important; height:30px !important; line-height:30px !important; transition:background 0.15s, color 0.15s !important; }
-        .leaflet-control-zoom a:hover { background:rgba(4,12,35,0.96) !important; color:#C9A84C !important; }
+        .leaflet-control-zoom a { background:rgba(11,30,61,0.90) !important; color:#fff !important; border-color:rgba(255,255,255,0.10) !important; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); font-size:16px !important; width:30px !important; height:30px !important; line-height:30px !important; transition:background 0.15s, color 0.15s !important; }
+        .leaflet-control-zoom a:hover { background:rgba(11,30,61,1) !important; color:#C9A84C !important; }
         .map-hover:hover { background:rgba(255,255,255,0.04) !important; }
         @keyframes loading-sweep { from{transform:translateX(-100%)} to{transform:translateX(100%)} }
       `}</style>
@@ -540,7 +540,7 @@ export default function MapView() {
 
       {/* Vessel count badge */}
       {total !== null && !loading && (
-        <div style={{ position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)", background: "rgba(4,12,35,0.82)", backdropFilter: "blur(16px) saturate(180%)", WebkitBackdropFilter: "blur(16px) saturate(180%)", border: `1px solid ${S.glassBorder}`, borderRadius: 20, padding: "5px 14px", zIndex: 400, display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ position: "absolute", bottom: 20, left: "50%", transform: "translateX(-50%)", background: "rgba(11,30,61,0.92)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: `1px solid ${S.glassBorder}`, borderRadius: 20, padding: "5px 14px", zIndex: 400, display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 5, height: 5, borderRadius: "50%", background: S.green }} />
           <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", fontFamily: "monospace" }}>{total.toLocaleString()} vessels · {dataSource}</span>
         </div>
@@ -549,7 +549,7 @@ export default function MapView() {
       {/* ── Left glass panel ── */}
       <aside style={{
         position: "absolute", top: 14, left: 14, bottom: 14, width: 196,
-        background: "rgba(4,12,35,0.82)", backdropFilter: "blur(20px) saturate(160%)", WebkitBackdropFilter: "blur(20px) saturate(160%)",
+        background: "rgba(11,30,61,0.94)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
         border: `1px solid ${S.glassBorder}`, borderRadius: 12,
         padding: "14px 12px", overflowY: "auto",
         display: "flex", flexDirection: "column", gap: 16,
@@ -589,7 +589,7 @@ export default function MapView() {
 
           {/* Results dropdown */}
           {searchOpen && searchResults.length > 0 && (
-            <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "rgba(4,12,35,0.96)", backdropFilter: "blur(20px) saturate(180%)", WebkitBackdropFilter: "blur(20px) saturate(180%)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 7, zIndex: 600, overflow: "hidden" }}>
+            <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "rgba(11,30,61,0.97)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 7, zIndex: 600, overflow: "hidden" }}>
               {searchResults.map(r => (
                 <button key={r.mmsi} onMouseDown={() => selectSearchResult(r)} className="map-hover" style={{ display: "block", width: "100%", textAlign: "left" as const, padding: "7px 10px", background: "none", border: "none", borderBottom: "1px solid rgba(255,255,255,0.06)", color: S.text, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
                   <div style={{ fontSize: 11, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name || r.mmsi}</div>
@@ -698,7 +698,7 @@ export default function MapView() {
         <aside style={{
           position: "absolute", top: 14, right: 48, width: 175,
           maxHeight: "calc(100% - 28px)",
-          background: "rgba(4,12,35,0.82)", backdropFilter: "blur(20px) saturate(160%)", WebkitBackdropFilter: "blur(20px) saturate(160%)",
+          background: "rgba(11,30,61,0.94)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
           border: `1px solid ${S.glassBorder}`, borderRadius: 12,
           overflowY: "auto", zIndex: 500,
           display: "flex", flexDirection: "column",

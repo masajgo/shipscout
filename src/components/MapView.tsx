@@ -328,40 +328,18 @@ export default function MapView() {
     const moving = speed > 0.5;
     const type   = (v.type || "").toLowerCase();
 
+    let markerHtml: string;
     if (!moving) {
-      // Anchored / moored — solid circle div (faster than SVG, no direction needed)
-      const size = 10;
-      return L.divIcon({
-        html: `<div style="width:${size}px;height:${size}px;background:${color};border:2px solid rgba(0,0,0,0.4);border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,0.5)"></div>`,
-        className: "vessel-marker",
-        iconSize:   [size, size],
-        iconAnchor: [size / 2, size / 2],
-      });
-    }
-
-    let shape: string;
-    if (type.includes("tanker")) {
-      // Tanker — narrow elongated arrow
-      shape = `<polygon points="7,1 10,13 7,10 4,13" fill="${color}" stroke="white" stroke-width="1" stroke-linejoin="round"/>`;
-    } else if (type.includes("tug") || type.includes("pilot")) {
-      // Tug / pilot — small square
-      shape = `<rect x="2.5" y="2.5" width="9" height="9" rx="1.5" fill="${color}" stroke="white" stroke-width="1.2"/>`;
-    } else if (type.includes("fish")) {
-      // Fishing — diamond
-      shape = `<polygon points="7,1 13,7 7,13 1,7" fill="${color}" stroke="white" stroke-width="1" stroke-linejoin="round"/>`;
-    } else if (type.includes("passenger") || type.includes("ferry")) {
-      // Passenger / ferry — wide blunt arrow
-      shape = `<polygon points="7,1 12,11 7,9 2,11" fill="${color}" stroke="white" stroke-width="1" stroke-linejoin="round"/>`;
+      markerHtml = `<svg width="12" height="12" viewBox="0 0 12 12" style="display:block"><circle cx="6" cy="6" r="4.5" fill="${color}" stroke="white" stroke-width="1.2"/></svg>`;
     } else {
-      // Cargo, container, other — standard arrow
-      shape = `<polygon points="7,1 11,12 7,9 3,12" fill="${color}" stroke="white" stroke-width="1" stroke-linejoin="round"/>`;
+      markerHtml = `<svg width="14" height="14" viewBox="0 0 14 14" style="display:block;transform:rotate(${course}deg);transform-origin:7px 7px"><polygon points="7,1 12,13 7,10 2,13" fill="${color}" stroke="white" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
     }
 
     return L.divIcon({
-      html: `<svg width="14" height="14" viewBox="0 0 14 14" style="transform:rotate(${course}deg);display:block;overflow:visible">${shape}</svg>`,
-      className: "vessel-marker",
-      iconSize:   [14, 14],
-      iconAnchor: [7, 7],
+      html:       markerHtml,
+      className:  "vessel-marker",
+      iconSize:   moving ? [14, 14] : [12, 12],
+      iconAnchor: moving ? [7,  7]  : [6,  6],
     });
   }
 

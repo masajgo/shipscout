@@ -89,7 +89,8 @@ interface ContactResult {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const CLUSTER_ZOOM = 12;
+const CLUSTER_ZOOM = 7;
+const ARROW_ZOOM   = 9;
 const DEBOUNCE_MS  = 300;
 const MAX_VESSELS  = 2000;
 
@@ -106,6 +107,13 @@ const SCRAP_COLORS: Record<string, string> = {
   high:     "#F97316",
   medium:   "#F59E0B",
   low:      "#64748B",
+};
+
+const MARKER_COLORS: Record<string, string> = {
+  critical: "#EF4444",
+  high:     "#F59E0B",
+  medium:   "#3B82F6",
+  low:      "#94A3B8",
 };
 
 const TYPE_COLORS: Record<string, string> = {
@@ -217,6 +225,7 @@ export default function MapView() {
   const abortRef          = useRef<AbortController | null>(null);
   const searchAbortRef    = useRef<AbortController | null>(null);
   const searchInputRef    = useRef<HTMLInputElement>(null);
+  const zoomModeRef       = useRef<"dot" | "arrow">("dot");
 
   const [mapReady,      setMapReady]      = useState(false);
   const [loading,       setLoading]       = useState(false);
@@ -317,7 +326,7 @@ export default function MapView() {
             if (cat in counts) counts[cat]++;
           }
           setScrapCounts(counts);
-          diffVesselMarkers(map, L, data.vessels, filter);
+          diffVesselMarkers(map, L, data.vessels, filter, zoom);
         }
       } catch (e: any) {
         if (e.name !== "AbortError") console.error("[MapView]", e.message);
@@ -348,7 +357,7 @@ export default function MapView() {
       });
       const marker = L.marker([c.lat, c.lon], { icon, interactive: true });
       marker.on("click", () => {
-        const z = Math.min(map.getZoom() + 3, CLUSTER_ZOOM + 1);
+        const z = Math.min(map.getZoom() + 3, ARROW_ZOOM);
         map.flyTo([c.lat, c.lon], z, { animate: true, duration: 0.5 });
       });
       marker.addTo(map);
@@ -365,7 +374,16 @@ export default function MapView() {
   }
 
   // ── Vessel markers ────────────────────────────────────────────────────────
-  function diffVesselMarkers(map: any, L: any, vessels: ApiVessel[], filter: string) {
+  function diffVesselMarkers(map: any, L: any, vessels: ApiVessel[], filter: string, zoom: number) {
+    const useArrows = zoom >= ARROW_ZOOM;
+    const newMode   = useArrows ? "arrow" : "dot";
+
+    // When switching render mode, purge all existing markers so they get recreated
+    if (zoomModeRef.current !== newMode) {
+      clearVesselMarkers(map);
+      zoomModeRef.current = newMode;
+    }
+
     const renderer = canvasRef.current;
     const active   = new Set<string>();
 
@@ -373,8 +391,8 @@ export default function MapView() {
       if (active.size >= MAX_VESSELS) break;
       if (filter !== "All" && !v.type?.toLowerCase().includes(filter.toLowerCase())) continue;
 
-      const lat = parseFloat(v.lat);
-      const lon = parseFloat(v.lon);
+      const lat    = parseFloat(v.lat);
+      const lon    = parseFloat(v.lon);
       if (isNaN(lat) || isNaN(lon)) continue;
 
       active.add(v.mmsi);
@@ -384,17 +402,38 @@ export default function MapView() {
         continue;
       }
 
-      const color  = markerColor(v);
-      const speed  = parseFloat(v.speed ?? "0");
-      const cat    = v.scrap_category;
-      // Critical/high vessels slightly larger
-      const radius = cat === "critical" ? 6 : cat === "high" ? 5 : speed > 5 ? 5 : speed > 1 ? 4 : 3;
+      const cat     = v.scrap_category;
+      const speed   = parseFloat(v.speed  ?? "0");
+      const course  = parseFloat(v.course ?? "0");
+      const color   = MARKER_COLORS[cat] ?? MARKER_COLORS.low;
+      const moving  = speed > 0.5;
 
-      const marker = L.circleMarker([lat, lon], {
-        renderer, radius,
-        fillColor: color, fillOpacity: 0.85,
-        color: "rgba(0,0,0,0.3)", weight: 0.8,
-      });
+      let marker: any;
+
+      if (useArrows) {
+        const icon = moving
+          ? L.divIcon({
+              className: "vessel-arrow",
+              iconSize:   [14, 14],
+              iconAnchor: [7, 9],
+              html: `<svg width="14" height="14" viewBox="0 0 14 14" style="transform:rotate(${course}deg);display:block;overflow:visible"><polygon points="7,1 12,13 7,10 2,13" fill="${color}" stroke="white" stroke-width="1.2" stroke-linejoin="round"/></svg>`,
+            })
+          : L.divIcon({
+              className: "vessel-arrow",
+              iconSize:   [10, 10],
+              iconAnchor: [5, 5],
+              html: `<svg width="10" height="10" viewBox="0 0 10 10" style="display:block"><circle cx="5" cy="5" r="4" fill="${color}" stroke="white" stroke-width="1.2"/></svg>`,
+            });
+        marker = L.marker([lat, lon], { icon });
+      } else {
+        // Zoom 7-8: lightweight canvas dot
+        const radius = cat === "critical" ? 6 : cat === "high" ? 5 : speed > 5 ? 5 : speed > 1 ? 4 : 3;
+        marker = L.circleMarker([lat, lon], {
+          renderer, radius,
+          fillColor: color, fillOpacity: 0.88,
+          color: "rgba(0,0,0,0.25)", weight: 0.8,
+        });
+      }
 
       marker.bindTooltip(
         `<b>${v.name || v.mmsi}</b><br>${v.type || "—"} · ${speed.toFixed(1)} kn` +
@@ -531,9 +570,11 @@ export default function MapView() {
     <div style={{ position: "relative", height: "calc(100vh - 64px)", overflow: "hidden", fontFamily: "Inter, sans-serif", color: S.text }}>
 
       <style>{`
-        .cs { border-radius:50%; background:#1D9E75; border:2px solid rgba(255,255,255,0.25); box-shadow:0 2px 8px rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:transform 0.15s; }
-        .cs:hover { transform:scale(1.12); }
-        .cs-n { color:#fff; font-size:11px; font-weight:700; font-family:'Inter',sans-serif; letter-spacing:-0.3px; }
+        .cs { border-radius:50%; background:rgba(11,30,61,0.82); border:2px solid #C9A84C; box-shadow:0 2px 10px rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:transform 0.15s, box-shadow 0.15s; backdrop-filter:blur(4px); }
+        .cs:hover { transform:scale(1.12); box-shadow:0 4px 16px rgba(201,168,76,0.4); }
+        .cs-n { color:#C9A84C; font-size:11px; font-weight:700; font-family:'Inter',sans-serif; letter-spacing:-0.3px; }
+        .vessel-arrow { background:none !important; border:none !important; cursor:pointer; }
+        .vessel-arrow:hover { filter:brightness(1.4) drop-shadow(0 0 3px rgba(255,255,255,0.6)); }
         .vt.leaflet-tooltip { background:rgba(4,12,35,0.92) !important; border:1px solid rgba(255,255,255,0.10) !important; color:#E8EDF2 !important; font-size:11px !important; font-family:'Inter',sans-serif !important; border-radius:6px !important; padding:5px 9px !important; pointer-events:none; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
         .vt.leaflet-tooltip::before { border-top-color:rgba(255,255,255,0.08) !important; }
         .leaflet-control-attribution { background:rgba(4,12,35,0.80) !important; color:rgba(255,255,255,0.22) !important; font-size:9px !important; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }

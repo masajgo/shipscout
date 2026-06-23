@@ -3,7 +3,7 @@ import pool from "@/lib/db";
 
 // GET /api/vessels?bbox=minLon,minLat,maxLon,maxLat&zoom=8
 
-const CLUSTER_ZOOM = 12;
+const CLUSTER_ZOOM = 7;
 const MAX_RESULTS  = 2000;
 
 // Simple in-memory rate limiter (resets on cold start)

@@ -70,15 +70,16 @@ async function getCandidates() {
 
 // ─── Upload photo URL to Vercel Blob ─────────────────────────────────────────
 
-async function downloadAndUpload(srcUrl, imo) {
-  if (!BLOB_TOKEN) return srcUrl; // return original URL if no blob token
+async function downloadAndUpload(page, srcUrl, imo) {
+  if (!BLOB_TOKEN) return srcUrl;
   try {
-    const res = await fetch(srcUrl, {
-      headers: { Referer: "https://www.shipspotting.com/" },
-      signal: AbortSignal.timeout(10000),
+    // Use Playwright's browser context to fetch (preserves session/cookies)
+    const response = await page.context().request.get(srcUrl, {
+      headers: { Referer: "https://www.shipspotting.com/", Accept: "image/jpeg,image/*" },
+      timeout: 12000,
     });
-    if (!res.ok) return null;
-    const buf = Buffer.from(await res.arrayBuffer());
+    if (!response.ok()) return null;
+    const buf = Buffer.from(await response.body());
     if (buf.length < 8000) return null; // skip tiny/error images
     const { url } = await put(`vessel-photos/${imo}.jpg`, buf, {
       access:          "public",
@@ -157,7 +158,7 @@ async function main() {
           continue;
         }
 
-        const blobUrl = await downloadAndUpload(rawUrl, imo);
+        const blobUrl = await downloadAndUpload(page, rawUrl, imo);
         if (!blobUrl) {
           skipped++;
           process.stdout.write("— download failed\n");

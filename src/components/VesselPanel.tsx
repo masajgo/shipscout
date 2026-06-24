@@ -115,6 +115,7 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
   const [emailBody,      setEmailBody]      = useState("");
   const [crmAdded,       setCrmAdded]       = useState(false);
   const [watching,       setWatching]       = useState(false);
+  const [photoOk,        setPhotoOk]        = useState(true);
 
   // Load Datalastic vessel data
   useEffect(() => {
@@ -216,6 +217,25 @@ ShipScout — Maritime Intelligence`;
       )}
       {error && (
         <div style={{ padding: 20, color: C.red, fontSize: 13, textAlign: "center" }}>{error}</div>
+      )}
+
+      {photoOk && imo && (
+        <div style={{ position: "relative", width: "100%", height: "170px", overflow: "hidden", borderRadius: "8px 8px 0 0", marginBottom: 0 }}>
+          <img
+            src={`https://photos.vessel-tracker.com/shipImages/${imo}.jpg`}
+            alt={data?.particulars?.name || `IMO ${imo}`}
+            onError={() => setPhotoOk(false)}
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          />
+          <div style={{
+            position: "absolute", bottom: 0, left: 0, right: 0,
+            background: "linear-gradient(transparent, rgba(0,0,0,0.7))",
+            padding: "20px 12px 8px",
+            color: "white", fontSize: 13, fontWeight: 600,
+          }}>
+            {data?.particulars?.name || `IMO ${imo}`}
+          </div>
+        </div>
       )}
 
       {data && !loading && (

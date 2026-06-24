@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { computeScrapScore } from "@/lib/scoring";
+import pool from "@/lib/db";
 
 const API_KEY = process.env.DATALASTIC_API_KEY;
 const BASE    = "https://api.datalastic.com/api/v0";
@@ -26,17 +27,20 @@ export async function GET(
   if (!imo) return NextResponse.json({ error: "IMO required" }, { status: 400 });
   if (!API_KEY) return NextResponse.json({ error: "API key missing" }, { status: 500 });
 
-  const [info, ownership, dryDock, inspections] = await Promise.allSettled([
+  const [info, ownership, dryDock, inspections, dbRow] = await Promise.allSettled([
     dl(`${BASE}/vessel_info?imo=${imo}`),
     dl(`${REPORTS}/ownership?imo=${imo}`),
     dl(`${REPORTS}/dry_dock?imo=${imo}`),
     dl(`${REPORTS}/inspections?imo=${imo}`),
+    pool.query(`SELECT photo_url FROM vessels WHERE imo = $1::bigint LIMIT 1`, [imo])
+      .then(r => r.rows[0] ?? null).catch(() => null),
   ]);
 
-  const vessel  = info.status        === "fulfilled" ? info.value        : null;
-  const owner   = ownership.status   === "fulfilled" ? ownership.value   : null;
-  const drydock = dryDock.status     === "fulfilled" ? dryDock.value     : null;
-  const inspect = inspections.status === "fulfilled" ? inspections.value : null;
+  const vessel   = info.status        === "fulfilled" ? info.value        : null;
+  const owner    = ownership.status   === "fulfilled" ? ownership.value   : null;
+  const drydock  = dryDock.status     === "fulfilled" ? dryDock.value     : null;
+  const inspect  = inspections.status === "fulfilled" ? inspections.value : null;
+  const photoUrl = dbRow.status       === "fulfilled" ? (dbRow.value as any)?.photo_url ?? null : null;
 
   const builtYear = vessel?.data?.year_built;
   const age = builtYear ? new Date().getFullYear() - builtYear : null;
@@ -62,6 +66,7 @@ export async function GET(
     imo,
     age,
     scrapScore,
+    photoUrl,
     particulars: {
       name:         vessel?.data?.name,
       flag:         vessel?.data?.country_name,

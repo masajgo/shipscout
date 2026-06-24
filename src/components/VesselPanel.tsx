@@ -116,6 +116,7 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
   const [crmAdded,       setCrmAdded]       = useState(false);
   const [watching,       setWatching]       = useState(false);
   const [photoOk,        setPhotoOk]        = useState(true);
+  const [triedFallback,  setTriedFallback]  = useState(false);
 
   // Load Datalastic vessel data
   useEffect(() => {
@@ -123,6 +124,7 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
     setLoading(true); setError(null);
     setEmailDraft(false); setEmailBody("");
     setCrmAdded(false); setWatching(false);
+    setPhotoOk(true); setTriedFallback(false);
 
     fetch(`/api/vessel/${imo}`)
       .then(r => r.json())
@@ -219,24 +221,76 @@ ShipScout — Maritime Intelligence`;
         <div style={{ padding: 20, color: C.red, fontSize: 13, textAlign: "center" }}>{error}</div>
       )}
 
-      {photoOk && imo && (
-        <div style={{ position: "relative", width: "100%", height: "170px", overflow: "hidden", borderRadius: "8px 8px 0 0", marginBottom: 0 }}>
-          <img
-            src={`https://photos.vessel-tracker.com/shipImages/${imo}.jpg`}
-            alt={data?.particulars?.name || `IMO ${imo}`}
-            onError={() => setPhotoOk(false)}
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-          />
+      {(() => {
+        const vesselName = data?.particulars?.name || `IMO ${imo}`;
+        const vesselType = (data?.particulars?.type || "").toLowerCase();
+
+        // Priority 1: Blob-stored photo from DB (via API)
+        // Priority 2: vessel-tracker.com direct pattern
+        // Priority 3: type-based colored placeholder
+        const dbPhoto    = (data as any)?.photoUrl ?? null;
+        const fallbackUrl = `https://photos.vessel-tracker.com/shipImages/${imo}.jpg`;
+
+        const placeholderBg =
+          vesselType.includes("tanker")    ? "#0D3349" :
+          vesselType.includes("bulk")      ? "#1A2F3A" :
+          vesselType.includes("container") ? "#0F2733" :
+          vesselType.includes("passenger") || vesselType.includes("cruise") ? "#1D2E3C" :
+          vesselType.includes("offshore")  ? "#162030" :
+          "#0F2733";
+        const placeholderIcon =
+          vesselType.includes("tanker")    ? "🛢" :
+          vesselType.includes("container") ? "📦" :
+          vesselType.includes("passenger") || vesselType.includes("cruise") ? "🚢" :
+          vesselType.includes("offshore")  ? "⚙️" :
+          "⚓";
+
+        const photoSrc = dbPhoto || (!triedFallback ? fallbackUrl : null);
+
+        const overlay = (
           <div style={{
             position: "absolute", bottom: 0, left: 0, right: 0,
             background: "linear-gradient(transparent, rgba(0,0,0,0.7))",
             padding: "20px 12px 8px",
             color: "white", fontSize: 13, fontWeight: 600,
           }}>
-            {data?.particulars?.name || `IMO ${imo}`}
+            {vesselName}
           </div>
-        </div>
-      )}
+        );
+
+        if (photoOk && photoSrc) {
+          return (
+            <div style={{ position: "relative", width: "100%", height: "170px", overflow: "hidden" }}>
+              <img
+                src={photoSrc}
+                alt={vesselName}
+                onError={() => {
+                  if (!triedFallback && !dbPhoto) {
+                    setTriedFallback(true); // will try fallback already shown, mark done
+                  } else {
+                    setPhotoOk(false);
+                  }
+                }}
+                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              />
+              {overlay}
+            </div>
+          );
+        }
+
+        // Placeholder
+        return (
+          <div style={{
+            position: "relative", width: "100%", height: "130px",
+            background: placeholderBg,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 40,
+          }}>
+            {placeholderIcon}
+            {overlay}
+          </div>
+        );
+      })()}
 
       {data && !loading && (
         <div style={{ padding: 20 }}>

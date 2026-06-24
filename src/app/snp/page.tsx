@@ -356,16 +356,51 @@ export default function SNPPage() {
                     border: "1px solid #EAECF0",
                     borderTop: "1px solid #F2F4F7",
                     borderRadius: "0 0 10px 10px",
-                    padding: "14px 20px 16px",
+                    padding: "16px 20px 18px",
                   }}>
-                    <div style={{ display: "flex", gap: 32, flexWrap: "wrap" as const }}>
+                    {/* Photo gallery */}
+                    {Array.isArray(v.images) && v.images.length > 0 && (
+                      <div style={{
+                        display: "flex",
+                        gap: 8,
+                        overflowX: "auto" as const,
+                        marginBottom: 16,
+                        paddingBottom: 4,
+                        scrollbarWidth: "thin" as const,
+                      }}>
+                        {v.images.map((url: string, idx: number) => (
+                          <img
+                            key={idx}
+                            src={url}
+                            alt={`${v.name} photo ${idx + 1}`}
+                            style={{
+                              height: 140,
+                              width: "auto",
+                              borderRadius: 7,
+                              objectFit: "cover" as const,
+                              flexShrink: 0,
+                              border: "1px solid #EAECF0",
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Full specs grid */}
+                    <div style={{ display: "flex", gap: 24, flexWrap: "wrap" as const, marginBottom: 12 }}>
                       {[
-                        v.speed     ? { label: "Speed",    val: `${v.speed} kts` }  : null,
-                        v.beam      ? { label: "Beam",     val: `${v.beam}m` }       : null,
-                        v.classCode ? { label: "Class",    val: v.classCode }         : null,
-                        v.shipyard  ? { label: "Shipyard", val: v.shipyard }          : null,
-                        v.grsId     ? { label: "GRS ID",   val: `#${v.grsId}` }      : null,
-                        v.group     ? { label: "Segment",  val: v.group }             : null,
+                        v.speed        ? { label: "Speed",       val: `${v.speed} kts` }             : null,
+                        v.beam         ? { label: "Beam",        val: `${v.beam}m` }                  : null,
+                        v.draft        ? { label: "Draft",       val: `${v.draft}m` }                 : null,
+                        v.engineKw     ? { label: "Engine",      val: `${v.engineKw.toLocaleString()} kW` } : null,
+                        v.cars         ? { label: "Cars",        val: v.cars.toLocaleString() }        : null,
+                        v.decks        ? { label: "Decks",       val: String(v.decks) }               : null,
+                        v.grossTonnage ? { label: "GT",          val: v.grossTonnage.toLocaleString() } : null,
+                        v.flag         ? { label: "Flag",        val: v.flag }                         : null,
+                        v.classCode    ? { label: "Class",       val: v.classCode }                    : null,
+                        v.shipyard     ? { label: "Shipyard",    val: v.shipyard }                     : null,
+                        v.grsId        ? { label: "GRS Ref",     val: `#${v.grsId}` }                 : null,
+                        v.group        ? { label: "Segment",     val: v.group }                        : null,
                       ].filter(Boolean).map(s => s && (
                         <div key={s.label}>
                           <div style={{ fontSize: 12, fontWeight: 600, color: "#344054" }}>{s.val}</div>
@@ -373,8 +408,16 @@ export default function SNPPage() {
                         </div>
                       ))}
                     </div>
-                    <div style={{ marginTop: 10, fontSize: 11, color: "#98A2B3" }}>
-                      Source: GRS Group listing · {v.grsId ? `Ref #${v.grsId}` : ""}
+
+                    {/* Description */}
+                    {v.description && (
+                      <p style={{ fontSize: 12, color: "#475467", lineHeight: 1.6, margin: "0 0 10px" }}>
+                        {v.description}
+                      </p>
+                    )}
+
+                    <div style={{ fontSize: 11, color: "#98A2B3" }}>
+                      GRS Group listing{v.grsId ? ` · Ref #${v.grsId}` : ""}
                     </div>
                   </div>
                 )}

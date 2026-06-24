@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { list }         from "@vercel/blob";
 import { scoreFromAge } from "@/lib/scoring";
 import { SCRAP_MARKETS } from "@/lib/scrapMarkets";
+import pool              from "@/lib/db";
 
 const API_KEY = process.env.DATALASTIC_API_KEY;
 const BASE    = "https://api.datalastic.com/api/v0";
@@ -9,7 +10,7 @@ const BASE    = "https://api.datalastic.com/api/v0";
 const TRACKED_IMOS = [
   "9038828", "9038749", "9248904", "9065572", "9074705", "9200811",
   "9038880", "8912522", "9108128", "9015101", "9083940", "9040089",
-  "7625811", // OCEAN ENDEAVOUR — Equasis verified, 1982 Passenger, mgr: Sunstone Ships Inc
+  "7625811",
 ];
 
 const MARKET_PRICES: Record<string, number> = Object.fromEntries(
@@ -42,7 +43,6 @@ function tagsFromVessel(age: number, score: number): { label: string; type: stri
   return tags;
 }
 
-
 async function fetchVessel(imo: string) {
   try {
     const res = await fetch(`${BASE}/vessel_info?imo=${imo}`, {
@@ -52,9 +52,7 @@ async function fetchVessel(imo: string) {
     if (!res.ok) return null;
     const json = await res.json();
     return json?.data ?? null;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
 async function fetchGRSVessels(): Promise<any[]> {
@@ -66,83 +64,141 @@ async function fetchGRSVessels(): Promise<any[]> {
     if (!res.ok) return [];
     const json = await res.json();
     return json?.vessels || [];
-  } catch {
-    return [];
-  }
+  } catch { return []; }
+}
+
+// Fetch enriched detail data from sp_listings table
+async function fetchSPListings(): Promise<Record<string, any>> {
+  try {
+    const { rows } = await pool.query(`
+      SELECT grs_id, built, length_m, beam_m, draft_m, dwt, engine_kw, speed,
+             pax, cars, decks, class_code, flag, gross_tonnage, shipyard,
+             description, specs_text, images, price_eur
+      FROM   sp_listings
+      WHERE  scraped_at IS NOT NULL
+    `);
+    const map: Record<string, any> = {};
+    for (const r of rows) map[r.grs_id] = r;
+    return map;
+  } catch { return {}; }
 }
 
 export async function GET() {
   const year = new Date().getFullYear();
 
-  // Always load GRS vessels (no API key needed)
-  const grsVessels = await fetchGRSVessels();
+  const [grsVessels, spDetails] = await Promise.all([
+    fetchGRSVessels(),
+    fetchSPListings(),
+  ]);
 
-  // Load Datalastic vessels if key is available
+  // Merge GRS vessel data with sp_listings details
+  const grsListings = grsVessels.map((v: any) => {
+    const d     = spDetails[v.grsId] || {};
+    const built = d.built || v.built || (year - 25);
+    const age   = year - built;
+    const score = Math.min(99, scoreFromAge(age));
+    const tags: any[] = [
+      { label: `${age}y old`, type: age >= 30 ? "urgent" : "idle" },
+      { label: "Voluntary Sale", type: "new" },
+    ];
+    if (d.pax)  tags.push({ label: `${d.pax} pax`, type: "idle" });
+    if (d.cars) tags.push({ label: `${d.cars} cars`, type: "idle" });
+    if (score >= 85) tags.push({ label: "High priority", type: "urgent" });
+
+    const priceEUR = d.price_eur || v.priceEUR || null;
+    const priceUSD = priceEUR ? priceEUR * 1.08 : null;
+
+    return {
+      ...v,
+      built,
+      age,
+      score,
+      tags,
+      // Enrich with detail data
+      length:       d.length_m      || v.length      || null,
+      beam:         d.beam_m        || null,
+      draft:        d.draft_m       || null,
+      dwt:          d.dwt           || v.dwt          || 0,
+      speed:        d.speed         || v.speed        || null,
+      pax:          d.pax           || v.pax          || null,
+      cars:         d.cars          || null,
+      decks:        d.decks         || null,
+      classCode:    d.class_code    || v.classCode    || null,
+      engineKw:     d.engine_kw     || null,
+      flag:         d.flag          || v.flag         || "Unknown",
+      grossTonnage: d.gross_tonnage || null,
+      shipyard:     d.shipyard      || null,
+      description:  d.description   || null,
+      specsText:    d.specs_text    || null,
+      images:       d.images        || [],
+      price:        priceUSD
+        ? `$${(priceUSD / 1_000_000).toFixed(1)}M`
+        : priceEUR
+          ? `€${(priceEUR / 1_000_000).toFixed(1)}M`
+          : v.price || "POA",
+      priceType: "Asking",
+    };
+  });
+
+  // Datalastic listings
   let datalasticListings: any[] = [];
   if (API_KEY) {
     const results = await Promise.all(TRACKED_IMOS.map(fetchVessel));
     datalasticListings = results
       .map((d, i) => {
         if (!d) return null;
-        const imo      = TRACKED_IMOS[i];
-        const built    = parseInt(d.year_built) || 2000;
-        const age      = year - built;
-        const dwt      = d.deadweight || 0;
-        const ldt      = d.lightship  || Math.round(dwt * 0.17);
-        const type     = typeLabel(d.type_specific);
-        const market   = bestMarket(d.type_specific);
-        const price    = MARKET_PRICES[market] ?? 500;
-        const estUSD   = ldt * price;
-        const score    = Math.min(99, scoreFromAge(age));
-        const saleType = age >= 28 ? "distressed" : "voluntary";
-        const tags     = tagsFromVessel(age, score);
-
+        const imo    = TRACKED_IMOS[i];
+        const built  = parseInt(d.year_built) || 2000;
+        const age    = year - built;
+        const dwt    = d.deadweight || 0;
+        const ldt    = d.lightship  || Math.round(dwt * 0.17);
+        const type   = typeLabel(d.type_specific);
+        const market = bestMarket(d.type_specific);
+        const price  = MARKET_PRICES[market] ?? 500;
+        const estUSD = ldt * price;
+        const score  = Math.min(99, scoreFromAge(age));
         return {
-          id:        parseInt(imo),
-          imo,
-          name:      d.name || `Vessel ${imo}`,
-          flag:      d.country_name || "Unknown",
-          type,
-          group:     type.includes("Tanker") ? "Tankers" : type.includes("Container") ? "Dry Cargo" : "Dry Cargo",
-          built,
-          dwt,
-          ldt,
-          location:  d.last_port || d.home_port || "—",
-          price:     `$${(estUSD / 1_000_000).toFixed(1)}M`,
+          id: parseInt(imo), imo, name: d.name || `Vessel ${imo}`,
+          flag: d.country_name || "Unknown", type,
+          group: type.includes("Tanker") ? "Tankers" : "Dry Cargo",
+          built, dwt, ldt, age, score,
+          length: d.length || null, beam: d.breadth || null,
+          speed: d.speed_avg || null,
+          location: d.last_port || d.home_port || "—",
+          price: `$${(estUSD / 1_000_000).toFixed(1)}M`,
           priceType: "Est. scrap value",
-          saleType,
-          tags,
-          urgent:    score >= 88,
-          score,
-          source:    "datalastic",
+          saleType: age >= 28 ? "distressed" : "voluntary",
+          tags: tagsFromVessel(age, score),
+          urgent: score >= 88, source: "datalastic",
+          images: [], description: null,
         };
       })
       .filter(Boolean);
   }
 
-  // Hardcoded verified listings (Equasis-sourced) — appear when Datalastic misses them
+  // Hardcoded verified listings
   const hardcoded: any[] = [];
-  const hasOceanEndeavour = [...datalasticListings, ...grsVessels].some(l => l?.imo === "7625811");
+  const hasOceanEndeavour = [...datalasticListings, ...grsListings].some(l => l?.imo === "7625811");
   if (!hasOceanEndeavour) {
     const age = year - 1982;
     const score = Math.min(99, 90 + Math.min(9, age - 32));
     hardcoded.push({
       id: 7625811, imo: "7625811", name: "OCEAN ENDEAVOUR",
-      flag: "Portugal", type: "Passenger",
-      group: "Passenger", built: 1982, dwt: 1762, ldt: 3100,
+      flag: "Portugal", type: "Passenger", group: "Passenger",
+      built: 1982, dwt: 1762, ldt: 3100, age, score,
+      length: null, beam: null, draft: null,
       location: "Funchal, Madeira",
       price: `$${((3100 * (MARKET_PRICES["Aliağa"] ?? 420)) / 1_000_000).toFixed(1)}M`,
-      priceType: "Asking",
-      saleType: "voluntary",
+      priceType: "Asking", saleType: "voluntary",
       tags: [{ label: `${age}y old`, type: "urgent" }, { label: "Survey Due", type: "idle" }],
-      urgent: true, score,
+      urgent: true, source: "equasis",
       owner: "ENDEAVOUR PARTNERS UNIPESSOAL",
       manager: "SUNSTONE SHIPS INC",
-      source: "equasis",
+      images: [], description: null,
     });
   }
 
-  const listings = [...datalasticListings, ...grsVessels, ...hardcoded]
+  const listings = [...datalasticListings, ...grsListings, ...hardcoded]
     .sort((a, b) => (b?.score ?? 0) - (a?.score ?? 0));
 
   if (listings.length === 0) {

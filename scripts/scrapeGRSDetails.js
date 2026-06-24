@@ -110,7 +110,9 @@ function parseBodyText(text) {
     .map(l => l.trim())
     .filter(l =>
       l.length > 40 &&
-      !/^(PRICE|LENGTH|BEAM|DRAFT|DWT|BUILT|ENGINE|SPEED|CLASS|DECKS|CARS|FLAG|GROSS|PAX|BERTH|SHIPYARD|CONTACT|NAME|EMAIL|PHONE|GRS|ADD TO|REQUEST|MAIN SPEC|DETAILS|LANGUAGE|CHARTER|PURCHASE|COOKIE|PRIVACY|IMPRINT)/i.test(l)
+      !/^(PRICE|LENGTH|BEAM|DRAFT|DWT|BUILT|ENGINE|SPEED|CLASS|DECKS|CARS|FLAG|GROSS|PAX|BERTH|SHIPYARD|CONTACT|NAME|EMAIL|PHONE|GRS|ADD TO|REQUEST|MAIN SPEC|DETAILS|LANGUAGE|CHARTER|PURCHASE|COOKIE|PRIVACY|IMPRINT)/i.test(l) &&
+      !/reCAPTCHA|Google Privacy Policy|Terms of Service/i.test(l) &&
+      !/FOR SALE\s*\/\s*#\d+/i.test(l)
     )
     .slice(0, 8);
 
@@ -159,6 +161,29 @@ async function uploadBase64(b64DataUri, grsId, idx) {
   }
 }
 
+async function uploadFromUrl(srcUrl, grsId, idx) {
+  if (!BLOB_TOKEN) return null;
+  try {
+    const res = await fetch(srcUrl, { headers: { Referer: "https://www.grs-group.com/" } });
+    if (!res.ok) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length < 10000) return null; // skip small images
+    const ext = srcUrl.includes(".png") ? "png" : "jpg";
+    const ct  = ext === "png" ? "image/png" : "image/jpeg";
+    const { url } = await put(`grs-photos/${grsId}-${idx}.${ext}`, buf, {
+      access:          "public",
+      contentType:     ct,
+      addRandomSuffix: false,
+      allowOverwrite:  true,
+      token:           BLOB_TOKEN,
+    });
+    return url;
+  } catch (err) {
+    log(`  URL upload failed (${grsId}-${idx}): ${err.message}`);
+    return null;
+  }
+}
+
 // ─── Scrape one detail page ───────────────────────────────────────────────────
 
 async function scrapePage(page, vessel) {
@@ -184,26 +209,68 @@ async function scrapePage(page, vessel) {
   // Extract body text
   const bodyText = await page.evaluate(() => document.body.innerText);
 
-  // Extract base64 images (vessel photos — filter by size ≥ 300px wide)
-  const b64Images = await page.evaluate(() =>
-    [...document.querySelectorAll("img")]
-      .filter(i => i.src.startsWith("data:image/jpeg") && i.naturalWidth >= 300 && i.naturalHeight >= 200)
-      .map(i => i.src)
-  );
+  // Try clicking through carousel/slider arrows to load all images
+  try {
+    const arrowSel = '.elementor-swiper-button-next, .swiper-button-next, .slick-next, [aria-label="Next slide"]';
+    const arrows = await page.$$(arrowSel);
+    if (arrows.length > 0) {
+      for (let c = 0; c < 8; c++) {
+        await page.click(arrowSel).catch(() => {});
+        await page.waitForTimeout(500);
+      }
+    }
+  } catch {}
 
-  // Deduplicate by first 200 chars of base64 (same image = same prefix)
-  const seen    = new Set();
-  const unique  = b64Images.filter(s => {
-    const key = s.slice(0, 200);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
+  // Extract all vessel images: base64 inline + regular https URLs from carousel slides
+  const { b64List, urlList } = await page.evaluate(() => {
+    const b64List = [];
+    const urlList = [];
+    const b64Seen = new Set();
+    const urlSeen = new Set();
+    const isB64 = s => typeof s === "string" && s.startsWith("data:image/");
+    const isHttpImg = s => typeof s === "string" && /^https?:\/\/.+\.(jpe?g|png|webp)/i.test(s) && !/logo|icon|banner|placeholder|avatar|flag|spinner/i.test(s);
+
+    for (const img of document.querySelectorAll("img, [data-lazy-src], [data-src]")) {
+      const srcs = [
+        img.src,
+        img.getAttribute("data-lazy-src"),
+        img.getAttribute("data-src"),
+        img.getAttribute("data-original"),
+        img.getAttribute("data-bg"),
+      ];
+      for (const s of srcs) {
+        if (!s) continue;
+        if (isB64(s)) {
+          const key = s.slice(0, 200);
+          if (!b64Seen.has(key) && img.naturalWidth >= 300 && img.naturalHeight >= 200) {
+            b64Seen.add(key); b64List.push(s);
+          }
+        } else if (isHttpImg(s)) {
+          const key = s.split("?")[0];
+          if (!urlSeen.has(key)) { urlSeen.add(key); urlList.push(s); }
+        }
+      }
+    }
+    return { b64List, urlList };
   });
 
   // Upload to Vercel Blob
   const imageUrls = [];
-  for (let i = 0; i < Math.min(unique.length, 6); i++) {
-    const url = await uploadBase64(unique[i], grsId, i);
+  // First: base64 inline images
+  const b64Seen2 = new Set();
+  const uniqueB64 = b64List.filter(s => {
+    const key = s.slice(0, 200);
+    if (b64Seen2.has(key)) return false;
+    b64Seen2.add(key);
+    return true;
+  });
+  for (let i = 0; i < Math.min(uniqueB64.length, 6); i++) {
+    const url = await uploadBase64(uniqueB64[i], grsId, i);
+    if (url) imageUrls.push(url);
+  }
+  // Then: regular https vessel photos (up to 6 total)
+  for (let i = 0; i < urlList.length && imageUrls.length < 6; i++) {
+    const url = await uploadFromUrl(urlList[i], grsId, imageUrls.length);
     if (url) imageUrls.push(url);
   }
 

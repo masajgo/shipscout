@@ -416,8 +416,9 @@ export default function SNPPage() {
                       </p>
                     )}
 
-                    <div style={{ fontSize: 11, color: "#98A2B3" }}>
-                      GRS Group listing{v.grsId ? ` · Ref #${v.grsId}` : ""}
+                    <div style={{ fontSize: 11, color: "#98A2B3", display: "flex", gap: 16, flexWrap: "wrap" as const }}>
+                      <span>GRS Group listing{v.grsId ? ` · Ref #${v.grsId}` : ""}</span>
+                      <span>Contact: GRS Group · +44 2476 580800</span>
                     </div>
                   </div>
                 )}

@@ -53,6 +53,7 @@ export default function SNPPage() {
   const [showTypeMenu, setShowTypeMenu]   = useState(false);
   const typeMenuRef                       = useRef<HTMLDivElement>(null);
   const [selectedIMO, setSelectedIMO]     = useState<string | null>(null);
+  const [expandedId, setExpandedId]       = useState<number | null>(null);
   const [sortBy, setSortBy]               = useState<"urgency"|"value"|"age">("urgency");
 
   useEffect(() => {
@@ -258,89 +259,125 @@ export default function SNPPage() {
             </div>
           )}
           {filtered.map(v => {
-            const age = year - v.built;
-            const code = TYPE_CODE[v.type] || "VS";
+            const age      = year - v.built;
+            const code     = TYPE_CODE[v.type] || "VS";
+            const isGRS    = v.source === "GRS";
+            const expanded = expandedId === v.id;
             return (
-              <div key={v.id}
-                className="snp-card"
-                onClick={() => {
-                  if (v.source === "GRS" && v.detailUrl) {
-                    window.open(v.detailUrl, "_blank", "noopener,noreferrer");
-                  } else {
-                    setSelectedIMO(v.imo);
-                  }
-                }} style={{
-                background: "#fff",
-                border: "1px solid #EAECF0",
-                borderLeft: v.urgent ? "3px solid #F04438" : "1px solid #EAECF0",
-                borderRadius: v.urgent ? "0 10px 10px 0" : 10,
-                padding: "16px 20px",
-                display: "flex", alignItems: "center", gap: 16,
-                cursor: "pointer",
-                boxShadow: "0 1px 2px rgba(16,24,40,0.04)",
-              }}>
-                {/* Type code — category tinted */}
-                {(() => {
-                  const catBg     = v.scrap_category === "critical" ? "#FEF2F2" : v.scrap_category === "high" ? "#FFFBEB" : "#F9FAFB";
-                  const catBorder = v.scrap_category === "critical" ? "#FECACA" : v.scrap_category === "high" ? "#FDE68A" : "#EAECF0";
-                  const catText   = v.scrap_category === "critical" ? "#DC2626" : v.scrap_category === "high" ? "#D97706" : "#344054";
-                  return (
-                    <div style={{ width: 52, height: 52, borderRadius: 10, background: catBg, border: `1px solid ${catBorder}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <span style={{ fontSize: 12, fontWeight: 800, color: catText, letterSpacing: 0.5 }}>{code}</span>
-                      {v.scrap_category && v.scrap_category !== "low" && (
-                        <span style={{ fontSize: 7, fontWeight: 600, color: catText, opacity: 0.7, marginTop: 1 }}>{v.scrap_category.toUpperCase().slice(0, 4)}</span>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                {/* Main info */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "#101828" }}>{v.name}</span>
-                    {v.source === "GRS"
-                      ? <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: "#0057FF", borderRadius: 4, padding: "1px 6px" }}>GRS</span>
-                      : <span style={{ fontSize: 11, color: "#C8CDD6", fontFamily: "monospace" }}>IMO {v.imo}</span>
+              <div key={v.id} style={{ borderRadius: 10, overflow: "hidden", boxShadow: "0 1px 2px rgba(16,24,40,0.04)" }}>
+                {/* Main row */}
+                <div
+                  className="snp-card"
+                  onClick={() => {
+                    if (isGRS) {
+                      setExpandedId(expanded ? null : v.id);
+                    } else {
+                      setSelectedIMO(v.imo);
                     }
-                    <span style={{ fontSize: 11, color: "#98A2B3" }}>{v.flag}</span>
-                  </div>
-                  <div style={{ display: "flex", gap: 20, flexWrap: "wrap" as const }}>
-                    {[
-                      { label: "Type",     val: v.type },
-                      { label: "Built",    val: `${v.built} · ${age}y` },
-                      v.dwt ? { label: "DWT", val: `${v.dwt.toLocaleString()} t` } : null,
-                      v.ldt ? { label: "LDT", val: `${(v.ldt || 0).toLocaleString()} t` } : null,
-                      v.length ? { label: "Length", val: `${v.length}m` } : null,
-                      v.pax ? { label: "Pax", val: v.pax.toLocaleString() } : null,
-                      { label: "Location", val: v.location },
-                    ].filter(Boolean).map(s => s && (
-                      <div key={s.label}>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: "#344054" }}>{s.val}</div>
-                        <div style={{ fontSize: 9, fontWeight: 500, color: "#98A2B3", textTransform: "uppercase" as const, letterSpacing: "0.08em", marginTop: 1 }}>{s.label}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Tags */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
-                  {(v.tags || []).map((tag: { label: string; type: string }, ti: number) => {
-                    const ts = TAG_STYLES[tag.type] || TAG_STYLES.motivated;
+                  }}
+                  style={{
+                    background: "#fff",
+                    border: "1px solid #EAECF0",
+                    borderLeft: v.urgent ? "3px solid #F04438" : "1px solid #EAECF0",
+                    borderBottom: expanded ? "none" : "1px solid #EAECF0",
+                    borderRadius: expanded ? "10px 10px 0 0" : v.urgent ? "0 10px 10px 0" : 10,
+                    padding: "16px 20px",
+                    display: "flex", alignItems: "center", gap: 16,
+                    cursor: "pointer",
+                  }}>
+                  {/* Type code — category tinted */}
+                  {(() => {
+                    const catBg     = v.scrap_category === "critical" ? "#FEF2F2" : v.scrap_category === "high" ? "#FFFBEB" : "#F9FAFB";
+                    const catBorder = v.scrap_category === "critical" ? "#FECACA" : v.scrap_category === "high" ? "#FDE68A" : "#EAECF0";
+                    const catText   = v.scrap_category === "critical" ? "#DC2626" : v.scrap_category === "high" ? "#D97706" : "#344054";
                     return (
-                      <span key={`${tag.label}-${ti}`} style={{ fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 5, color: ts.color, background: ts.bg, border: `1px solid ${ts.border}`, whiteSpace: "nowrap" as const }}>
-                        {tag.label}
-                      </span>
+                      <div style={{ width: 52, height: 52, borderRadius: 10, background: catBg, border: `1px solid ${catBorder}`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <span style={{ fontSize: 12, fontWeight: 800, color: catText, letterSpacing: 0.5 }}>{code}</span>
+                        {v.scrap_category && v.scrap_category !== "low" && (
+                          <span style={{ fontSize: 7, fontWeight: 600, color: catText, opacity: 0.7, marginTop: 1 }}>{v.scrap_category.toUpperCase().slice(0, 4)}</span>
+                        )}
+                      </div>
                     );
-                  })}
+                  })()}
+
+                  {/* Main info */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#101828" }}>{v.name}</span>
+                      {isGRS
+                        ? <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: "#0057FF", borderRadius: 4, padding: "1px 6px" }}>GRS</span>
+                        : <span style={{ fontSize: 11, color: "#C8CDD6", fontFamily: "monospace" }}>IMO {v.imo}</span>
+                      }
+                      <span style={{ fontSize: 11, color: "#98A2B3" }}>{v.flag}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 20, flexWrap: "wrap" as const }}>
+                      {[
+                        { label: "Type",     val: v.type },
+                        { label: "Built",    val: `${v.built} · ${age}y` },
+                        v.dwt    ? { label: "DWT",      val: `${v.dwt.toLocaleString()} t` }   : null,
+                        v.ldt    ? { label: "LDT",      val: `${(v.ldt || 0).toLocaleString()} t` } : null,
+                        v.length ? { label: "Length",   val: `${v.length}m` }                  : null,
+                        v.pax    ? { label: "Pax",      val: v.pax.toLocaleString() }          : null,
+                        { label: "Location", val: v.location },
+                      ].filter(Boolean).map(s => s && (
+                        <div key={s.label}>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: "#344054" }}>{s.val}</div>
+                          <div style={{ fontSize: 9, fontWeight: 500, color: "#98A2B3", textTransform: "uppercase" as const, letterSpacing: "0.08em", marginTop: 1 }}>{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Tags */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
+                    {(v.tags || []).map((tag: { label: string; type: string }, ti: number) => {
+                      const ts = TAG_STYLES[tag.type] || TAG_STYLES.motivated;
+                      return (
+                        <span key={`${tag.label}-${ti}`} style={{ fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 5, color: ts.color, background: ts.bg, border: `1px solid ${ts.border}`, whiteSpace: "nowrap" as const }}>
+                          {tag.label}
+                        </span>
+                      );
+                    })}
+                  </div>
+
+                  {/* Price */}
+                  <div style={{ textAlign: "right", flexShrink: 0, minWidth: 100 }}>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: "#101828", letterSpacing: -0.5 }}>{v.price}</div>
+                    <div style={{ fontSize: 10, color: "#98A2B3", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginTop: 2 }}>{v.priceType}</div>
+                  </div>
+
+                  <div style={{ color: "#C8CDD6", fontSize: 14, flexShrink: 0, transition: "transform 0.15s", transform: expanded ? "rotate(90deg)" : "none" }}>▶</div>
                 </div>
 
-                {/* Price */}
-                <div style={{ textAlign: "right", flexShrink: 0, minWidth: 100 }}>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: "#101828", letterSpacing: -0.5 }}>{v.price}</div>
-                  <div style={{ fontSize: 10, color: "#98A2B3", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginTop: 2 }}>{v.priceType}</div>
-                </div>
-
-                <div style={{ color: "#C8CDD6", fontSize: 18, flexShrink: 0 }}>→</div>
+                {/* GRS expanded detail panel */}
+                {isGRS && expanded && (
+                  <div style={{
+                    background: "#F9FAFB",
+                    border: "1px solid #EAECF0",
+                    borderTop: "1px solid #F2F4F7",
+                    borderRadius: "0 0 10px 10px",
+                    padding: "14px 20px 16px",
+                  }}>
+                    <div style={{ display: "flex", gap: 32, flexWrap: "wrap" as const }}>
+                      {[
+                        v.speed     ? { label: "Speed",    val: `${v.speed} kts` }  : null,
+                        v.beam      ? { label: "Beam",     val: `${v.beam}m` }       : null,
+                        v.classCode ? { label: "Class",    val: v.classCode }         : null,
+                        v.shipyard  ? { label: "Shipyard", val: v.shipyard }          : null,
+                        v.grsId     ? { label: "GRS ID",   val: `#${v.grsId}` }      : null,
+                        v.group     ? { label: "Segment",  val: v.group }             : null,
+                      ].filter(Boolean).map(s => s && (
+                        <div key={s.label}>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: "#344054" }}>{s.val}</div>
+                          <div style={{ fontSize: 9, fontWeight: 500, color: "#98A2B3", textTransform: "uppercase" as const, letterSpacing: "0.08em", marginTop: 1 }}>{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: 10, fontSize: 11, color: "#98A2B3" }}>
+                      Source: GRS Group listing · {v.grsId ? `Ref #${v.grsId}` : ""}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}

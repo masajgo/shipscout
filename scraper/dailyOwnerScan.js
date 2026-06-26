@@ -25,7 +25,7 @@ const { enrichWithDb }       = require("./contactEnrichment");
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-const DAILY_LIMIT  = 200;      // günlük Equasis arama limiti (güvenli)
+const DAILY_LIMIT  = 800;      // günlük Equasis arama limiti — test: 924'te blok, 800 güvenli
 const BATCH_SIZE   = 50;       // tek seferde max gemi (launchd günde birden fazla çalışırsa birikmez)
 const DELAY_MIN_MS = 5000;
 const DELAY_MAX_MS = 8000;

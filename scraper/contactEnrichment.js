@@ -17,6 +17,9 @@
 
 const path = require("path");
 const fs   = require("fs");
+const dns  = require("dns").promises;
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // ─── Blacklists ───────────────────────────────────────────────────────────────
 
@@ -51,7 +54,8 @@ const ROLE_LOCALS = new Set([
 // Layer 1 — S&P / chartering department prefixes (highest priority)
 const DEPARTMENT_LOCALS = new Set([
   "sale-purchase","snp","s-p","chartering","newbuilding","new-building",
-  "sale","purchase","commercial","charter","ops","operations",
+  "sale","sales","purchase","commercial","charter","ops","operations",
+  "ch","vetting","post-fixture","postfixture","dry","tanker","bulk","lpg","lng",
 ]);
 
 // Layer 2 — generic role prefixes
@@ -63,10 +67,14 @@ const GENERIC_LOCALS = new Set([
 function categorizeEmails(emails) {
   const department = [], generic = [], other = [];
   for (const e of emails) {
-    const local = e.split("@")[0].toLowerCase();
-    if (DEPARTMENT_LOCALS.has(local))   department.push(e);
-    else if (GENERIC_LOCALS.has(local)) generic.push(e);
-    else                                other.push(e);
+    const local    = e.split("@")[0].toLowerCase();
+    const segment0 = local.split(/[.\-_]/)[0]; // "ch.tanker" → "ch", "lpg-operations" → "lpg"
+    if (DEPARTMENT_LOCALS.has(local) || DEPARTMENT_LOCALS.has(segment0))
+      department.push(e);
+    else if (GENERIC_LOCALS.has(local) || GENERIC_LOCALS.has(segment0))
+      generic.push(e);
+    else
+      other.push(e);
   }
   return { department, generic, other };
 }
@@ -161,6 +169,60 @@ function generateDomainCandidates(companyName) {
   return [...new Set(ordered)].filter(d => d.length > 5 && !d.startsWith("."));
 }
 
+// ─── Web search for domain ────────────────────────────────────────────────────
+
+// Social / aggregator domains to skip in search results (extends AGGREGATOR_DOMAINS)
+const SKIP_SEARCH_HOSTS = /linkedin|facebook|bloomberg|crunchbase|dnb\.com|zoominfo|rocketreach|leadiq|equasis|marinetraffic|vesseltracker|fleetmon|shipfinder|yellowpages|yelp|trustpilot|glassdoor|indeed|twitter|instagram|wikipedia|wikidata|opencorporates|bizapedia|corporationwiki|companieshouse|sec\.gov|patents|scholar\.google|books\.google|maps\.google|play\.google|apps\.apple|youtube|vimeo|reddit|quora|medium|substack|news\.ycombinator|europages|kompass\.com|businessdirectory|bizinformation|thetimes|reuters\.com|ft\.com|lloydslist|vesselfinder|balticshipping|maritime-connector|shipspotting|tradewindsnews|seatrade/i;
+
+async function searchWebForDomain(companyName) {
+  const query = `"${companyName}" official website`;
+  try {
+    const res = await fetch(
+      `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}&kl=en-us`,
+      {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          "Accept": "text/html,application/xhtml+xml",
+        },
+        signal: AbortSignal.timeout(12000),
+      }
+    );
+    if (!res.ok) return [];
+    const html = await res.text();
+
+    const domains = [];
+
+    // DDG HTML displays result URLs in <a class="result__url">www.example.com/…</a>
+    const re = /<a[^>]+class="result__url"[^>]*>\s*([^<\s]+)\s*<\/a>/gi;
+    let m;
+    while ((m = re.exec(html)) !== null) {
+      const raw    = m[1].trim().toLowerCase().replace(/^www\./, "");
+      const domain = raw.split(/[/?#]/)[0];
+      if (domain && domain.includes(".") && !SKIP_SEARCH_HOSTS.test(domain)) {
+        domains.push(domain);
+      }
+    }
+
+    // Fallback: extract from uddg redirect params (DDG sometimes uses these)
+    if (domains.length === 0) {
+      const uddgRe = /uddg=([^"&]+)/g;
+      while ((m = uddgRe.exec(html)) !== null) {
+        try {
+          const decoded = decodeURIComponent(m[1]);
+          const u       = new URL(decoded);
+          const domain  = u.hostname.replace(/^www\./, "");
+          if (domain && !SKIP_SEARCH_HOSTS.test(domain)) domains.push(domain);
+        } catch {}
+      }
+    }
+
+    return [...new Set(domains)].slice(0, 6);
+  } catch (e) {
+    console.log(`[contactEnrichment] Web search error: ${e.message}`);
+    return [];
+  }
+}
+
 // ─── Domain probe ─────────────────────────────────────────────────────────────
 
 async function probeDomain(domain) {
@@ -179,14 +241,31 @@ async function probeDomain(domain) {
 }
 
 async function findWebsite(companyName) {
-  const candidates = generateDomainCandidates(companyName);
-  const raw = companyName.toLowerCase();
+  const raw             = companyName.toLowerCase();
   const needsValidation = MARITIME_KEYWORDS.some(k => raw.includes(k));
 
+  // 1. Web search layer — try DuckDuckGo first
+  const searchDomains = await searchWebForDomain(companyName);
+  if (searchDomains.length) {
+    console.log(`[contactEnrichment]   Web search returned: ${searchDomains.join(", ")}`);
+    for (const domain of searchDomains) {
+      const url = await probeDomain(domain);
+      if (!url) continue;
+      if (needsValidation && !(await validateMaritime(url))) {
+        console.log(`[contactEnrichment]   Web search: ${domain} failed maritime check`);
+        continue;
+      }
+      console.log(`[contactEnrichment]   Domain via web search: ${domain}`);
+      return url;
+    }
+    console.log(`[contactEnrichment]   Web search candidates exhausted, falling back to heuristic`);
+  }
+
+  // 2. Fallback — heuristic candidate list
+  const candidates = generateDomainCandidates(companyName);
   for (const domain of candidates) {
     const url = await probeDomain(domain);
     if (!url) continue;
-    // If company name has maritime keywords, validate the domain is actually maritime
     if (needsValidation && !(await validateMaritime(url))) {
       console.log(`[contactEnrichment]   Skipping ${domain} (not maritime)`);
       continue;
@@ -245,8 +324,9 @@ function extractEmails(html) {
     .map(m => m[0].toLowerCase())
     // strip pseudo-emails that are really image filenames (sprite@2x.png, etc.)
     .filter(e => !IMAGE_EXT_RE.test(e))
-    // strip obvious placeholders
+    // strip obvious placeholders and template domains
     .filter(e => !/^(example|test|email|user|name|youremail|domain)@/i.test(e))
+    .filter(e => !/@(example\.(com|org|net)|test\.com|placeholder\.|domain\.com)/i.test(e))
     // require a non-numeric local part of at least 2 chars
     .filter(e => /^[a-z][a-z0-9._%+\-]{1,}@/.test(e));
   return [...new Set(raw.filter(e => !PERSONAL_EMAIL_DOMAINS.test(e)))];
@@ -331,9 +411,208 @@ async function detectEmailFormat(domain) {
   return null;
 }
 
+// ─── Email validation ─────────────────────────────────────────────────────────
+//
+// Migration (run once):
+//   ALTER TABLE owners ADD COLUMN IF NOT EXISTS email_validations jsonb DEFAULT '{}';
+//   ALTER TABLE owners ADD COLUMN IF NOT EXISTS best_email text;
+//
+// email_validations schema: { "addr@domain": { status, isRole, source, checkedAt, protected }, … }
+// status values: verified | catch-all | invalid | unchecked | syntax_fail | no_mx
+//
+// LAZY VALIDATION RULES (credit conservation):
+//   1. dept/generic emails → local only (no ZB call), trusted from scrape
+//   2. guessed emails → ZB only at outreach time (user clicks mailto)
+//   3. protected MX (Mimecast/Proofpoint/etc.) → skip ZB entirely, return unchecked
+//   4. already validated (cached status) → skip ZB, return cached
+//   5. monthly budget 100 → warn at 95, hard stop at 100
+
+const RFC_EMAIL_RE = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+
+const PROTECTED_MX_RE = /mimecast\.com|pphosted\.com|proofpoint\.com|barracudanetworks\.com|cudamail\.com|mail\.protection\.outlook\.com|eo\.outlook\.com|ironport\.com|iphmx\.com|sma\.cisco\.com|messagelabs\.com|symanteccloud\.com|mailcontrol\.com|spamh\.com|antispameurope\.com|hornetsecurity\.com|retarus\.com|ppe-hosted\.com|hydra\.sophos\.com|reflexion\.net|mailhop\.org/i;
+
+// ── ZeroBounce monthly credit counter ────────────────────────────────────────
+
+const ZB_USAGE_FILE = path.join(__dirname, "data", "zb_usage.json");
+const ZB_LIMIT      = 100;
+const ZB_WARN_AT    = 95;
+
+function _zbMonth() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function _loadZbUsage() {
+  try {
+    if (fs.existsSync(ZB_USAGE_FILE)) return JSON.parse(fs.readFileSync(ZB_USAGE_FILE, "utf8"));
+  } catch {}
+  return {};
+}
+
+function _saveZbUsage(data) {
+  fs.mkdirSync(path.dirname(ZB_USAGE_FILE), { recursive: true });
+  fs.writeFileSync(ZB_USAGE_FILE, JSON.stringify(data, null, 2));
+}
+
+function zbBudget() {
+  const usage = _loadZbUsage();
+  const count = usage[_zbMonth()]?.count || 0;
+  return { count, remaining: ZB_LIMIT - count, ok: count < ZB_LIMIT };
+}
+
+function _zbIncrement(email) {
+  const usage = _loadZbUsage();
+  const month = _zbMonth();
+  if (!usage[month]) usage[month] = { count: 0, calls: [] };
+  usage[month].count++;
+  usage[month].calls.push({ email, at: new Date().toISOString() });
+  _saveZbUsage(usage);
+  const count = usage[month].count;
+  if (count >= ZB_WARN_AT && count < ZB_LIMIT) {
+    console.warn(`[contactEnrichment] ⚠ ZeroBounce aylık limit dolmak üzere (${count}/${ZB_LIMIT})`);
+  }
+  return count;
+}
+
+// ── MX cache & helpers ────────────────────────────────────────────────────────
+
+const _mxCache = new Map();
+
+async function getMX(domain) {
+  if (_mxCache.has(domain)) return _mxCache.get(domain);
+  try {
+    const records = await dns.resolveMx(domain);
+    records.sort((a, b) => a.priority - b.priority);
+    const mx = records[0]?.exchange || null;
+    _mxCache.set(domain, mx);
+    return mx;
+  } catch {
+    _mxCache.set(domain, null);
+    return null;
+  }
+}
+
+function isProtectedMX(mxHost) {
+  return mxHost ? PROTECTED_MX_RE.test(mxHost) : false;
+}
+
+// ── ZeroBounce raw call ───────────────────────────────────────────────────────
+
+async function _zbValidate(email, apiKey) {
+  try {
+    const url = `https://api.zerobounce.net/v2/validate?api_key=${apiKey}&email=${encodeURIComponent(email)}&ip_address=`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) return "unknown";
+    const j = await res.json();
+    return j.status || "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+// ── Core validation ───────────────────────────────────────────────────────────
+
+// Full single-email validation: syntax → MX → (optionally) ZeroBounce
+// ZeroBounce is SKIPPED when: no key | protected MX | budget exhausted
+// Returns: { status, isRole, protected, source }
+async function validateEmail(email, zbApiKey = null) {
+  if (!RFC_EMAIL_RE.test(email)) {
+    return { status: "syntax_fail", isRole: false, protected: false, source: "local" };
+  }
+
+  const domain     = email.split("@")[1].toLowerCase();
+  const mx         = await getMX(domain);
+  if (!mx) {
+    return { status: "no_mx", isRole: false, protected: false, source: "local" };
+  }
+
+  const local      = email.split("@")[0].toLowerCase();
+  const isRole     = ROLE_LOCALS.has(local) || GENERIC_LOCALS.has(local);
+  const isShielded = isProtectedMX(mx);
+
+  // No key → local only
+  if (!zbApiKey) {
+    return { status: "unchecked", isRole, protected: isShielded, source: "local" };
+  }
+
+  // Rule 3: Protected MX → skip ZeroBounce, no credit spent
+  if (isShielded) {
+    console.log(`[contactEnrichment] Skip ZB (protected MX): ${email}`);
+    return { status: "unchecked", isRole, protected: true, source: "local" };
+  }
+
+  // Rule 5: Budget check
+  const budget = zbBudget();
+  if (!budget.ok) {
+    console.log(`[contactEnrichment] ZeroBounce limit doldu (${budget.count}/${ZB_LIMIT}), unchecked`);
+    return { status: "unchecked", isRole, protected: false, source: "local" };
+  }
+
+  await sleep(2500);
+  const zbRaw = await _zbValidate(email, zbApiKey);
+  _zbIncrement(email);
+
+  const status =
+    zbRaw === "valid"                                               ? "verified"   :
+    zbRaw === "catch-all"                                           ? "catch-all"  :
+    ["invalid","spamtrap","abuse","do_not_mail"].includes(zbRaw)    ? "invalid"    :
+                                                                      "unchecked";
+
+  return { status, isRole, protected: false, source: "zerobounce" };
+}
+
+// ── Lazy outreach validation ──────────────────────────────────────────────────
+// Called ONLY when user clicks outreach for a guessed email.
+// Returns cached result if already validated, otherwise runs ZeroBounce.
+// Rule 4: existing non-unchecked status → return cache, no new ZB call.
+async function validateOnOutreach(email, zbApiKey, existingValidations = {}) {
+  const cached = existingValidations?.[email];
+
+  // Cache hit: already has a definitive status (not unchecked/local)
+  if (cached?.status && cached.status !== "unchecked" && cached.source !== "local") {
+    return { ...cached, fromCache: true };
+  }
+
+  // Run full validation (protected MX + budget checks inside validateEmail)
+  const result = await validateEmail(email, zbApiKey);
+  return { ...result, checkedAt: new Date().toISOString() };
+}
+
+// Validate a list of emails, return Map<email, { status, isRole, source, checkedAt }>
+async function validateEmails(emails, zbApiKey = null) {
+  const map = new Map();
+  for (const email of emails) {
+    const v = await validateEmail(email, zbApiKey);
+    map.set(email, { ...v, checkedAt: new Date().toISOString() });
+  }
+  return map;
+}
+
+// Pick one best email from validation map + category buckets.
+// Priority order: verified-dept → verified-other → verified-generic →
+//                 catch-all-dept → catch-all-other →
+//                 unchecked-dept → unchecked-other → unchecked-generic
+// Never returns: invalid | syntax_fail | no_mx
+function pickBestEmail(validationsMap, emailsByType) {
+  const TIERS  = [emailsByType.department, emailsByType.other, emailsByType.generic];
+  const PASSES = ["verified", "catch-all", "unchecked"];
+
+  for (const pass of PASSES) {
+    for (const bucket of TIERS) {
+      for (const e of bucket) {
+        const v = validationsMap?.get?.(e);
+        if (v?.status === pass) return e;
+      }
+    }
+  }
+  return null;
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
-async function enrichCompanyContact(companyName, managerName) {
+// opts: { zbApiKey?: string }
+async function enrichCompanyContact(companyName, managerName, opts = {}) {
+  const zbApiKey = opts.zbApiKey || null;
   console.log(`[contactEnrichment] Searching: "${companyName}"`);
 
   const linkedinCompanyUrl = `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(companyName)}`;
@@ -348,9 +627,10 @@ async function enrichCompanyContact(companyName, managerName) {
     address:            null,
     emailFormat:        null,
     guessedEmails:      [],
+    emailValidations:   {},   // { email: { status, isRole, source, checkedAt } }
+    bestEmail:          null,
     linkedinCompanyUrl,
     linkedinPeopleUrl,
-    // backward-compat alias
     linkedinSearchUrl:  linkedinCompanyUrl,
     source:             "web",
     contactPath:        null,
@@ -374,15 +654,44 @@ async function enrichCompanyContact(companyName, managerName) {
   result.contactPath = found.path;
   console.log(`[contactEnrichment]   Contact page: ${baseUrl}${found.path}`);
 
-  result.emails      = extractEmails(found.html);
+  result.emails       = extractEmails(found.html);
   result.emailsByType = categorizeEmails(result.emails);
-  result.phones      = extractPhones(found.html);
-  result.address     = extractAddress(found.html);
-  result.emailFormat = guessEmailFormat(result.emails, result.website)
+  result.phones       = extractPhones(found.html);
+  result.address      = extractAddress(found.html);
+  result.emailFormat  = guessEmailFormat(result.emails, result.website)
     || await detectEmailFormat(result.website);
 
   if (managerName && result.emailFormat && result.website) {
     result.guessedEmails = guessEmailsFromName(managerName, result.emailFormat, result.website);
+  }
+
+  // ── Local validation only (syntax + MX) — no ZeroBounce credits spent ───────
+  // Rule 1: dept/generic trusted from scrape, no ZB needed.
+  // Rule 2: guessed emails validated lazily at outreach time via /api/emails/validate.
+  const allToValidate = [
+    ...result.emails,
+    ...result.guessedEmails.map(g => g.email),
+  ];
+
+  if (allToValidate.length) {
+    console.log(`[contactEnrichment]   Local validation (syntax+MX) for ${allToValidate.length} email(s)…`);
+    const validationsMap = await validateEmails(allToValidate, null); // null = no ZeroBounce
+
+    // Drop emails that are clearly broken (syntax / no MX)
+    const HARD_FAIL = new Set(["syntax_fail", "no_mx"]);
+    result.guessedEmails = result.guessedEmails
+      .map(g => ({ ...g, emailStatus: validationsMap.get(g.email)?.status || "unchecked" }))
+      .filter(g => !HARD_FAIL.has(g.emailStatus));
+
+    for (const bucket of ["department", "generic", "other"]) {
+      result.emailsByType[bucket] = result.emailsByType[bucket].filter(
+        e => !HARD_FAIL.has(validationsMap.get(e)?.status)
+      );
+    }
+    result.emails = result.emails.filter(e => !HARD_FAIL.has(validationsMap.get(e)?.status));
+
+    result.emailValidations = Object.fromEntries(validationsMap);
+    result.bestEmail = pickBestEmail(validationsMap, result.emailsByType);
   }
 
   console.log(`[contactEnrichment]   emails: ${result.emails.slice(0, 3).join(", ") || "none"}`);
@@ -407,7 +716,8 @@ function saveCache(cache) {
 
 // DB-first enrichment: checks owners table (30-day TTL), scrapes on miss, persists result.
 // Falls back to file cache if pool/imo not provided.
-async function enrichWithDb(companyName, imo, pool, managerName) {
+// opts: { zbApiKey?: string }
+async function enrichWithDb(companyName, imo, pool, managerName, opts = {}) {
   const TTL_30D = 30 * 24 * 60 * 60 * 1000;
 
   // 1. DB cache check
@@ -416,6 +726,7 @@ async function enrichWithDb(companyName, imo, pool, managerName) {
       const { rows } = await pool.query(`
         SELECT website, emails, phones, address, email_format,
                department_emails, generic_emails, guessed_emails,
+               email_validations, best_email,
                linkedin_company_url, linkedin_people_url, web_fetched_at
         FROM owners WHERE imo = $1::bigint
       `, [imo]);
@@ -437,8 +748,10 @@ async function enrichWithDb(companyName, imo, pool, managerName) {
                 return !DEPARTMENT_LOCALS.has(local) && !GENERIC_LOCALS.has(local);
               }),
             },
-            emailFormat:        row.email_format  || null,
-            guessedEmails:      row.guessed_emails || [],
+            emailFormat:        row.email_format        || null,
+            guessedEmails:      row.guessed_emails       || [],
+            emailValidations:   row.email_validations    || {},
+            bestEmail:          row.best_email           || null,
             phones:             row.phones || [],
             address:            null,
             linkedinCompanyUrl: row.linkedin_company_url || `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(companyName)}`,
@@ -454,8 +767,8 @@ async function enrichWithDb(companyName, imo, pool, managerName) {
     }
   }
 
-  // 2. Scrape
-  const result = await enrichCompanyContact(companyName, managerName);
+  // 2. Scrape + validate
+  const result = await enrichCompanyContact(companyName, managerName, opts);
 
   // 3. Persist to DB
   if (pool && imo) {
@@ -472,6 +785,8 @@ async function enrichWithDb(companyName, imo, pool, managerName) {
           guessed_emails       = $9::jsonb,
           linkedin_company_url = $10,
           linkedin_people_url  = $11,
+          email_validations    = COALESCE($12::jsonb, email_validations),
+          best_email           = COALESCE($13, best_email),
           contact_source       = 'web',
           web_fetched_at       = now()
         WHERE imo = $1::bigint
@@ -487,6 +802,10 @@ async function enrichWithDb(companyName, imo, pool, managerName) {
         JSON.stringify(result.guessedEmails || []),
         result.linkedinCompanyUrl,
         result.linkedinPeopleUrl,
+        Object.keys(result.emailValidations || {}).length
+          ? JSON.stringify(result.emailValidations)
+          : null,
+        result.bestEmail || null,
       ]);
       console.log(`[contactEnrichment] DB updated: IMO ${imo}`);
     } catch (e) {
@@ -520,6 +839,11 @@ async function enrichWithCache(companyName) {
 module.exports = {
   enrichCompanyContact,
   enrichWithCache,
+  validateEmail,
+  validateEmails,
+  validateOnOutreach,
+  pickBestEmail,
+  zbBudget,
   enrichWithDb,
   categorizeEmails,
   guessEmailsFromName,

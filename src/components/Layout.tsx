@@ -5,13 +5,14 @@ import { useState, useEffect } from "react";
 import { SCRAP_MARKETS } from "@/lib/scrapMarkets";
 
 const NAV = [
-  { href: "/",        label: "Vessels"  },
-  { href: "/markets", label: "Markets"  },
-  { href: "/snp",     label: "S&P"      },
-  { href: "/compare", label: "Compare"  },
-  { href: "/alerts",  label: "Alerts"   },
-  { href: "/crm",     label: "Deal CRM" },
-  { href: "/map",     label: "Map"      },
+  { href: "/",         label: "Dashboard" },
+  { href: "/vessels",  label: "Vessels"   },
+  { href: "/markets",  label: "Markets"   },
+  { href: "/snp",      label: "S&P"       },
+  { href: "/compare",  label: "Compare"   },
+  { href: "/alerts",   label: "Alerts"    },
+  { href: "/crm",      label: "Deal CRM"  },
+  { href: "/map",      label: "Map"       },
 ];
 
 const TICKER_DELTAS: Record<string, { delta: string; up: boolean }> = {

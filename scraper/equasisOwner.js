@@ -37,8 +37,8 @@ const EQUASIS_SHIP_SEARCH = "https://www.equasis.org/EquasisWeb/restricted/Searc
 const DELAY_MIN_MS = 5000;
 const DELAY_MAX_MS = 8000;
 
-// Günlük güvenli limit (Equasis 300-500 arası, 250 ile güvende kalıyoruz)
-const DAILY_LIMIT = 250;
+// Günlük güvenli limit — test sonucu: 924 sorguda blok, 800 ile güvende kalıyoruz
+const DAILY_LIMIT = 800;
 
 const DATA_DIR    = path.join(__dirname, "data");
 const OWNERS_FILE = path.join(DATA_DIR, "owners.json");

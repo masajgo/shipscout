@@ -48,7 +48,9 @@ export async function GET(
       `SELECT imo::text, vessel_name, owner_name, manager_name, ism_manager,
               website, emails, phones, address, email_format,
               linkedin_url, linkedin_company_url, linkedin_people_url,
-              department_emails, generic_emails, guessed_emails, web_fetched_at
+              department_emails, generic_emails, guessed_emails,
+              email_validations, best_email,
+              web_fetched_at
        FROM owners WHERE imo = $1::bigint`,
       [imo],
     );
@@ -96,15 +98,17 @@ export async function GET(
   const contact: ContactResult = {
     company,
     website,
-    emails:       allEmails,
-    emailsByType: { department, generic, other },
+    emails:           allEmails,
+    emailsByType:     { department, generic, other },
     emailFormat,
     guessedEmails,
-    phones:       (ownerRow.phones  as string[] | null) ?? [],
-    address:      (ownerRow.address as string | null)   ?? null,
+    phones:           (ownerRow.phones            as string[] | null) ?? [],
+    address:          (ownerRow.address           as string | null)   ?? null,
+    emailValidations: (ownerRow.email_validations as Record<string, unknown> | null) ?? {},
+    bestEmail:        (ownerRow.best_email        as string | null)   ?? null,
     linkedinCompanyUrl,
     linkedinPeopleUrl,
-    contactPath:  null,
+    contactPath:      null,
   };
 
   return NextResponse.json(

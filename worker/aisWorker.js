@@ -346,7 +346,7 @@ async function poll() {
 
   // 1b. Datalastic enrichment (sadece scrap adayları, cache'li)
   try {
-    await enrichCandidates(vessels);
+    await enrichCandidates(vessels, pgPool);
     const enriched = vessels.filter(v => v.builtYear).length;
     log(`Enrichment: ${enriched}/${vessels.length} builtYear resolved`);
   } catch (err) {

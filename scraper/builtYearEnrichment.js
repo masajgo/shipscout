@@ -276,43 +276,98 @@ function scrapCategory(score) {
 
 // ─── enrichCandidates ────────────────────────────────────────────────────────
 
-async function enrichCandidates(vessels) {
+async function enrichCandidates(vessels, pool = null) {
   const candidates = vessels.filter(v => {
     const ns    = parseInt(v.navStatus) || 0;
     const speed = parseFloat(v.speed)   || 0;
     return ns === 1 || ns === 5 || speed === 0 || (v.flag && RISK_FLAGS.has(v.flag));
   });
 
-  const stats = { total: candidates.length, noImo: 0, cacheHit: 0, apiOk: 0, apiNull: 0, skipped: 0 };
+  const stats = { total: candidates.length, noImo: 0, cacheHit: 0, dbHit: 0, apiOk: 0, apiNull: 0, skipped: 0 };
+
+  // ── DB-first: batch lookup for all candidate IMOs ────────────────────────────
+  const dbByImo = new Map();
+  if (pool) {
+    const imos = candidates.map(v => v.imo).filter(Boolean).map(String);
+    if (imos.length) {
+      try {
+        const { rows } = await pool.query(
+          `SELECT imo::text, built_year, flag, deadweight, gross_tonnage,
+                  ldt, ldt_estimated, scrap_value_usd, scrap_value_estimated,
+                  type_specific, callsign, length, beam, speed_max, home_port
+           FROM vessels
+           WHERE imo = ANY($1::bigint[]) AND built_year IS NOT NULL`,
+          [imos]
+        );
+        for (const r of rows) dbByImo.set(String(r.imo), r);
+      } catch (e) {
+        log(`DB lookup error: ${e.message}`);
+      }
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────────
 
   for (const v of candidates) {
     if (!v.imo) { stats.noImo++; continue; }
 
-    const cache    = loadCache();
-    const fromCache = cache[String(v.imo)]?.source === "datalastic";
+    const cache     = loadCache();
+    const key       = String(v.imo);
+    const fromCache = cache[key]?.source === "datalastic";
+    const fromDb    = dbByImo.get(key);
 
-    const info = await getVesselInfo(v.imo);
+    let info = null;
 
-    if (fromCache)      stats.cacheHit++;
-    else if (info)      stats.apiOk++;
-    else if (!DATALASTIC_KEY) stats.skipped++;
-    else                stats.apiNull++;
+    if (fromCache) {
+      // File cache hit — kullan, API çağırma
+      info = cache[key];
+      stats.cacheHit++;
+    } else if (fromDb) {
+      // DB hit — kullan, API çağırma; dosya cache'ine de yaz
+      const r = fromDb;
+      const { ldt, estimated: ldtEstimated } = computeLDT(r.deadweight, r.type_specific);
+      const { scrapValueUsd, scrapValueEstimated } = computeScrapValue(ldt, ldtEstimated);
+      info = {
+        builtYear:           r.built_year    ? parseInt(r.built_year)    : null,
+        source:              "db",
+        cachedAt:            new Date().toISOString(),
+        flag:                r.flag          || null,
+        callsign:            r.callsign      || null,
+        typeSpecific:        r.type_specific || null,
+        grossTonnage:        r.gross_tonnage || null,
+        deadweight:          r.deadweight    || null,
+        ldt:                 r.ldt           ? parseInt(r.ldt) : ldt,
+        ldtEstimated:        r.ldt_estimated ?? ldtEstimated,
+        scrapValueUsd:       r.scrap_value_usd ? parseFloat(r.scrap_value_usd) : scrapValueUsd,
+        scrapValueEstimated: r.scrap_value_estimated ?? scrapValueEstimated,
+        length:              r.length        || null,
+        speedMax:            r.speed_max     || null,
+        homePort:            r.home_port     || null,
+      };
+      cache[key] = info;
+      saveCache();
+      stats.dbHit++;
+    } else {
+      // Ne cache ne DB — Datalastic API'ye git
+      info = await getVesselInfo(v.imo);
+      if (info)           stats.apiOk++;
+      else if (!DATALASTIC_KEY) stats.skipped++;
+      else                stats.apiNull++;
+    }
 
     if (info) {
-      // Statik alanları vessel objesine ekle (aisWorker updateStaticsToDB'de kullanacak)
-      if (info.builtYear)     v.builtYear     = info.builtYear;
-      if (info.flag)          v.datalasticFlag = info.flag;   // AIS flag'i ezmemek için ayrı key
-      if (info.typeSpecific)  v.typeSpecific   = info.typeSpecific;
-      if (info.grossTonnage)  v.grossTonnage   = info.grossTonnage;
-      if (info.deadweight)    v.deadweight     = info.deadweight;
-      if (info.teu)           v.teu            = info.teu;
-      if (info.ldt)           v.ldt            = info.ldt;
+      if (info.builtYear)     v.builtYear      = info.builtYear;
+      if (info.flag)          v.datalasticFlag  = info.flag;
+      if (info.typeSpecific)  v.typeSpecific    = info.typeSpecific;
+      if (info.grossTonnage)  v.grossTonnage    = info.grossTonnage;
+      if (info.deadweight)    v.deadweight      = info.deadweight;
+      if (info.teu)           v.teu             = info.teu;
+      if (info.ldt)           v.ldt             = info.ldt;
       v.ldtEstimated           = info.ldtEstimated ?? false;
-      if (info.scrapValueUsd) v.scrapValueUsd  = info.scrapValueUsd;
+      if (info.scrapValueUsd) v.scrapValueUsd   = info.scrapValueUsd;
       v.scrapValueEstimated    = info.scrapValueEstimated ?? false;
-      if (info.speedMax)      v.speedMax       = info.speedMax;
-      if (info.homePort)      v.homePort       = info.homePort;
-      if (info.callsign)      v.callsign       = info.callsign;
+      if (info.speedMax)      v.speedMax        = info.speedMax;
+      if (info.homePort)      v.homePort        = info.homePort;
+      if (info.callsign)      v.callsign        = info.callsign;
     }
 
     const { score, reasons } = computeScrapScore(v);
@@ -320,14 +375,13 @@ async function enrichCandidates(vessels) {
     v.scrapCategory = scrapCategory(score);
     v.scrapReasons  = reasons;
 
-    if (!fromCache) await sleep(250);
+    if (!fromCache && !fromDb) await sleep(250);
   }
 
   log(
     `enrichCandidates: ${stats.total} candidates | ` +
-    `no-IMO: ${stats.noImo} | cache-hit: ${stats.cacheHit} | ` +
-    `api-ok: ${stats.apiOk} | api-null(404): ${stats.apiNull} | ` +
-    `skipped(no-key): ${stats.skipped}`
+    `no-IMO: ${stats.noImo} | cache: ${stats.cacheHit} | db: ${stats.dbHit} | ` +
+    `api-ok: ${stats.apiOk} | api-null: ${stats.apiNull} | skipped: ${stats.skipped}`
   );
 
   return vessels;

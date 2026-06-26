@@ -52,6 +52,15 @@ interface VesselDetail {
   ldtEstimated:         boolean | null;
   scrapValueUsd:        number | null;
   scrapValueEstimated:  boolean | null;
+  gt:                   number | null;
+  inspectionCount:      number;
+  detentionCount:       number;
+  deficiencyCount:      number;
+  lastInspectionDate:   string | null;
+  specialSurveyDate:    string | null;
+  lastDryDockDate:      string | null;
+  ownerName:            string | null;
+  managerName:          string | null;
 }
 
 interface SearchResult {
@@ -67,14 +76,21 @@ interface SearchResult {
 
 interface ScrapCounts { critical: number; high: number; medium: number; low: number; }
 
+type EmailValidationStatus = "verified" | "catch-all" | "invalid" | "unchecked" | "syntax_fail" | "no_mx";
+
 interface ContactResult {
   company:           string;
   website:           string | null;
   emails:            string[];
+  emailsByType:      { department: string[]; generic: string[]; other: string[] };
   phones:            string[];
   address:           string | null;
   emailFormat:       string | null;
+  emailValidations:  Record<string, { status: EmailValidationStatus; isRole: boolean; protected?: boolean }> | null;
+  bestEmail:         string | null;
   linkedinSearchUrl: string;
+  linkedinCompanyUrl?: string;
+  linkedinPeopleUrl?:  string;
   contactPath:       string | null;
 }
 
@@ -701,7 +717,7 @@ export default function MapView() {
       {/* ── Right glass mini popup ── */}
       {selected && (
         <aside style={{
-          position: "absolute", top: 14, right: 48, width: 175,
+          position: "absolute", top: 14, right: 48, width: 200,
           maxHeight: "calc(100% - 28px)",
           background: "rgba(11,30,61,0.94)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
           border: `1px solid ${S.glassBorder}`, borderRadius: 12,
@@ -753,29 +769,57 @@ export default function MapView() {
             </div>
           )}
 
-          {/* Compact 4-field data grid */}
+          {/* Vessel data grid */}
           <div style={{ padding: "6px 10px" }}>
             <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 6 }}>
               {detailLoading ? "Fetching…" : "Vessel data"}
             </div>
             {detailLoading ? (
-              [1,2,3,4].map(i => <div key={i} style={{ height: 8, background: "rgba(255,255,255,0.04)", borderRadius: 3, marginBottom: 6, width: i%2===0?"55%":"75%" }} />)
+              [1,2,3,4,5,6].map(i => <div key={i} style={{ height: 8, background: "rgba(255,255,255,0.04)", borderRadius: 3, marginBottom: 6, width: i%2===0?"55%":"75%" }} />)
             ) : detail ? (
               <div>
                 {([
-                  ["Built",  detail.builtYear ? `${detail.builtYear} (${new Date().getFullYear()-detail.builtYear}y)` : "—"],
-                  ["Flag",   detail.flag || "—"],
-                  ["Length", detail.length ? `${detail.length} m` : "—"],
-                  ["Status", NAV_STATUS[detail.navStatus] ?? `Code ${detail.navStatus}`],
-                ] as [string, string][]).map(([l, v]) => (
+                  ["IMO",        detail.imo || "—"],
+                  ["Built",      detail.builtYear ? `${detail.builtYear} (${new Date().getFullYear()-detail.builtYear}y)` : "—"],
+                  ["Flag",       detail.flag || "—"],
+                  ["DWT",        detail.dwt ? `${detail.dwt.toLocaleString()} t` : "—"],
+                  ["GT",         detail.gt  ? `${detail.gt.toLocaleString()} t`  : "—"],
+                  ["Length",     detail.length  ? `${detail.length} m`  : "—"],
+                  ["Beam",       detail.beam    ? `${detail.beam} m`    : "—"],
+                  ["Draught",    detail.draught ? `${detail.draught} m` : "—"],
+                  ["Speed",      `${detail.speed.toFixed(1)} kn`],
+                  ["Status",     NAV_STATUS[detail.navStatus] ?? `Code ${detail.navStatus}`],
+                  ["Destination",detail.destination || "—"],
+                  ["Call sign",  detail.callSign || "—"],
+                ] as [string, string][]).filter(([,v]) => v !== "—").map(([l, v]) => (
                   <div key={l} style={{ display: "flex", justifyContent: "space-between", gap: 6, marginBottom: 5 }}>
                     <span style={{ fontSize: 9, color: S.muted, flexShrink: 0 }}>{l}</span>
-                    <span style={{ fontSize: 9, fontWeight: 500, color: S.text, textAlign: "right" as const, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "65%" }}>{v}</span>
+                    <span style={{ fontSize: 9, fontWeight: 500, color: S.text, textAlign: "right" as const, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "60%" }}>{v}</span>
                   </div>
                 ))}
               </div>
             ) : null}
           </div>
+
+          {/* Inspection & Survey */}
+          {detail && (detail.inspectionCount > 0 || detail.specialSurveyDate || detail.lastDryDockDate) && (
+            <div style={{ padding: "6px 10px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+              <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 6 }}>Condition</div>
+              {([
+                ["Inspections",  detail.inspectionCount > 0 ? String(detail.inspectionCount) : null],
+                ["Detentions",   detail.detentionCount  > 0 ? String(detail.detentionCount)  : null],
+                ["Deficiencies", detail.deficiencyCount > 0 ? String(detail.deficiencyCount) : null],
+                ["Last insp.",   detail.lastInspectionDate ? detail.lastInspectionDate.slice(0,10) : null],
+                ["Next survey",  detail.specialSurveyDate  ? detail.specialSurveyDate.slice(0,10)  : null],
+                ["Last drydock", detail.lastDryDockDate     ? detail.lastDryDockDate.slice(0,10)    : null],
+              ] as [string, string|null][]).filter(([,v]) => v !== null).map(([l, v]) => (
+                <div key={l} style={{ display: "flex", justifyContent: "space-between", gap: 6, marginBottom: 5 }}>
+                  <span style={{ fontSize: 9, color: S.muted, flexShrink: 0 }}>{l}</span>
+                  <span style={{ fontSize: 9, fontWeight: 500, color: detail.detentionCount > 0 && l === "Detentions" ? "#f87171" : S.text, textAlign: "right" as const }}>{v}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* 24h Track */}
           <div style={{ padding: "6px 10px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
@@ -793,14 +837,41 @@ export default function MapView() {
           {/* Owner / Manager */}
           <div style={{ padding: "6px 10px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
             <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 6 }}>Owner / Manager</div>
+            {/* DB'den gelen owner/manager — contact API'den önce göster */}
+            {!contact && detail && (detail.ownerName || detail.managerName) && (
+              <div style={{ marginBottom: 6 }}>
+                {detail.ownerName && <div style={{ fontSize: 9, fontWeight: 600, color: S.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{detail.ownerName}</div>}
+                {detail.managerName && detail.managerName !== detail.ownerName && (
+                  <div style={{ fontSize: 9, color: S.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Mgr: {detail.managerName}</div>
+                )}
+              </div>
+            )}
             {contactLoading ? (
               <div style={{ fontSize: 9, color: S.muted }}>Searching…</div>
             ) : contact ? (
               <div>
                 <div style={{ fontSize: 10, fontWeight: 600, color: S.text, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{contact.company}</div>
-                {contact.emails[0] && (
-                  <div style={{ fontSize: 9, color: "#94A3B8", marginBottom: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>✉ {contact.emails[0]}</div>
+                {contact.phones?.[0] && (
+                  <div style={{ fontSize: 9, color: "#94A3B8", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>☎ {contact.phones[0]}</div>
                 )}
+                {(() => {
+                  const displayEmail = contact.bestEmail
+                    || contact.emailsByType?.department?.[0]
+                    || contact.emailsByType?.generic?.[0]
+                    || contact.emails[0];
+                  if (!displayEmail) return null;
+                  const vs = contact.emailValidations?.[displayEmail];
+                  const dot = vs?.status === "verified"  ? "#22c55e"
+                            : vs?.status === "catch-all" ? "#eab308"
+                            : "rgba(148,163,184,0.5)";
+                  return (
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 6, overflow: "hidden" }}>
+                      <span style={{ fontSize: 9 }}>✉</span>
+                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: dot, flexShrink: 0 }} />
+                      <span style={{ fontSize: 9, color: "#94A3B8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayEmail}</span>
+                    </div>
+                  );
+                })()}
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   <a href={contact.linkedinSearchUrl} target="_blank" rel="noreferrer" style={{ display: "block", textAlign: "center" as const, background: "rgba(96,165,250,0.10)", border: "1px solid rgba(96,165,250,0.28)", borderRadius: 4, padding: "5px 6px", color: "#60A5FA", fontSize: 9, fontWeight: 600, textDecoration: "none" }}>
                     LinkedIn →
@@ -812,9 +883,9 @@ export default function MapView() {
                   )}
                 </div>
               </div>
-            ) : (
+            ) : !detail?.ownerName && !detail?.managerName ? (
               <div style={{ fontSize: 9, color: S.muted, fontStyle: "italic" }}>Owner bilgisi toplanıyor — yarın güncellenir</div>
-            )}
+            ) : null}
           </div>
 
         </aside>
@@ -833,7 +904,10 @@ function buildOfferMailto(
   detail: VesselDetail | null,
   selected: ApiVessel | null,
 ): string {
-  const to = contact.emails[0] || "";
+  const to = contact.bestEmail
+    || contact.emailsByType?.department?.[0]
+    || contact.emailsByType?.generic?.[0]
+    || contact.emails[0] || "";
   const name      = detail?.name || selected?.name || "Vessel";
   const imo       = detail?.imo || "—";
   const mmsi      = detail?.mmsi || selected?.mmsi || "—";

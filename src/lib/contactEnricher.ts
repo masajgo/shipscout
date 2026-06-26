@@ -226,15 +226,28 @@ export function guessEmailsFromName(
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
+export type EmailValidationStatus =
+  | "verified" | "catch-all" | "invalid" | "unchecked" | "syntax_fail" | "no_mx";
+
+export interface EmailValidationEntry {
+  status:    EmailValidationStatus;
+  isRole:    boolean;
+  protected?: boolean;
+  source:    "local" | "zerobounce";
+  checkedAt: string;
+}
+
 export interface ContactResult {
   company:            string;
   website:            string | null;
   emails:             string[];
   emailsByType:       { department: string[]; generic: string[]; other: string[] };
   emailFormat:        string | null;
-  guessedEmails:      { email: string; name: string; guessed: true }[];
+  guessedEmails:      { email: string; name: string; guessed: true; emailStatus?: string }[];
   phones:             string[];
   address:            string | null;
+  emailValidations:   Record<string, EmailValidationEntry | unknown>;
+  bestEmail:          string | null;
   linkedinCompanyUrl: string;
   linkedinPeopleUrl:  string;
   contactPath:        string | null;
@@ -245,17 +258,19 @@ export async function enrichCompanyContact(
   managerName?: string,
 ): Promise<ContactResult> {
   const result: ContactResult = {
-    company:  companyName,
-    website:  null,
-    emails:   [],
-    emailsByType: { department: [], generic: [], other: [] },
-    emailFormat:  null,
-    guessedEmails:[],
-    phones:   [],
-    address:  null,
+    company:          companyName,
+    website:          null,
+    emails:           [],
+    emailsByType:     { department: [], generic: [], other: [] },
+    emailFormat:      null,
+    guessedEmails:    [],
+    phones:           [],
+    address:          null,
+    emailValidations: {},
+    bestEmail:        null,
     linkedinCompanyUrl: `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(companyName)}`,
     linkedinPeopleUrl:  `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(companyName + " chartering sale purchase")}`,
-    contactPath: null,
+    contactPath:      null,
   };
 
   const candidates = generateDomainCandidates(companyName);

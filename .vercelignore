@@ -1,0 +1,7 @@
+node_modules
+.next
+scraper/data
+worker
+scripts
+*.zip
+*.csv

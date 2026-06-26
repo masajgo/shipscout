@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { SCRAP_MARKETS } from "@/lib/scrapMarkets";
 
 const C = {
@@ -31,28 +31,117 @@ type VesselData = {
 
 type EmailsByType = { department: string[]; generic: string[]; other: string[] };
 
+type EmailStatus = "verified" | "catch-all" | "invalid" | "unchecked" | "syntax_fail" | "no_mx";
+
+type EmailValidationEntry = {
+  status: EmailStatus;
+  isRole: boolean;
+  protected?: boolean;
+  source: string;
+  checkedAt: string;
+};
+
 type ContactResult = {
   company:            string;
   website:            string | null;
   emails:             string[];
   emailsByType:       EmailsByType;
   emailFormat:        string | null;
-  guessedEmails:      { email: string; name: string; guessed: true }[];
+  guessedEmails:      { email: string; name: string; guessed: true; emailStatus?: string }[];
   phones:             string[];
   address:            string | null;
+  emailValidations:   Record<string, EmailValidationEntry> | null;
+  bestEmail:          string | null;
   linkedinCompanyUrl: string;
   linkedinPeopleUrl:  string;
   contactPath:        string | null;
 };
 
-function bestEmail(contact: ContactResult | null, owner: VesselData["owner"] | undefined): string {
+function resolveToEmail(contact: ContactResult | null, owner: VesselData["owner"] | undefined): string {
   if (contact) {
+    if (contact.bestEmail) return contact.bestEmail;
     if (contact.emailsByType?.department?.[0]) return contact.emailsByType.department[0];
     if (contact.emailsByType?.generic?.[0])    return contact.emailsByType.generic[0];
     if (contact.emails?.[0])                   return contact.emails[0];
     if (contact.guessedEmails?.[0])            return contact.guessedEmails[0].email;
   }
   return owner?.email || owner?.managerEmail || "";
+}
+
+// Coloured dot + label for email validation status
+function EmailStatusBadge({ email, validations }: { email: string; validations: ContactResult["emailValidations"] }) {
+  const v = validations?.[email] as EmailValidationEntry | undefined;
+  const status = v?.status ?? "unchecked";
+  const isShielded = v?.protected ?? false;
+
+  const cfg: Record<string, { dot: string; label: string; labelColor: string }> = {
+    "verified":    { dot: "#22c55e", label: "Doğrulandı",                       labelColor: "#22c55e" },
+    "catch-all":   { dot: "#eab308", label: "Catch-all",                        labelColor: "#eab308" },
+    "unchecked":   { dot: "rgba(143,168,178,0.5)", label: isShielded ? "Kurumsal koruma" : "Doğrulanamadı", labelColor: "rgba(143,168,178,0.6)" },
+    "syntax_fail": { dot: "#ef4444", label: "Geçersiz",                         labelColor: "#ef4444" },
+    "no_mx":       { dot: "#ef4444", label: "MX yok",                           labelColor: "#ef4444" },
+    "invalid":     { dot: "#ef4444", label: "Geçersiz",                         labelColor: "#ef4444" },
+  };
+  const { dot, label, labelColor } = cfg[status] ?? cfg["unchecked"];
+
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 3, marginLeft: 5 }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: dot, display: "inline-block", flexShrink: 0 }} />
+      <span style={{ fontSize: 9, color: labelColor, letterSpacing: "0.03em" }}>{label}</span>
+    </span>
+  );
+}
+
+// Guessed email row with lazy ZeroBounce validation on "Doğrula" click
+function GuessedEmailRow({
+  g, imo, validations, onValidated,
+}: {
+  g: { email: string; name: string; guessed: true; emailStatus?: string };
+  imo: string;
+  validations: ContactResult["emailValidations"];
+  onValidated: (email: string, result: EmailValidationEntry) => void;
+}) {
+  const [checking, setChecking] = React.useState(false);
+
+  const currentStatus = (validations?.[g.email] as { status?: string } | undefined)?.status ?? "unchecked";
+  const isDefinitive  = currentStatus === "verified" || currentStatus === "catch-all" || currentStatus === "invalid";
+
+  async function handleValidate(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (checking || isDefinitive) return;
+    setChecking(true);
+    try {
+      const res = await fetch("/api/emails/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: g.email, imo, category: "guessed" }),
+      });
+      const data = await res.json() as EmailValidationEntry & { status?: string };
+      if (data.status) onValidated(g.email, data as EmailValidationEntry);
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  return (
+    <div style={{ padding: "7px 0", borderBottom: "1px solid rgba(143,168,178,0.08)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 10, color: C.steel, fontStyle: "italic" }}>Est. {g.name}</span>
+        <span style={{ fontSize: 8, fontWeight: 700, color: "#fff", background: "#FB923C", borderRadius: 3, padding: "1px 4px", letterSpacing: "0.04em" }}>TAHMİNİ</span>
+        <EmailStatusBadge email={g.email} validations={validations} />
+        {!isDefinitive && (
+          <button
+            onClick={handleValidate}
+            disabled={checking}
+            style={{ fontSize: 8, color: checking ? C.steel : "#60A5FA", background: "none", border: "none", cursor: checking ? "default" : "pointer", padding: 0, fontFamily: "monospace" }}
+          >
+            {checking ? "doğrulanıyor…" : "Doğrula →"}
+          </button>
+        )}
+      </div>
+      <div style={{ fontSize: 11, fontFamily: "monospace", color: "rgba(232,240,243,0.55)", wordBreak: "break-all", fontStyle: "italic" }}>{g.email}</div>
+    </div>
+  );
 }
 
 function ScoreRing({ score }: { score: number }) {
@@ -117,6 +206,7 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
   const [watching,       setWatching]       = useState(false);
   const [photoOk,        setPhotoOk]        = useState(true);
   const [triedFallback,  setTriedFallback]  = useState(false);
+  const [licensedPhoto,  setLicensedPhoto]  = useState<{ thumb: string; attribution: string; pageUrl: string; licenseUrl: string } | null>(null);
 
   // Load Datalastic vessel data
   useEffect(() => {
@@ -124,7 +214,7 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
     setLoading(true); setError(null);
     setEmailDraft(false); setEmailBody("");
     setCrmAdded(false); setWatching(false);
-    setPhotoOk(true); setTriedFallback(false);
+    setPhotoOk(true); setTriedFallback(false); setLicensedPhoto(null);
 
     fetch(`/api/vessel/${imo}`)
       .then(r => r.json())
@@ -135,6 +225,18 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
       })
       .catch(() => { setError("Network error"); setLoading(false); });
   }, [imo]);
+
+  // Fetch licensed photo (Wikimedia/Flickr) once vessel name is known
+  useEffect(() => {
+    const vesselName = data?.particulars?.name;
+    if (!vesselName || !imo) return;
+    fetch(`/api/vessel-photo?imo=${encodeURIComponent(imo)}&name=${encodeURIComponent(vesselName)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.found && d.thumb) setLicensedPhoto({ thumb: d.thumb, attribution: d.attribution, pageUrl: d.pageUrl, licenseUrl: d.licenseUrl });
+      })
+      .catch(() => {});
+  }, [imo, data?.particulars?.name]);
 
   // Load contact enrichment using MMSI (available after vessel data loads)
   useEffect(() => {
@@ -158,7 +260,7 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  const toEmail = data ? bestEmail(contact, data.owner) : "";
+  const toEmail = data ? resolveToEmail(contact, data.owner) : "";
 
   const offerMailto = () => {
     if (!data) return;
@@ -225,10 +327,10 @@ ShipScout — Maritime Intelligence`;
         const vesselName = data?.particulars?.name || `IMO ${imo}`;
         const vesselType = (data?.particulars?.type || "").toLowerCase();
 
-        // Priority 1: Blob-stored photo from DB (via API)
-        // Priority 2: vessel-tracker.com direct pattern
+        // Priority 1: Licensed photo (Wikimedia/Flickr) — fully attributed
+        // Priority 2: DB photo_url or vessel-tracker.com fallback
         // Priority 3: type-based colored placeholder
-        const dbPhoto    = (data as any)?.photoUrl ?? null;
+        const dbPhoto     = (data as any)?.photoUrl ?? null;
         const fallbackUrl = `https://photos.vessel-tracker.com/shipImages/${imo}.jpg`;
 
         const placeholderBg =
@@ -244,6 +346,38 @@ ShipScout — Maritime Intelligence`;
           vesselType.includes("passenger") || vesselType.includes("cruise") ? "🚢" :
           vesselType.includes("offshore")  ? "⚙️" :
           "⚓";
+
+        // Use licensed photo if available
+        if (licensedPhoto) {
+          return (
+            <div style={{ position: "relative", width: "100%", height: "170px", overflow: "hidden" }}>
+              <img
+                src={licensedPhoto.thumb}
+                alt={vesselName}
+                onError={() => setLicensedPhoto(null)}
+                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              />
+              {/* Vessel name gradient overlay */}
+              <div style={{
+                position: "absolute", bottom: 0, left: 0, right: 0,
+                background: "linear-gradient(transparent, rgba(0,0,0,0.75))",
+                padding: "20px 10px 6px",
+              }}>
+                <div style={{ color: "white", fontSize: 13, fontWeight: 600 }}>{vesselName}</div>
+                {/* Mandatory attribution */}
+                <a
+                  href={licensedPhoto.pageUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ display: "block", fontSize: 8, color: "rgba(255,255,255,0.6)", textDecoration: "none", marginTop: 2, lineHeight: 1.3 }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  {licensedPhoto.attribution}
+                </a>
+              </div>
+            </div>
+          );
+        }
 
         const photoSrc = dbPhoto || (!triedFallback ? fallbackUrl : null);
 
@@ -266,7 +400,7 @@ ShipScout — Maritime Intelligence`;
                 alt={vesselName}
                 onError={() => {
                   if (!triedFallback && !dbPhoto) {
-                    setTriedFallback(true); // will try fallback already shown, mark done
+                    setTriedFallback(true);
                   } else {
                     setPhotoOk(false);
                   }
@@ -278,15 +412,29 @@ ShipScout — Maritime Intelligence`;
           );
         }
 
-        // Placeholder
+        // SVG silüet placeholder — asla başka geminin fotosu değil
+        const silhouettePath = vesselType.includes("tanker")
+          ? "M20 70 L30 55 L50 50 L370 50 L390 60 L400 70 Z M60 50 L65 35 L75 35 L75 50 Z M80 50 L80 30 L120 30 L120 50 Z"
+          : vesselType.includes("container")
+          ? "M15 70 L25 48 L60 44 L340 44 L370 48 L405 70 Z M65 44 L65 28 L110 28 L110 44 Z M120 44 L120 24 L200 24 L200 44 Z M210 44 L210 28 L290 28 L290 44 Z"
+          : vesselType.includes("passenger") || vesselType.includes("cruise")
+          ? "M30 70 L40 45 L80 35 L340 35 L380 45 L390 70 Z M85 35 L85 20 L150 20 L150 35 Z M160 35 L160 15 L250 15 L250 35 Z M260 35 L260 20 L330 20 L330 35 Z"
+          : "M20 70 L35 52 L65 46 L355 46 L385 52 L400 70 Z M70 46 L72 32 L88 32 L90 46 Z M95 46 L95 28 L145 28 L145 46 Z";
+
         return (
           <div style={{
             position: "relative", width: "100%", height: "130px",
-            background: placeholderBg,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 40,
+            background: placeholderBg, overflow: "hidden",
           }}>
-            {placeholderIcon}
+            <svg
+              viewBox="0 0 420 100"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{ position: "absolute", bottom: 20, left: 0, width: "100%", opacity: 0.18 }}
+            >
+              <path d={silhouettePath} fill="rgba(143,168,178,0.9)" />
+              {/* water line */}
+              <rect x="0" y="70" width="420" height="4" fill="rgba(108,184,230,0.3)" rx="1" />
+            </svg>
             {overlay}
           </div>
         );
@@ -417,47 +565,60 @@ ShipScout — Maritime Intelligence`;
                   <Row label="Website" value={contact.website} mono />
                 )}
 
-                {/* Layer 1: Department emails — red S&P badge */}
+                {/* Layer 1: Department emails — S&P badge + validation dot */}
                 {contact.emailsByType.department.map(e => (
                   <div key={e} style={{ padding: "7px 0", borderBottom: "1px solid rgba(143,168,178,0.08)" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 10, color: C.steel }}>S&P / Chartering</span>
                       <span style={{ fontSize: 8, fontWeight: 700, color: "#fff", background: C.red, borderRadius: 3, padding: "1px 4px", letterSpacing: "0.04em" }}>S&P</span>
+                      <EmailStatusBadge email={e} validations={contact.emailValidations} />
                     </div>
                     <div style={{ fontSize: 11, fontFamily: "monospace", color: C.fg, wordBreak: "break-all" }}>{e}</div>
                   </div>
                 ))}
 
-                {/* Layer 2: Generic emails — gray badge */}
+                {/* Layer 2: Generic emails — gray badge + validation dot */}
                 {contact.emailsByType.department.length === 0 &&
                   contact.emailsByType.generic.slice(0, 2).map(e => (
                     <div key={e} style={{ padding: "7px 0", borderBottom: "1px solid rgba(143,168,178,0.08)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 10, color: C.steel }}>Genel</span>
                         <span style={{ fontSize: 8, fontWeight: 700, color: C.steel, background: "rgba(143,168,178,0.15)", borderRadius: 3, padding: "1px 4px", letterSpacing: "0.04em" }}>GENEL</span>
+                        <EmailStatusBadge email={e} validations={contact.emailValidations} />
                       </div>
                       <div style={{ fontSize: 11, fontFamily: "monospace", color: C.fg, wordBreak: "break-all" }}>{e}</div>
                     </div>
                   ))
                 }
 
-                {/* Layer 3: Other named emails (max 2) */}
+                {/* Layer 3: Other named emails (max 2) + validation dot */}
                 {contact.emailsByType.department.length === 0 &&
                   contact.emailsByType.generic.length === 0 &&
                   contact.emailsByType.other.slice(0, 2).map(e => (
-                    <EmailBadge key={e} label="Email" email={e} />
+                    <div key={e} style={{ padding: "7px 0", borderBottom: "1px solid rgba(143,168,178,0.08)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                        <span style={{ fontSize: 10, color: C.steel }}>Email</span>
+                        <EmailStatusBadge email={e} validations={contact.emailValidations} />
+                      </div>
+                      <div style={{ fontSize: 11, fontFamily: "monospace", color: C.fg, wordBreak: "break-all" }}>{e}</div>
+                    </div>
                   ))
                 }
 
-                {/* Layer 4: Guessed personal email — italic + orange TAHMİNİ badge */}
+                {/* Layer 4: Guessed personal email — TAHMİNİ badge + lazy ZeroBounce on click */}
                 {contact.guessedEmails.map(g => (
-                  <div key={g.email} style={{ padding: "7px 0", borderBottom: "1px solid rgba(143,168,178,0.08)" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                      <span style={{ fontSize: 10, color: C.steel, fontStyle: "italic" }}>Est. {g.name}</span>
-                      <span style={{ fontSize: 8, fontWeight: 700, color: "#fff", background: "#FB923C", borderRadius: 3, padding: "1px 4px", letterSpacing: "0.04em" }}>TAHMİNİ</span>
-                    </div>
-                    <div style={{ fontSize: 11, fontFamily: "monospace", color: "rgba(232,240,243,0.55)", wordBreak: "break-all", fontStyle: "italic" }}>{g.email}</div>
-                  </div>
+                  <GuessedEmailRow
+                    key={g.email}
+                    g={g}
+                    imo={imo}
+                    validations={contact.emailValidations}
+                    onValidated={(email, result) =>
+                      setContact(prev => prev ? {
+                        ...prev,
+                        emailValidations: { ...(prev.emailValidations ?? {}), [email]: result },
+                      } : prev)
+                    }
+                  />
                 ))}
 
                 {/* Phone */}

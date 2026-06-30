@@ -4,6 +4,9 @@ import { scoreFromAge } from "@/lib/scoring";
 import { SCRAP_MARKETS } from "@/lib/scrapMarkets";
 import pool              from "@/lib/db";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 const API_KEY = process.env.DATALASTIC_API_KEY;
 const BASE    = "https://api.datalastic.com/api/v0";
 
@@ -86,10 +89,17 @@ async function fetchSPListings(): Promise<Record<string, any>> {
 export async function GET() {
   const year = new Date().getFullYear();
 
-  const [grsVessels, spDetails] = await Promise.all([
-    fetchGRSVessels(),
-    fetchSPListings(),
-  ]);
+  let grsVessels: any[] = [];
+  let spDetails: Record<string, any> = {};
+  try {
+    [grsVessels, spDetails] = await Promise.all([
+      fetchGRSVessels(),
+      fetchSPListings(),
+    ]);
+  } catch (e: unknown) {
+    console.error("[snp] data fetch failed", e);
+    // continue with empty — hardcoded listings still render
+  }
 
   // Merge GRS vessel data with sp_listings details
   const grsListings = grsVessels.map((v: any) => {
@@ -143,7 +153,12 @@ export async function GET() {
   // Datalastic listings
   let datalasticListings: any[] = [];
   if (API_KEY) {
-    const results = await Promise.all(TRACKED_IMOS.map(fetchVessel));
+    let results: any[] = [];
+    try {
+      results = await Promise.all(TRACKED_IMOS.map(fetchVessel));
+    } catch (e: unknown) {
+      console.error("[snp] datalastic fetch failed", e);
+    }
     datalasticListings = results
       .map((d, i) => {
         if (!d) return null;

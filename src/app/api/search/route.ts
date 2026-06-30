@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 // GET /api/search?q=<term>&limit=20
 //
 // Resolution order:

@@ -3,21 +3,24 @@
 /**
  * vesselPhotoFinder.js
  *
- * Wikimedia Commons'tan lisanslı gemi fotoğrafı bulur, vessels tablosuna yazar.
- * Sadece ticari kullanıma uygun CC lisansları (CC0, CC-BY*, CC-BY-SA*, PD) kabul edilir.
- * Flickr desteği ileride photo_source='flickr' ile eklenecek.
+ * Wikimedia Commons'tan gemi başına en fazla 3 lisanslı fotoğraf bulur.
+ * vessel_photos tablosuna yazar (is_primary = ilk/en güvenilir foto).
+ * vessels.photo_* sütunları geriye dönük uyumluluk için güncellenir.
+ *
+ * Lisans filtresi: CC0, CC-BY*, CC-BY-SA*, Public Domain — NC/ND reddedilir.
+ * Güven filtresi : high (IMO dosyada) | medium (tam isim word-boundary + bağlam)
  *
  * Usage:
- *   node vesselPhotoFinder.js --test          # 8 karışık gemide test
- *   node vesselPhotoFinder.js --imo 9811000   # tek gemi (DB'den adı çeker)
- *   node vesselPhotoFinder.js                 # DB'deki foto eksik gemileri tara
+ *   node scraper/vesselPhotoFinder.js --test           # 8 gemide test (DB'ye yazmaz)
+ *   node scraper/vesselPhotoFinder.js --imo 9811000    # tek gemi
+ *   node scraper/vesselPhotoFinder.js                  # batch 50 (top scrap_score)
  */
 
 const fs   = require("fs");
 const path = require("path");
 const { Pool } = require("pg");
 
-// ─── Env ───────────────────────────────────────────────────────────────────────
+// ─── Env ──────────────────────────────────────────────────────────────────────
 
 const ENV_PATH = path.join(__dirname, "../.env.local");
 if (fs.existsSync(ENV_PATH)) {
@@ -27,28 +30,25 @@ if (fs.existsSync(ENV_PATH)) {
   }
 }
 
-// ─── DB ────────────────────────────────────────────────────────────────────────
-
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
-// ─── Config ────────────────────────────────────────────────────────────────────
+// ─── Config ───────────────────────────────────────────────────────────────────
 
-const API_BASE = "https://commons.wikimedia.org/w/api.php";
-const UA       = "ShipScout/1.0 (https://shipscout.io contact@shipscout.io)";
-const TIMEOUT  = 10_000;
+const API_BASE  = "https://commons.wikimedia.org/w/api.php";
+const UA        = "ShipScout/1.0 (https://shipscout.io contact@shipscout.io)";
+const TIMEOUT   = 12_000;
+const MAX_PHOTOS = 3;     // gemi başına max fotoğraf
+const RESULTS_PER_QUERY = 10; // her Wikimedia sorgusunda kaç sonuç
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// ─── HTTP ──────────────────────────────────────────────────────────────────────
+// ─── HTTP ─────────────────────────────────────────────────────────────────────
 
 async function apiFetch(url) {
   const ctrl  = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT);
   try {
-    const r = await fetch(url, {
-      headers: { "User-Agent": UA },
-      signal:  ctrl.signal,
-    });
+    const r = await fetch(url, { headers: { "User-Agent": UA }, signal: ctrl.signal });
     if (!r.ok) return null;
     return await r.json();
   } catch {
@@ -58,22 +58,19 @@ async function apiFetch(url) {
   }
 }
 
-// ─── License filter ────────────────────────────────────────────────────────────
+// ─── License filter ───────────────────────────────────────────────────────────
 
-// NC veya ND içeren her şeyi reddet (ticari kullanım yasak)
 const FORBIDDEN_RE = /\b(nc|nd|non.?commercial|no.?deriv|all.?rights.?reserved)\b/i;
-
-// Kabul edilen lisans desenleri
-const ALLOWED_RE = /^(cc[ -]?0|cc[ -]?by(?![ -]?(nc|nd))|public[ -]?domain|pd\b|government[ -]?work|no[ -]?known[ -]?copyright|unrestricted)/i;
+const ALLOWED_RE   = /^(cc[ -]?0|cc[ -]?by(?![ -]?(nc|nd))|public[ -]?domain|pd\b|government[ -]?work|no[ -]?known[ -]?copyright|unrestricted)/i;
 
 function isCommercialOk(license) {
-  if (!license || typeof license !== "string") return false;
+  if (!license) return false;
   const l = license.trim();
   if (FORBIDDEN_RE.test(l)) return false;
   return ALLOWED_RE.test(l);
 }
 
-// ─── HTML strip ────────────────────────────────────────────────────────────────
+// ─── HTML strip ───────────────────────────────────────────────────────────────
 
 function stripHtml(html) {
   if (!html) return "";
@@ -81,97 +78,111 @@ function stripHtml(html) {
     .replace(/<[^>]+>/g, " ")
     .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"').replace(/&#\d+;/g, "").replace(/&[a-z]+;/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 200);
+    .replace(/\s+/g, " ").trim().slice(0, 200);
 }
 
-// ─── Match confidence ──────────────────────────────────────────────────────────
+// ─── Match confidence ─────────────────────────────────────────────────────────
+
+// Kısa/yaygın isimler — sadece IMO doğrulamasıyla kabul edilir.
+const AMBIGUOUS_NAMES = new Set([
+  "star","ocean","sea","sun","moon","wind","storm","wave","bay","cape",
+  "atlas","titan","corona","solana","sitka","oster","hermes","columbia",
+  "apollo","diana","venus","mars","saturn","neptune","mercury","jupiter",
+  "phoenix","eagle","hawk","falcon","condor","pelican","delaware","holland",
+  "natoma","hector","elbe","expedition","koral",
+]);
 
 /**
- * Dosya başlığı/açıklaması ile gemi adı+IMO eşleşmesini değerlendirir.
- *
- * "high"   → IMO numarası dosya adında veya açıklamada geçiyor
- * "medium" → Tam gemi adı (≥5 karakter) dosya adında net eşleşiyor
- * "none"   → Eşleşme yok → FOTO EKLENMEZ
+ * "high"   → IMO numarası dosya adı/açıklamasında bulundu
+ * "medium" → Tam gemi adı (≥5 karakter) word-boundary ile eşleşti,
+ *            ambiguous listede değil, gemi bağlamı var
+ * "none"   → kabul edilmez
  */
 function matchConfidence(vesselName, imo, fileTitle, imageDescription) {
-  const imoStr   = String(imo);
-  const title    = (fileTitle        || "").toLowerCase();
-  const desc     = (imageDescription || "").toLowerCase();
+  const imoStr = String(imo);
+  const title  = (fileTitle        || "").toLowerCase();
+  const desc   = (imageDescription || "").toLowerCase();
 
-  // IMO doğrulaması → high confidence
+  // IMO doğrulama → high
   if (
     title.includes(`imo ${imoStr}`) || desc.includes(`imo ${imoStr}`) ||
     title.includes(`imo_${imoStr}`) || desc.includes(`imo_${imoStr}`) ||
-    // bazı Commons dosyalarında sadece IMO numarası geçer
     new RegExp(`\\b${imoStr}\\b`).test(title) ||
     new RegExp(`\\b${imoStr}\\b`).test(desc)
-  ) {
-    return "high";
-  }
+  ) return "high";
 
-  // Gemi adı eşleşmesi — kısa/generic adlarda (≤4 karakter) only-IMO kuralı
-  const normName = vesselName
-    .toLowerCase()
-    .replace(/[^a-z0-9 ]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const normName = vesselName.toLowerCase()
+    .replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 
-  if (normName.length < 5) return "none"; // çok kısa isim, IMO olmadan kabul etme
+  if (normName.length < 5) return "none";
+  if (!normName.includes(" ") && AMBIGUOUS_NAMES.has(normName)) return "none";
 
   const normTitle = title.replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ");
+  const wbRe = new RegExp(
+    `(?<![a-z0-9])${normName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![a-z0-9])`
+  );
+  if (!wbRe.test(normTitle)) return "none";
 
-  if (normTitle.includes(normName)) return "medium";
+  // Kısa tek kelime + gemi bağlamı yok → şüpheli
+  const hasCtx = /\b(ship|vessel|tanker|bulk|container|cargo|ferry|tug|dredger|freighter|mv |ms )\b/.test(
+    title + " " + desc
+  );
+  if (normName.length <= 7 && !normName.includes(" ") && !hasCtx) return "none";
 
-  return "none";
+  return "medium";
 }
 
-// ─── Wikimedia Commons search ──────────────────────────────────────────────────
+// ─── Wikimedia Commons — up to MAX_PHOTOS per vessel ─────────────────────────
 
 /**
- * Birden fazla arama stratejisi dener.
- * İlk geçerli, lisanslı, eşleşen fotoğrafı döndürür.
- * Hiçbiri bulunamazsa null döner.
+ * Gemi başına en fazla MAX_PHOTOS fotoğraf döndürür.
+ * Tüm fotoğraflar aynı doğrulama filtresinden geçer.
+ * high confidence fotoğraflar önce sıralanır.
+ *
+ * @returns {Array} photos — boş olabilir
  */
-async function findWikimediaPhoto(vesselName, imo) {
+async function findWikimediaPhotos(vesselName, imo) {
   const imoStr = String(imo);
-
-  // Sıralı sorgular: IMO önce (unique), sonra isimli
   const queries = [
     `"IMO ${imoStr}"`,
     `"IMO_${imoStr}"`,
     `${vesselName} ship`,
   ];
 
+  const collected = [];
+  const seenUrls  = new Set();
+
   for (const q of queries) {
+    if (collected.length >= MAX_PHOTOS) break;
+
     const url =
       `${API_BASE}?action=query` +
       `&generator=search` +
       `&gsrsearch=${encodeURIComponent(q)}` +
-      `&gsrnamespace=6` +   // sadece File: sayfaları
-      `&gsrlimit=5` +
+      `&gsrnamespace=6` +
+      `&gsrlimit=${RESULTS_PER_QUERY}` +
       `&prop=imageinfo` +
       `&iiprop=url%7Cextmetadata%7Csize` +
       `&iiurlwidth=800` +
       `&format=json&origin=*`;
 
     const data = await apiFetch(url);
-    await sleep(600); // ~1-2 req/sn
+    await sleep(700);
 
     const pages = data?.query?.pages;
     if (!pages) continue;
 
     for (const page of Object.values(pages)) {
+      if (collected.length >= MAX_PHOTOS) break;
+
       const fileTitle = (page.title || "").replace(/^File:/, "");
       const ii        = page.imageinfo?.[0];
       if (!ii) continue;
 
-      const url      = ii.url      || "";
-      const thumbUrl = ii.thumburl || url;
-
-      // Sadece görüntü dosyaları (SVG/PDF/OGG reddedilir)
-      if (!/\.(jpe?g|png|webp)$/i.test(url)) continue;
+      const imgUrl   = ii.url      || "";
+      const thumbUrl = ii.thumburl || imgUrl;
+      if (!/\.(jpe?g|png|webp)$/i.test(imgUrl)) continue;
+      if (seenUrls.has(imgUrl)) continue;
 
       const meta       = ii.extmetadata || {};
       const license    = meta.LicenseShortName?.value || meta.License?.value || "";
@@ -179,18 +190,15 @@ async function findWikimediaPhoto(vesselName, imo) {
       const artistRaw  = meta.Artist?.value || meta.Credit?.value || "Unknown";
       const artist     = stripHtml(artistRaw);
       const desc       = stripHtml(meta.ImageDescription?.value || "");
-      const copyrighted = (meta.Copyrighted?.value || "").toLowerCase();
 
-      // Açıkça telif hakkı var + ticari lisans da yoksa reddet
-      if (copyrighted === "true" && !isCommercialOk(license)) continue;
       if (!isCommercialOk(license)) continue;
 
-      // Gemi eşleşme kontrolü — yanlış gemi fotosunu engelle
       const conf = matchConfidence(vesselName, imo, page.title + " " + fileTitle, desc);
       if (conf === "none") continue;
 
-      return {
-        url,
+      seenUrls.add(imgUrl);
+      collected.push({
+        url:         imgUrl,
         thumb:       thumbUrl,
         artist,
         license,
@@ -199,177 +207,196 @@ async function findWikimediaPhoto(vesselName, imo) {
         pageUrl:     `https://commons.wikimedia.org/wiki/${encodeURIComponent(page.title || "")}`,
         attribution: `© ${artist} / ${license}`,
         confidence:  conf,
-      };
+      });
     }
   }
 
-  return null;
+  // high confidence önce
+  collected.sort((a, b) =>
+    (a.confidence === "high" ? 0 : 1) - (b.confidence === "high" ? 0 : 1)
+  );
+
+  return collected;
 }
 
-// ─── DB migration ──────────────────────────────────────────────────────────────
+// ─── DB migration ─────────────────────────────────────────────────────────────
 
 async function runMigration() {
-  // Eski kolonları koru, yenileri ekle, Flickr için şema hazır
+  // vessel_photos tablosu zaten migrate_vessel_photos.sql ile kuruldu.
+  // Burada sadece vessels'daki eski kolonların varlığını garantile.
   await pool.query(`
     ALTER TABLE vessels
-      ADD COLUMN IF NOT EXISTS photo_thumb           text,
-      ADD COLUMN IF NOT EXISTS photo_artist          text,
-      ADD COLUMN IF NOT EXISTS photo_license         text,
-      ADD COLUMN IF NOT EXISTS photo_license_url     text,
-      ADD COLUMN IF NOT EXISTS photo_source          text,
+      ADD COLUMN IF NOT EXISTS photo_checked_at  timestamptz,
+      ADD COLUMN IF NOT EXISTS photo_thumb        text,
+      ADD COLUMN IF NOT EXISTS photo_artist       text,
+      ADD COLUMN IF NOT EXISTS photo_license      text,
+      ADD COLUMN IF NOT EXISTS photo_license_url  text,
+      ADD COLUMN IF NOT EXISTS photo_source       text,
       ADD COLUMN IF NOT EXISTS photo_match_confidence text,
-      ADD COLUMN IF NOT EXISTS photo_fetched_at      timestamptz;
-  `);
-  // Eski kolon adlarını migrate et (varsa)
-  await pool.query(`
-    DO $$
-    BEGIN
-      IF EXISTS (SELECT 1 FROM information_schema.columns
-                 WHERE table_name='vessels' AND column_name='photo_confidence')
-         AND NOT EXISTS (SELECT 1 FROM information_schema.columns
-                         WHERE table_name='vessels' AND column_name='photo_match_confidence')
-      THEN
-        ALTER TABLE vessels RENAME COLUMN photo_confidence TO photo_match_confidence;
-      END IF;
-    END $$;
+      ADD COLUMN IF NOT EXISTS photo_fetched_at   timestamptz;
   `);
 }
 
-// ─── DB write ──────────────────────────────────────────────────────────────────
+// ─── DB writes ────────────────────────────────────────────────────────────────
 
-async function savePhoto(imo, photo) {
+/**
+ * Fotoğrafları vessel_photos tablosuna yazar.
+ * İlk foto = is_primary (en yüksek confidence).
+ * vessels.photo_* backward-compat için güncellenir.
+ */
+async function savePhotos(imo, photos) {
+  // vessels → taranan olarak işaretle
+  await pool.query(
+    "UPDATE vessels SET photo_checked_at = NOW() WHERE imo = $1::bigint",
+    [imo]
+  );
+
+  if (!photos.length) return;
+
+  // Önce bu gemi için eski primary işaretini kaldır
+  await pool.query(
+    "UPDATE vessel_photos SET is_primary = false WHERE imo = $1",
+    [String(imo)]
+  );
+
+  for (let i = 0; i < photos.length; i++) {
+    const p = photos[i];
+    const isPrimary = i === 0;
+
+    await pool.query(
+      `INSERT INTO vessel_photos
+         (imo, photo_url, photo_thumb, artist, license, license_url,
+          match_confidence, source, page_url, attribution, is_primary)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+       ON CONFLICT (imo, photo_url) DO UPDATE SET
+         is_primary       = EXCLUDED.is_primary,
+         artist           = EXCLUDED.artist,
+         license          = EXCLUDED.license,
+         match_confidence = EXCLUDED.match_confidence`,
+      [
+        String(imo), p.url, p.thumb, p.artist, p.license,
+        p.licenseUrl, p.confidence, p.source, p.pageUrl, p.attribution, isPrimary,
+      ]
+    );
+  }
+
+  // Primary fotoyu vessels'a da yaz (backward compat — API/VesselPanel okur)
+  const primary = photos[0];
   await pool.query(
     `UPDATE vessels SET
-       photo_url             = $2,
-       photo_thumb           = $3,
-       photo_artist          = $4,
-       photo_license         = $5,
-       photo_license_url     = $6,
-       photo_source          = $7,
-       photo_match_confidence= $8,
-       photo_fetched_at      = NOW(),
-       licensed_photo        = $9::jsonb
+       photo_url              = $2,
+       photo_thumb            = $3,
+       photo_artist           = $4,
+       photo_license          = $5,
+       photo_license_url      = $6,
+       photo_source           = $7,
+       photo_match_confidence = $8,
+       photo_fetched_at       = NOW(),
+       licensed_photo         = $9::jsonb
      WHERE imo = $1::bigint`,
     [
       imo,
-      photo.url,
-      photo.thumb,
-      photo.artist,
-      photo.license,
-      photo.licenseUrl,
-      photo.source,
-      photo.confidence,
+      primary.url,
+      primary.thumb,
+      primary.artist,
+      primary.license,
+      primary.licenseUrl,
+      primary.source,
+      primary.confidence,
       JSON.stringify({
-        url:         photo.url,
-        thumb:       photo.thumb,
-        license:     photo.license,
-        licenseUrl:  photo.licenseUrl,
-        author:      photo.artist,
-        source:      photo.source,
-        pageUrl:     photo.pageUrl,
-        attribution: photo.attribution,
+        url:         primary.url,
+        thumb:       primary.thumb,
+        license:     primary.license,
+        licenseUrl:  primary.licenseUrl,
+        author:      primary.artist,
+        source:      primary.source,
+        pageUrl:     primary.pageUrl,
+        attribution: primary.attribution,
         cachedAt:    new Date().toISOString(),
       }),
-    ],
+    ]
   );
 }
 
-// ─── Single vessel enrichment ──────────────────────────────────────────────────
+// ─── Single vessel enrichment ─────────────────────────────────────────────────
 
-async function enrichVessel(vesselName, imo, { verbose = true } = {}) {
+async function enrichVessel(vesselName, imo, { verbose = true, save = true } = {}) {
   if (verbose) process.stdout.write(`  "${vesselName}" (IMO ${imo}) … `);
 
-  const photo = await findWikimediaPhoto(vesselName, String(imo));
+  const photos = await findWikimediaPhotos(vesselName, String(imo));
 
-  if (!photo) {
+  if (!photos.length) {
     if (verbose) console.log("foto bulunamadı");
-    return null;
+    if (save) await pool.query(
+      "UPDATE vessels SET photo_checked_at = NOW() WHERE imo = $1::bigint", [imo]
+    );
+    return [];
   }
 
   if (verbose) {
-    console.log(`✓ ${photo.confidence}`);
-    console.log(`    Lisans:  ${photo.license}`);
-    console.log(`    Atıf:    ${photo.attribution}`);
-    console.log(`    Thumb:   ${photo.thumb}`);
-    console.log(`    Sayfa:   ${photo.pageUrl}`);
+    console.log(`✓ ${photos.length} foto`);
+    photos.forEach((p, i) => {
+      const marker = i === 0 ? "★ " : "  ";
+      console.log(`    ${marker}[${p.confidence}] ${p.license} — ${p.artist.slice(0, 40)}`);
+      console.log(`       ${p.thumb.slice(0, 80)}`);
+    });
   }
 
-  return photo;
+  if (save) await savePhotos(imo, photos);
+
+  return photos;
 }
 
-// ─── Test mode ─────────────────────────────────────────────────────────────────
+// ─── Test mode ────────────────────────────────────────────────────────────────
 
 async function runTests() {
-  // 3 büyük konteyner, 2 tanker, 3 küçük/eski
   const TEST_VESSELS = [
-    // Büyük konteynerler
-    { name: "MSC OSCAR",             imo: "9703291", cat: "container" },
-    { name: "EVER GIVEN",            imo: "9811000", cat: "container" },
-    { name: "EMMA MAERSK",           imo: "9321483", cat: "container" },
-    // Tankerler
-    { name: "FRONT ALTAIR",          imo: "9390175", cat: "tanker"    },
-    { name: "Jahre VIKING",          imo: "7381154", cat: "tanker"    },
-    // Küçük/eski
-    { name: "MV DOULOS",             imo: "5097844", cat: "old"       },
-    { name: "PACIFIC STAR",          imo: "9108930", cat: "generic"   },
-    { name: "SEAWISE GIANT",         imo: "7381154", cat: "old"       },
+    { name: "MSC OSCAR",   imo: "9703291" },
+    { name: "EVER GIVEN",  imo: "9811000" },
+    { name: "EMMA MAERSK", imo: "9321483" },
+    { name: "TARMO",       imo: "5352886" },
+    { name: "CARNIVAL SPLENDOR", imo: "9333163" },
   ];
 
-  console.log("\n=== Wikimedia Commons Photo Finder — Test (8 gemi) ===\n");
+  console.log("\n=== vesselPhotoFinder — Test (DB'ye yazmaz) ===\n");
 
-  let found = 0, notFound = 0;
-  const results = [];
-
+  let totalFound = 0;
   for (const v of TEST_VESSELS) {
-    console.log(`[${v.cat.toUpperCase()}] ${v.name}`);
-    const photo = await enrichVessel(v.name, v.imo);
-    if (photo) { found++; results.push({ ...v, photo }); }
-    else        { notFound++; results.push({ ...v, photo: null }); }
+    const photos = await enrichVessel(v.name, v.imo, { verbose: true, save: false });
+    totalFound += photos.length;
     console.log();
-    await sleep(800);
+    await sleep(500);
   }
 
-  console.log("─".repeat(55));
-  console.log(`Toplam: ${found}/${TEST_VESSELS.length} gemide foto bulundu\n`);
-
-  console.log("Özet:");
-  for (const r of results) {
-    const status = r.photo
-      ? `✓ ${r.photo.confidence.padEnd(6)} | ${r.photo.license}`
-      : "✗ bulunamadı";
-    console.log(`  ${r.name.padEnd(30)} ${status}`);
-  }
-  console.log();
+  console.log(`Toplam: ${totalFound} foto, ${TEST_VESSELS.length} gemide`);
 }
 
-// ─── Batch mode ────────────────────────────────────────────────────────────────
+// ─── Batch mode ───────────────────────────────────────────────────────────────
 
 async function batchEnrich({ limit = 50 } = {}) {
   const { rows } = await pool.query(
-    `SELECT imo, name FROM vessels
-     WHERE name IS NOT NULL
-       AND (photo_url IS NULL
-            OR photo_fetched_at IS NULL
-            OR photo_fetched_at < NOW() - INTERVAL '30 days')
-     ORDER BY scrap_score DESC NULLS LAST
+    `SELECT v.imo, v.name FROM vessels v
+     WHERE v.name IS NOT NULL
+       AND v.photo_checked_at IS NULL
+     ORDER BY v.scrap_score DESC NULLS LAST
      LIMIT $1`,
-    [limit],
+    [limit]
   );
 
   console.log(`\n${rows.length} gemi taranacak…\n`);
   let found = 0, notFound = 0;
 
   for (const { imo, name } of rows) {
-    const photo = await enrichVessel(name, imo);
-    if (photo) { await savePhoto(imo, photo); found++; }
-    else        { notFound++; }
-    await sleep(700);
+    const photos = await enrichVessel(name, imo);
+    if (photos.length) found += photos.length;
+    else notFound++;
+    await sleep(800);
   }
 
-  console.log(`\nTamamlandı: ${found} foto kaydedildi, ${notFound} bulunamadı`);
+  console.log(`\nTamamlandı: ${found} foto kaydedildi, ${notFound} gemide bulunamadı`);
 }
 
-// ─── CLI ───────────────────────────────────────────────────────────────────────
+// ─── CLI ──────────────────────────────────────────────────────────────────────
 
 (async () => {
   const args = process.argv.slice(2);
@@ -389,19 +416,17 @@ async function batchEnrich({ limit = 50 } = {}) {
     if (!imo) { console.error("--imo değeri eksik"); process.exit(1); }
 
     const { rows } = await pool.query(
-      "SELECT name FROM vessels WHERE imo = $1::bigint LIMIT 1",
-      [imo],
+      "SELECT name FROM vessels WHERE imo = $1::bigint LIMIT 1", [imo]
     );
     const name = rows[0]?.name;
     if (!name) { console.error(`IMO ${imo} DB'de bulunamadı`); process.exit(1); }
 
-    const photo = await enrichVessel(name, imo);
-    if (photo) { await savePhoto(imo, photo); console.log("DB'ye kaydedildi."); }
+    const photos = await enrichVessel(name, imo);
+    console.log(`\n${photos.length} foto kaydedildi.`);
     await pool.end();
     return;
   }
 
-  // Varsayılan: batch
   await batchEnrich({ limit: 50 });
   await pool.end();
 })().catch(e => {

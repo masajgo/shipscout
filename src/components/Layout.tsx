@@ -2,7 +2,6 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { SCRAP_MARKETS } from "@/lib/scrapMarkets";
 
 const NAV = [
   { href: "/",         label: "Dashboard" },
@@ -15,6 +14,7 @@ const NAV = [
   { href: "/map",      label: "Map"       },
 ];
 
+// Static deltas (directional arrows) — updated weekly alongside seed data
 const TICKER_DELTAS: Record<string, { delta: string; up: boolean }> = {
   "Alang":      { delta: "−3", up: false },
   "Chittagong": { delta: "+8", up: true },
@@ -22,20 +22,43 @@ const TICKER_DELTAS: Record<string, { delta: string; up: boolean }> = {
   "Aliağa":     { delta: "+4", up: true },
 };
 
-const TICKER = SCRAP_MARKETS.map(m => ({
-  port: m.market, country: m.country, price: String(m.price),
-  ...( TICKER_DELTAS[m.market] ?? { delta: "", up: true }),
-}));
+type TickerItem = { port: string; country: string; price: string; delta: string; up: boolean };
+
+const FALLBACK_TICKER: TickerItem[] = [
+  { port:"Chittagong", country:"Bangladesh", price:"420", delta:"+8", up:true },
+  { port:"Gadani",     country:"Pakistan",   price:"410", delta:"+2", up:true },
+  { port:"Alang",      country:"India",      price:"400", delta:"−3", up:false },
+  { port:"Aliağa",     country:"Turkey",     price:"280", delta:"+4", up:true },
+];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const [aisCount, setAisCount] = useState<number | null>(null);
+  const [ticker, setTicker] = useState<TickerItem[]>(FALLBACK_TICKER);
 
   useEffect(() => {
     fetch("/api/ais").then(r => r.json()).then(d => {
       const n = d.total ?? (Array.isArray(d.vessels) ? d.vessels.length : null);
       if (n !== null) setAisCount(n);
     }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/scrap-prices")
+      .then(r => r.json())
+      .then(d => {
+        if (!d.yards) return;
+        const items: TickerItem[] = Object.entries(d.yards as Record<string, { country: string; prices: Record<string, number> }>)
+          .map(([name, y]) => {
+            // headline: tanker price or bulker fallback
+            const price = y.prices.tanker ?? y.prices.bulker ?? 0;
+            const deltas = TICKER_DELTAS[name] ?? { delta: "", up: true };
+            return { port: name, country: y.country, price: String(price), ...deltas };
+          })
+          .sort((a, b) => Number(b.price) - Number(a.price));
+        if (items.length) setTicker(items);
+      })
+      .catch(() => {});
   }, []);
 
   return (
@@ -119,7 +142,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {/* TICKER — hidden on /map to give map full height */}
       {path !== "/map" && (
         <div style={{ background: "#050F24", display: "flex", padding: "0 32px" }}>
-          {TICKER.map((t, i) => (
+          {ticker.map((t, i) => (
             <div key={t.port} style={{
               padding: "12px 26px",
               borderRight: "1px solid rgba(255,255,255,0.1)",

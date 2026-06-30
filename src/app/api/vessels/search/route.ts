@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
 export const runtime     = "nodejs";
+export const dynamic     = "force-dynamic";
 export const maxDuration = 30;
 
 // ─── helpers ───────────────────────────────────────────────────────────────────
@@ -125,6 +126,8 @@ export async function GET(req: NextRequest) {
     v.age, v.deadweight, v.ldt, v.ldt_estimated, v.scrap_score, v.scrap_category,
     v.detention_count, v.deficiency_count, v.special_survey_date,
     v.manager_name AS vessel_manager,
+    v.photo_thumb, v.photo_artist, v.photo_license,
+    (v.licensed_photo->>'pageUrl') AS photo_page_url,
     o.best_email, o.email AS owner_email, o.emails, o.phones,
     o.email_validations, o.website, o.linkedin_company_url,
     o.owner_name, o.manager_name AS contact_manager
@@ -225,6 +228,10 @@ export async function GET(req: NextRequest) {
           phone:          r.phones?.[0] ?? null,
           website:        r.website,
           linkedinUrl:    r.linkedin_company_url,
+          photoThumb:     r.photo_thumb    || null,
+          photoArtist:    r.photo_artist   || null,
+          photoLicense:   r.photo_license  || null,
+          photoPageUrl:   r.photo_page_url || null,
         };
       }),
     });

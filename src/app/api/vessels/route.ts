@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 // GET /api/vessels?bbox=minLon,minLat,maxLon,maxLat&zoom=8
 
 const MAX_RESULTS  = 2000;

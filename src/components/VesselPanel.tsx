@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { SCRAP_MARKETS } from "@/lib/scrapMarkets";
+// scrap prices fetched from DB via /api/scrap-prices
 
 const C = {
   navy: "#0D1F28", mid: "#0F2733", light: "#1A3A4A",
@@ -193,6 +193,13 @@ function EmailBadge({ label, email }: { label: string; email: string }) {
   );
 }
 
+function vesselTypeKey(type: string): "bulker" | "tanker" | "container" {
+  const t = (type || "").toLowerCase();
+  if (t.includes("tank")) return "tanker";
+  if (t.includes("container")) return "container";
+  return "bulker";
+}
+
 export default function VesselPanel({ imo, onClose }: { imo: string; onClose: () => void }) {
   const [data,           setData]           = useState<VesselData | null>(null);
   const [loading,        setLoading]        = useState(true);
@@ -206,7 +213,17 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
   const [watching,       setWatching]       = useState(false);
   const [photoOk,        setPhotoOk]        = useState(true);
   const [triedFallback,  setTriedFallback]  = useState(false);
-  const [licensedPhoto,  setLicensedPhoto]  = useState<{ thumb: string; attribution: string; pageUrl: string; licenseUrl: string } | null>(null);
+  const [photos,         setPhotos]         = useState<{ url: string; thumb: string; artist: string; license: string; licenseUrl: string | null; pageUrl: string | null; attribution: string; isPrimary: boolean }[]>([]);
+  const [activePhotoIdx, setActivePhotoIdx] = useState(0);
+  const [scrapYards,     setScrapYards]     = useState<Record<string, { country: string; prices: Record<string, number> }>>({});
+
+  // Load scrap prices from DB once
+  useEffect(() => {
+    fetch("/api/scrap-prices")
+      .then(r => r.json())
+      .then(d => { if (d.yards) setScrapYards(d.yards); })
+      .catch(() => {});
+  }, []);
 
   // Load Datalastic vessel data
   useEffect(() => {
@@ -214,7 +231,7 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
     setLoading(true); setError(null);
     setEmailDraft(false); setEmailBody("");
     setCrmAdded(false); setWatching(false);
-    setPhotoOk(true); setTriedFallback(false); setLicensedPhoto(null);
+    setPhotoOk(true); setTriedFallback(false); setPhotos([]); setActivePhotoIdx(0);
 
     fetch(`/api/vessel/${imo}`)
       .then(r => r.json())
@@ -226,17 +243,16 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
       .catch(() => { setError("Network error"); setLoading(false); });
   }, [imo]);
 
-  // Fetch licensed photo (Wikimedia/Flickr) once vessel name is known
+  // Fetch vessel photos from vessel_photos table
   useEffect(() => {
-    const vesselName = data?.particulars?.name;
-    if (!vesselName || !imo) return;
-    fetch(`/api/vessel-photo?imo=${encodeURIComponent(imo)}&name=${encodeURIComponent(vesselName)}`)
+    if (!imo) return;
+    fetch(`/api/vessel-photo?imo=${encodeURIComponent(imo)}`)
       .then(r => r.ok ? r.json() : null)
       .then(d => {
-        if (d?.found && d.thumb) setLicensedPhoto({ thumb: d.thumb, attribution: d.attribution, pageUrl: d.pageUrl, licenseUrl: d.licenseUrl });
+        if (d?.photos?.length) { setPhotos(d.photos); setActivePhotoIdx(0); }
       })
       .catch(() => {});
-  }, [imo, data?.particulars?.name]);
+  }, [imo]);
 
   // Load contact enrichment using MMSI (available after vessel data loads)
   useEffect(() => {
@@ -326,93 +342,15 @@ ShipScout — Maritime Intelligence`;
       {(() => {
         const vesselName = data?.particulars?.name || `IMO ${imo}`;
         const vesselType = (data?.particulars?.type || "").toLowerCase();
-
-        // Priority 1: Licensed photo (Wikimedia/Flickr) — fully attributed
-        // Priority 2: DB photo_url or vessel-tracker.com fallback
-        // Priority 3: type-based colored placeholder
-        const dbPhoto     = (data as any)?.photoUrl ?? null;
-        const fallbackUrl = `https://photos.vessel-tracker.com/shipImages/${imo}.jpg`;
+        const activePhoto = photos[activePhotoIdx] ?? null;
 
         const placeholderBg =
           vesselType.includes("tanker")    ? "#0D3349" :
           vesselType.includes("bulk")      ? "#1A2F3A" :
           vesselType.includes("container") ? "#0F2733" :
           vesselType.includes("passenger") || vesselType.includes("cruise") ? "#1D2E3C" :
-          vesselType.includes("offshore")  ? "#162030" :
           "#0F2733";
-        const placeholderIcon =
-          vesselType.includes("tanker")    ? "🛢" :
-          vesselType.includes("container") ? "📦" :
-          vesselType.includes("passenger") || vesselType.includes("cruise") ? "🚢" :
-          vesselType.includes("offshore")  ? "⚙️" :
-          "⚓";
 
-        // Use licensed photo if available
-        if (licensedPhoto) {
-          return (
-            <div style={{ position: "relative", width: "100%", height: "170px", overflow: "hidden" }}>
-              <img
-                src={licensedPhoto.thumb}
-                alt={vesselName}
-                onError={() => setLicensedPhoto(null)}
-                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-              />
-              {/* Vessel name gradient overlay */}
-              <div style={{
-                position: "absolute", bottom: 0, left: 0, right: 0,
-                background: "linear-gradient(transparent, rgba(0,0,0,0.75))",
-                padding: "20px 10px 6px",
-              }}>
-                <div style={{ color: "white", fontSize: 13, fontWeight: 600 }}>{vesselName}</div>
-                {/* Mandatory attribution */}
-                <a
-                  href={licensedPhoto.pageUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ display: "block", fontSize: 8, color: "rgba(255,255,255,0.6)", textDecoration: "none", marginTop: 2, lineHeight: 1.3 }}
-                  onClick={e => e.stopPropagation()}
-                >
-                  {licensedPhoto.attribution}
-                </a>
-              </div>
-            </div>
-          );
-        }
-
-        const photoSrc = dbPhoto || (!triedFallback ? fallbackUrl : null);
-
-        const overlay = (
-          <div style={{
-            position: "absolute", bottom: 0, left: 0, right: 0,
-            background: "linear-gradient(transparent, rgba(0,0,0,0.7))",
-            padding: "20px 12px 8px",
-            color: "white", fontSize: 13, fontWeight: 600,
-          }}>
-            {vesselName}
-          </div>
-        );
-
-        if (photoOk && photoSrc) {
-          return (
-            <div style={{ position: "relative", width: "100%", height: "170px", overflow: "hidden" }}>
-              <img
-                src={photoSrc}
-                alt={vesselName}
-                onError={() => {
-                  if (!triedFallback && !dbPhoto) {
-                    setTriedFallback(true);
-                  } else {
-                    setPhotoOk(false);
-                  }
-                }}
-                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-              />
-              {overlay}
-            </div>
-          );
-        }
-
-        // SVG silüet placeholder — asla başka geminin fotosu değil
         const silhouettePath = vesselType.includes("tanker")
           ? "M20 70 L30 55 L50 50 L370 50 L390 60 L400 70 Z M60 50 L65 35 L75 35 L75 50 Z M80 50 L80 30 L120 30 L120 50 Z"
           : vesselType.includes("container")
@@ -422,20 +360,75 @@ ShipScout — Maritime Intelligence`;
           : "M20 70 L35 52 L65 46 L355 46 L385 52 L400 70 Z M70 46 L72 32 L88 32 L90 46 Z M95 46 L95 28 L145 28 L145 46 Z";
 
         return (
-          <div style={{
-            position: "relative", width: "100%", height: "130px",
-            background: placeholderBg, overflow: "hidden",
-          }}>
-            <svg
-              viewBox="0 0 420 100"
-              xmlns="http://www.w3.org/2000/svg"
-              style={{ position: "absolute", bottom: 20, left: 0, width: "100%", opacity: 0.18 }}
-            >
-              <path d={silhouettePath} fill="rgba(143,168,178,0.9)" />
-              {/* water line */}
-              <rect x="0" y="70" width="420" height="4" fill="rgba(108,184,230,0.3)" rx="1" />
-            </svg>
-            {overlay}
+          <div>
+            {/* Main photo */}
+            <div style={{ position: "relative", width: "100%", height: "180px", overflow: "hidden", background: placeholderBg }}>
+              {activePhoto ? (
+                <img
+                  key={activePhoto.url}
+                  src={activePhoto.thumb}
+                  alt={vesselName}
+                  onError={() => {
+                    // Remove broken photo from list
+                    setPhotos(prev => prev.filter((_, i) => i !== activePhotoIdx));
+                    setActivePhotoIdx(0);
+                  }}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                />
+              ) : (
+                <svg
+                  viewBox="0 0 420 100"
+                  style={{ position: "absolute", bottom: 20, left: 0, width: "100%", opacity: 0.18 }}
+                >
+                  <path d={silhouettePath} fill="rgba(143,168,178,0.9)" />
+                  <rect x="0" y="70" width="420" height="4" fill="rgba(108,184,230,0.3)" rx="1" />
+                </svg>
+              )}
+              {/* Gradient overlay with name + attribution */}
+              <div style={{
+                position: "absolute", bottom: 0, left: 0, right: 0,
+                background: "linear-gradient(transparent, rgba(0,0,0,0.78))",
+                padding: "24px 10px 7px",
+              }}>
+                <div style={{ color: "white", fontSize: 13, fontWeight: 600, lineHeight: 1.3 }}>{vesselName}</div>
+                {activePhoto?.pageUrl ? (
+                  <a
+                    href={activePhoto.pageUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    style={{ display: "block", fontSize: 8, color: "rgba(255,255,255,0.55)", textDecoration: "none", marginTop: 2, lineHeight: 1.4 }}
+                  >
+                    {activePhoto.attribution}
+                  </a>
+                ) : null}
+              </div>
+            </div>
+
+            {/* Thumbnail strip — only shown when 2+ photos */}
+            {photos.length > 1 && (
+              <div style={{ display: "flex", gap: 2, background: "#0A1A22" }}>
+                {photos.map((p, i) => (
+                  <button
+                    key={p.url}
+                    onClick={() => setActivePhotoIdx(i)}
+                    style={{
+                      flex: 1, height: 52, padding: 0, border: "none",
+                      outline: i === activePhotoIdx ? "2px solid #1D9E75" : "2px solid transparent",
+                      cursor: "pointer", overflow: "hidden", position: "relative",
+                      background: "#0A1A22",
+                    }}
+                    title={p.attribution}
+                  >
+                    <img
+                      src={p.thumb}
+                      alt=""
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", opacity: i === activePhotoIdx ? 1 : 0.55 }}
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         );
       })()}
@@ -471,9 +464,14 @@ ShipScout — Maritime Intelligence`;
             <Row label="LDT"       value={data.particulars.ldt ? `${data.particulars.ldt.toLocaleString()} t` : "N/A"} highlight />
             <Row
               label="Est. Scrap Value"
-              value={data.particulars.ldt
-                ? `${data.particulars.ldt_estimated ? "~" : ""}$${((data.particulars.ldt * (SCRAP_MARKETS.find(m => m.market === "Aliağa")?.price ?? 420)) / 1_000_000).toFixed(1)}M @ Aliağa`
-                : null}
+              value={(() => {
+                if (!data.particulars.ldt) return null;
+                const typeKey = vesselTypeKey(data.particulars.type ?? "");
+                const aliaga = scrapYards["Aliağa"];
+                const price = aliaga?.prices?.[typeKey] ?? 280;
+                const val = (data.particulars.ldt * price) / 1_000_000;
+                return `${data.particulars.ldt_estimated ? "~" : ""}$${val.toFixed(1)}M @ Aliağa`;
+              })()}
               highlight
             />
             <Row label="GRT"       value={data.particulars.grt ? `${data.particulars.grt.toLocaleString()} t` : null} />
@@ -494,20 +492,34 @@ ShipScout — Maritime Intelligence`;
                   LDT tahmin edildi (gerçek lightship verisi yok)
                 </div>
               )}
-              {SCRAP_MARKETS.map(({ market, emoji, price }) => {
-                const market_label = `${market} ${emoji}`;
-                const val = (data.particulars.ldt * price) / 1_000_000;
-                const fmt = `${data.particulars.ldt_estimated ? "~" : ""}$${val >= 10 ? val.toFixed(1) : val.toFixed(2)}M`;
-                return (
-                  <div key={market} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: "1px solid rgba(143,168,178,0.08)" }}>
-                    <span style={{ fontSize: 12, color: C.steel }}>{market_label}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: C.green }}>
-                      {fmt}
-                      <span style={{ fontWeight: 400, color: C.steel, marginLeft: 4 }}>@${price}/LDT</span>
-                    </span>
-                  </div>
-                );
-              })}
+              {(() => {
+                const typeKey = vesselTypeKey(data.particulars.type ?? "");
+                const YARD_EMOJIS: Record<string, string> = { Chittagong:"🇧🇩", Gadani:"🇵🇰", Alang:"🇮🇳", Aliağa:"🇹🇷" };
+                const yardOrder = ["Chittagong","Gadani","Alang","Aliağa"];
+                const entries = Object.keys(scrapYards).length
+                  ? yardOrder.filter(y => scrapYards[y])
+                  : [];
+                if (!entries.length) {
+                  // DB not loaded yet or empty — show placeholder
+                  return <div style={{ fontSize:11, color:C.steel }}>Loading prices…</div>;
+                }
+                return entries.map(yardName => {
+                  const yard = scrapYards[yardName];
+                  const price = yard.prices[typeKey] ?? yard.prices.bulker ?? 0;
+                  const val = (data.particulars.ldt * price) / 1_000_000;
+                  const fmt = `${data.particulars.ldt_estimated ? "~" : ""}$${val >= 10 ? val.toFixed(1) : val.toFixed(2)}M`;
+                  const emoji = YARD_EMOJIS[yardName] ?? "🌍";
+                  return (
+                    <div key={yardName} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: "1px solid rgba(143,168,178,0.08)" }}>
+                      <span style={{ fontSize: 12, color: C.steel }}>{yardName} {emoji}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: C.green }}>
+                        {fmt}
+                        <span style={{ fontWeight: 400, color: C.steel, marginLeft: 4 }}>@${price}/LDT</span>
+                      </span>
+                    </div>
+                  );
+                });
+              })()}
             </Section>
           )}
 

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { computeScrapScore } from "@/lib/scoring";
 import pool from "@/lib/db";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 const API_KEY = process.env.DATALASTIC_API_KEY;
 const BASE    = "https://api.datalastic.com/api/v0";
 const REPORTS = "https://api.datalastic.com/api/maritime_reports";
@@ -23,10 +26,16 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ imo: string }> }
 ) {
-  const { imo } = await params;
+  let imo: string;
+  try {
+    ({ imo } = await params);
+  } catch {
+    return NextResponse.json({ error: "Invalid params" }, { status: 400 });
+  }
   if (!imo) return NextResponse.json({ error: "IMO required" }, { status: 400 });
   if (!API_KEY) return NextResponse.json({ error: "API key missing" }, { status: 500 });
 
+  try {
   const [info, ownership, dryDock, inspections, dbRow] = await Promise.allSettled([
     dl(`${BASE}/vessel_info?imo=${imo}`),
     dl(`${REPORTS}/ownership?imo=${imo}`),
@@ -102,4 +111,8 @@ export async function GET(
     },
     detentions: inspect?.data ?? [],
   });
+  } catch (e: unknown) {
+    console.error(`[vessel/${imo}]`, e);
+    return NextResponse.json({ error: "Vessel data unavailable" }, { status: 503 });
+  }
 }

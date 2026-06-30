@@ -48,3 +48,6 @@ next-env.d.ts
 /scraper/data/contact_cache.json
 /scraper/data/equasis_usage.json
 /scraper/data/equasis_debug/
+scraper/data/reports/
+checkpoint_*.json
+equasis_limit_test.json

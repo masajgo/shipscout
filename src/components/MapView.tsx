@@ -61,6 +61,10 @@ interface VesselDetail {
   lastDryDockDate:      string | null;
   ownerName:            string | null;
   managerName:          string | null;
+  photoThumb:           string | null;
+  photoArtist:          string | null;
+  photoLicense:         string | null;
+  photoPageUrl:         string | null;
 }
 
 interface SearchResult {
@@ -572,146 +576,152 @@ export default function MapView() {
         position: "absolute", top: 14, left: 14, bottom: 14, width: 196,
         background: "rgba(11,30,61,0.94)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
         border: `1px solid ${S.glassBorder}`, borderRadius: 12,
-        padding: "14px 12px", overflowY: "auto",
-        display: "flex", flexDirection: "column", gap: 16,
+        overflow: "hidden",
+        display: "flex", flexDirection: "column",
         zIndex: 500,
       }}>
 
-        {/* Search — collapsible */}
-        <div style={{ position: "relative" }}>
-          {searchExpanded ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 7, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "7px 10px", transition: "all 0.2s" }}>
-              <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
-                <circle cx="5" cy="5" r="3.5" stroke="rgba(255,255,255,0.45)" strokeWidth="1.3" />
-                <line x1="7.8" y1="7.8" x2="11" y2="11" stroke="rgba(255,255,255,0.45)" strokeWidth="1.3" strokeLinecap="round" />
-              </svg>
-              <input
-                ref={searchInputRef}
-                value={searchQuery}
-                onChange={e => searchVessels(e.target.value)}
-                onKeyDown={e => { if (e.key === "Escape") { setSearchExpanded(false); setSearchQuery(""); setSearchResults([]); setSearchOpen(false); } }}
-                onBlur={() => setTimeout(() => { setSearchOpen(false); if (!searchQuery.trim()) setSearchExpanded(false); }, 160)}
-                placeholder="Vessel name or IMO..."
-                style={{ flex: 1, background: "none", border: "none", outline: "none", color: "rgba(255,255,255,0.85)", fontSize: 11, fontFamily: "Inter, sans-serif", minWidth: 0 }}
-              />
-              <button onClick={() => { setSearchExpanded(false); setSearchQuery(""); setSearchResults([]); setSearchOpen(false); }} style={{ background: "none", border: "none", color: S.muted, cursor: "pointer", fontSize: 15, padding: 0, lineHeight: 1, flexShrink: 0 }}>×</button>
-            </div>
-          ) : (
-            <button
-              onClick={() => { setSearchExpanded(true); setTimeout(() => searchInputRef.current?.focus(), 50); }}
-              style={{ width: 28, height: 28, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s" }}
-            >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <circle cx="5" cy="5" r="3.5" stroke="rgba(255,255,255,0.5)" strokeWidth="1.3" />
-                <line x1="7.8" y1="7.8" x2="11" y2="11" stroke="rgba(255,255,255,0.5)" strokeWidth="1.3" strokeLinecap="round" />
-              </svg>
-            </button>
-          )}
+        {/* Scrollable content area */}
+        <div style={{ flex: 1, overflowY: "auto", minHeight: 0, padding: "14px 12px", display: "flex", flexDirection: "column", gap: 14 }}>
 
-          {/* Results dropdown */}
-          {searchOpen && searchResults.length > 0 && (
-            <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "rgba(11,30,61,0.97)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 7, zIndex: 600, overflow: "hidden" }}>
-              {searchResults.map(r => (
-                <button key={r.mmsi} onMouseDown={() => selectSearchResult(r)} className="map-hover" style={{ display: "block", width: "100%", textAlign: "left" as const, padding: "7px 10px", background: "none", border: "none", borderBottom: "1px solid rgba(255,255,255,0.06)", color: S.text, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name || r.mmsi}</div>
-                  <div style={{ fontSize: 9, color: S.muted }}>{r.type || "—"} · {r.imo ? `IMO ${r.imo}` : `MMSI ${r.mmsi}`}</div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Status */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ width: 6, height: 6, borderRadius: "50%", background: loading ? "#D97706" : dataSource ? S.green : "#475569", flexShrink: 0, transition: "background 0.3s" }} />
-          <span style={{ fontSize: 10, color: loading ? "#D97706" : S.green, letterSpacing: "0.08em", textTransform: "uppercase" as const }}>
-            {loading ? "Loading…" : dataSource ? "DB · PostGIS" : "AIS Live"}
-          </span>
-        </div>
-
-        {/* SCRAP RISK legend — color swatches */}
-        <div>
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 8 }}>Scrap Risk</div>
-          {(["critical","high","medium","low"] as const).map(cat => {
-            const n   = scrapCounts[cat];
-            const pct = totalScrap > 0 ? Math.round(n / totalScrap * 100) : 0;
-            return (
-              <div key={cat} style={{ marginBottom: 6 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 3 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                    <div style={{ width: 9, height: 9, borderRadius: "50%", background: MARKER_COLORS[cat], border: "1.5px solid rgba(255,255,255,0.3)", flexShrink: 0 }} />
-                    <span style={{ fontSize: 10, color: MARKER_COLORS[cat] }}>{cat}</span>
-                  </div>
-                  <span style={{ fontSize: 9, color: S.muted, fontFamily: "monospace" }}>{n > 0 ? n : "—"}</span>
-                </div>
-                {n > 0 && (
-                  <div style={{ height: 2, background: "rgba(255,255,255,0.08)", borderRadius: 2, overflow: "hidden", marginLeft: 16 }}>
-                    <div style={{ height: "100%", width: `${pct}%`, background: MARKER_COLORS[cat], borderRadius: 2, opacity: 0.7 }} />
-                  </div>
-                )}
+          {/* Search — collapsible */}
+          <div style={{ position: "relative", flexShrink: 0 }}>
+            {searchExpanded ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 7, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "7px 10px", transition: "all 0.2s" }}>
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
+                  <circle cx="5" cy="5" r="3.5" stroke="rgba(255,255,255,0.45)" strokeWidth="1.3" />
+                  <line x1="7.8" y1="7.8" x2="11" y2="11" stroke="rgba(255,255,255,0.45)" strokeWidth="1.3" strokeLinecap="round" />
+                </svg>
+                <input
+                  ref={searchInputRef}
+                  value={searchQuery}
+                  onChange={e => searchVessels(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Escape") { setSearchExpanded(false); setSearchQuery(""); setSearchResults([]); setSearchOpen(false); } }}
+                  onBlur={() => setTimeout(() => { setSearchOpen(false); if (!searchQuery.trim()) setSearchExpanded(false); }, 160)}
+                  placeholder="Vessel name or IMO..."
+                  style={{ flex: 1, background: "none", border: "none", outline: "none", color: "rgba(255,255,255,0.85)", fontSize: 11, fontFamily: "Inter, sans-serif", minWidth: 0 }}
+                />
+                <button onClick={() => { setSearchExpanded(false); setSearchQuery(""); setSearchResults([]); setSearchOpen(false); }} style={{ background: "none", border: "none", color: S.muted, cursor: "pointer", fontSize: 15, padding: 0, lineHeight: 1, flexShrink: 0 }}>×</button>
               </div>
-            );
-          })}
-          <button onClick={() => setShowScrap(s => !s)} style={{
-            marginTop: 6, display: "block", width: "100%", textAlign: "left" as const,
-            background: showScrap ? "rgba(239,68,68,0.12)" : "rgba(255,255,255,0.04)",
-            border: `1px solid ${showScrap ? "rgba(239,68,68,0.3)" : "rgba(255,255,255,0.08)"}`,
-            borderRadius: 5, padding: "5px 10px",
-            color: showScrap ? "#EF4444" : S.muted,
-            fontSize: 10, cursor: "pointer", fontFamily: "Inter, sans-serif",
-          }}>
-            {showScrap ? "✓ " : ""}critical + high only
-          </button>
-        </div>
+            ) : (
+              <button
+                onClick={() => { setSearchExpanded(true); setTimeout(() => searchInputRef.current?.focus(), 50); }}
+                style={{ width: 28, height: 28, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s" }}
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <circle cx="5" cy="5" r="3.5" stroke="rgba(255,255,255,0.5)" strokeWidth="1.3" />
+                  <line x1="7.8" y1="7.8" x2="11" y2="11" stroke="rgba(255,255,255,0.5)" strokeWidth="1.3" strokeLinecap="round" />
+                </svg>
+              </button>
+            )}
 
-        {/* STATUS legend — shape meanings */}
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 12 }}>
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 8 }}>Status</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" style={{ flexShrink: 0 }}>
-              <polygon points="7,1 11,12 7,9 3,12" fill="rgba(255,255,255,0.55)" stroke="rgba(255,255,255,0.2)" strokeWidth="1" strokeLinejoin="round"/>
-            </svg>
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>Underway (arrow = course)</span>
+            {/* Results dropdown */}
+            {searchOpen && searchResults.length > 0 && (
+              <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "rgba(11,30,61,0.97)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 7, zIndex: 600, overflow: "hidden" }}>
+                {searchResults.map(r => (
+                  <button key={r.mmsi} onMouseDown={() => selectSearchResult(r)} className="map-hover" style={{ display: "block", width: "100%", textAlign: "left" as const, padding: "7px 10px", background: "none", border: "none", borderBottom: "1px solid rgba(255,255,255,0.06)", color: S.text, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name || r.mmsi}</div>
+                    <div style={{ fontSize: 9, color: S.muted }}>{r.type || "—"} · {r.imo ? `IMO ${r.imo}` : `MMSI ${r.mmsi}`}</div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" style={{ flexShrink: 0 }}>
-              <circle cx="7" cy="7" r="5" fill="rgba(255,255,255,0.55)" stroke="rgba(255,255,255,0.2)" strokeWidth="1.2"/>
-            </svg>
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>Anchored / moored</span>
-          </div>
-        </div>
 
-        {/* Vessel type filter */}
-        <div>
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 8 }}>Filter type</div>
-          {["All", "Cargo", "Tanker", "Passenger", "Fishing", "Tug", "Sailing"].map(t => (
-            <button key={t} onClick={() => setTypeFilter(t)} className={typeFilter !== t ? "map-hover" : ""} style={{
-              display: "block", width: "100%", textAlign: "left" as const,
-              background: typeFilter === t ? "rgba(201,168,76,0.12)" : "transparent",
-              border: `1px solid ${typeFilter === t ? "rgba(201,168,76,0.3)" : "transparent"}`,
+          {/* Status */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: loading ? "#D97706" : dataSource ? S.green : "#475569", flexShrink: 0, transition: "background 0.3s" }} />
+            <span style={{ fontSize: 10, color: loading ? "#D97706" : S.green, letterSpacing: "0.08em", textTransform: "uppercase" as const }}>
+              {loading ? "Loading…" : dataSource ? "DB · PostGIS" : "AIS Live"}
+            </span>
+          </div>
+
+          {/* SCRAP RISK legend */}
+          <div style={{ flexShrink: 0 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 8 }}>Scrap Risk</div>
+            {(["critical","high","medium","low"] as const).map(cat => {
+              const n   = scrapCounts[cat];
+              const pct = totalScrap > 0 ? Math.round(n / totalScrap * 100) : 0;
+              return (
+                <div key={cat} style={{ marginBottom: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 3 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                      <div style={{ width: 9, height: 9, borderRadius: "50%", background: MARKER_COLORS[cat], border: "1.5px solid rgba(255,255,255,0.3)", flexShrink: 0 }} />
+                      <span style={{ fontSize: 10, color: MARKER_COLORS[cat] }}>{cat}</span>
+                    </div>
+                    <span style={{ fontSize: 9, color: S.muted, fontFamily: "monospace" }}>{n > 0 ? n : "—"}</span>
+                  </div>
+                  {n > 0 && (
+                    <div style={{ height: 2, background: "rgba(255,255,255,0.08)", borderRadius: 2, overflow: "hidden", marginLeft: 16 }}>
+                      <div style={{ height: "100%", width: `${pct}%`, background: MARKER_COLORS[cat], borderRadius: 2, opacity: 0.7 }} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            <button onClick={() => setShowScrap(s => !s)} style={{
+              marginTop: 6, display: "block", width: "100%", textAlign: "left" as const,
+              background: showScrap ? "rgba(239,68,68,0.12)" : "rgba(255,255,255,0.04)",
+              border: `1px solid ${showScrap ? "rgba(239,68,68,0.3)" : "rgba(255,255,255,0.08)"}`,
               borderRadius: 5, padding: "5px 10px",
-              color: typeFilter === t ? S.gold : "rgba(255,255,255,0.32)",
-              fontSize: 11, cursor: "pointer", marginBottom: 2, fontFamily: "Inter, sans-serif",
+              color: showScrap ? "#EF4444" : S.muted,
+              fontSize: 10, cursor: "pointer", fontFamily: "Inter, sans-serif",
             }}>
-              {t !== "All" && <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: vesselColor(t), marginRight: 7, verticalAlign: "middle" }} />}
-              {t}
+              {showScrap ? "✓ " : ""}critical + high only
             </button>
-          ))}
+          </div>
+
+          {/* STATUS legend */}
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 12, flexShrink: 0 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 8 }}>Status</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
+              <svg width="14" height="14" viewBox="0 0 14 14" style={{ flexShrink: 0 }}>
+                <polygon points="7,1 11,12 7,9 3,12" fill="rgba(255,255,255,0.55)" stroke="rgba(255,255,255,0.2)" strokeWidth="1" strokeLinejoin="round"/>
+              </svg>
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>Underway (arrow = course)</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <svg width="14" height="14" viewBox="0 0 14 14" style={{ flexShrink: 0 }}>
+                <circle cx="7" cy="7" r="5" fill="rgba(255,255,255,0.55)" stroke="rgba(255,255,255,0.2)" strokeWidth="1.2"/>
+              </svg>
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>Anchored / moored</span>
+            </div>
+          </div>
+
+          {/* Vessel type filter */}
+          <div style={{ flexShrink: 0 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.14em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 8 }}>Filter type</div>
+            {["All", "Cargo", "Tanker", "Passenger", "Fishing", "Tug", "Sailing"].map(t => (
+              <button key={t} onClick={() => setTypeFilter(t)} className={typeFilter !== t ? "map-hover" : ""} style={{
+                display: "block", width: "100%", textAlign: "left" as const,
+                background: typeFilter === t ? "rgba(201,168,76,0.12)" : "transparent",
+                border: `1px solid ${typeFilter === t ? "rgba(201,168,76,0.3)" : "transparent"}`,
+                borderRadius: 5, padding: "5px 10px",
+                color: typeFilter === t ? S.gold : "rgba(255,255,255,0.32)",
+                fontSize: 11, cursor: "pointer", marginBottom: 2, fontFamily: "Inter, sans-serif",
+              }}>
+                {t !== "All" && <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: vesselColor(t), marginRight: 7, verticalAlign: "middle" }} />}
+                {t}
+              </button>
+            ))}
+          </div>
+
         </div>
 
-        {/* Stats footer */}
-        <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 14, marginTop: "auto" }}>
+        {/* Stats footer — pinned to bottom, never scrolled away */}
+        <div style={{ flexShrink: 0, borderTop: "1px solid rgba(255,255,255,0.06)", padding: "10px 12px 12px" }}>
           {[
             ["Visible",  total !== null ? total.toLocaleString() : "—"],
             ["Rendered", `≤${MAX_VESSELS.toLocaleString()}`],
             ["Source",   dataSource || "—"],
           ].map(([l, v]) => (
-            <div key={String(l)} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+            <div key={String(l)} style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
               <span style={{ fontSize: 10, color: S.muted }}>{l}</span>
               <span style={{ fontSize: 10, fontWeight: 600, color: S.text }}>{v}</span>
             </div>
           ))}
         </div>
+
       </aside>
 
       {/* ── Right glass mini popup ── */}
@@ -753,6 +763,52 @@ export default function MapView() {
               }
             </div>
           </div>
+
+          {/* Photo */}
+          {detail?.photoThumb ? (
+            <div style={{ position: "relative", width: "100%", height: 90, overflow: "hidden", flexShrink: 0 }}>
+              <img
+                src={detail.photoThumb}
+                alt={detail.name}
+                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+              />
+              <div style={{
+                position: "absolute", bottom: 0, left: 0, right: 0,
+                background: "linear-gradient(transparent, rgba(0,0,0,0.72))",
+                padding: "14px 6px 4px",
+              }}>
+                {detail.photoPageUrl ? (
+                  <a
+                    href={detail.photoPageUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    style={{ fontSize: 7, color: "rgba(255,255,255,0.55)", textDecoration: "none", display: "block", lineHeight: 1.3 }}
+                  >
+                    © {detail.photoArtist ?? "Unknown"} / {detail.photoLicense ?? ""}
+                  </a>
+                ) : (
+                  <span style={{ fontSize: 7, color: "rgba(255,255,255,0.55)" }}>
+                    © {detail.photoArtist ?? "Unknown"} / {detail.photoLicense ?? ""}
+                  </span>
+                )}
+              </div>
+            </div>
+          ) : detail && !detailLoading ? (
+            /* mini silhouette placeholder when no photo */
+            <div style={{ width: "100%", height: 55, background: "rgba(255,255,255,0.02)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <svg viewBox="0 0 120 40" width={90} height={30} style={{ opacity: 0.12 }}>
+                <path d={
+                  (detail.type || "").toLowerCase().includes("tanker")
+                    ? "M5 32 L10 22 L20 20 L100 20 L110 26 L115 32 Z M22 20 L23 14 L30 14 L30 20 Z"
+                    : (detail.type || "").toLowerCase().includes("container")
+                    ? "M3 32 L8 20 L20 18 L100 18 L112 20 L117 32 Z M22 18 L22 12 L38 12 L38 18 Z M42 18 L42 10 L70 10 L70 18 Z"
+                    : "M5 32 L12 22 L25 18 L95 18 L108 22 L115 32 Z M28 18 L29 12 L36 12 L36 18 Z"
+                } fill="#8FA8B2" />
+              </svg>
+            </div>
+          ) : null}
 
           {/* Scrap value — gold highlight */}
           {detail && (

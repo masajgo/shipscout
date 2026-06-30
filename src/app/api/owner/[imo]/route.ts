@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { computeScrapScore } from "@/lib/scoring";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 const API_KEY = process.env.DATALASTIC_API_KEY;
 const BASE = "https://api.datalastic.com/api/v0";
 const REPORTS = "https://api.datalastic.com/api/maritime_reports";
@@ -22,10 +25,16 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ imo: string }> }
 ) {
-  const { imo } = await params;
+  let imo: string;
+  try {
+    ({ imo } = await params);
+  } catch {
+    return NextResponse.json({ error: "Invalid params" }, { status: 400 });
+  }
   if (!imo) return NextResponse.json({ error: "IMO required" }, { status: 400 });
   if (!API_KEY) return NextResponse.json({ error: "API key missing" }, { status: 500 });
 
+  try {
   // Paralel çek
   const [info, ownership, dryDock, inspections] = await Promise.allSettled([
     dl(`${BASE}/vessel_info?imo=${imo}`),
@@ -85,4 +94,8 @@ export async function GET(
     },
     detentions: inspect?.data ?? [],
   });
+  } catch (e: unknown) {
+    console.error(`[owner/${imo}]`, e);
+    return NextResponse.json({ error: "Owner data unavailable" }, { status: 503 });
+  }
 }

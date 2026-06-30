@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { scoreFromAge } from "@/lib/scoring";
 import { SCRAP_MARKETS } from "@/lib/scrapMarkets";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 const API_KEY = process.env.DATALASTIC_API_KEY;
 const BASE    = "https://api.datalastic.com/api/v0";
 
@@ -110,18 +113,32 @@ async function fetchVessel(imo: string) {
 }
 
 export async function GET() {
-  if (!API_KEY) return NextResponse.json({ error: "API key missing" }, { status: 500 });
+  if (!API_KEY) {
+    // No key → return empty list so the page renders without crashing
+    return NextResponse.json(
+      { alerts: [], updatedAt: new Date().toISOString(), warning: "API key missing" },
+      { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } }
+    );
+  }
 
-  const results = await Promise.all(TRACKED_IMOS.map(fetchVessel));
-  const year = new Date().getFullYear();
+  try {
+    const results = await Promise.all(TRACKED_IMOS.map(fetchVessel));
+    const year = new Date().getFullYear();
 
-  const alerts = results
-    .map((d, i) => d ? alertFromVessel(d, TRACKED_IMOS[i], year) : null)
-    .filter(Boolean)
-    .sort((a, b) => b!.score - a!.score);
+    const alerts = results
+      .map((d, i) => d ? alertFromVessel(d, TRACKED_IMOS[i], year) : null)
+      .filter(Boolean)
+      .sort((a, b) => b!.score - a!.score);
 
-  return NextResponse.json(
-    { alerts, updatedAt: new Date().toISOString() },
-    { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } }
-  );
+    return NextResponse.json(
+      { alerts, updatedAt: new Date().toISOString() },
+      { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } }
+    );
+  } catch (e: unknown) {
+    console.error("[alerts]", e);
+    return NextResponse.json(
+      { alerts: [], updatedAt: new Date().toISOString(), error: "Upstream data unavailable" },
+      { status: 200, headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" } }
+    );
+  }
 }

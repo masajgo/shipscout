@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
 import Layout from "@/components/Layout";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 export const metadata: Metadata = {
   title: "ShipScout — Vessel Intelligence",
@@ -12,7 +13,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <Layout>{children}</Layout>
+        <Layout>
+          <ErrorBoundary label="page">{children}</ErrorBoundary>
+        </Layout>
       </body>
     </html>
   );

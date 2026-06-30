@@ -13,13 +13,17 @@ export async function GET(req: NextRequest) {
   }
 
   // Trigger main endpoint to collect + cache
-  const base = req.nextUrl.origin;
-  const res = await fetch(`${base}/api/ais`);
-  const data = await res.json();
-
-  return NextResponse.json({
-    ok: true,
-    vessels: data.vessels?.length ?? 0,
-    source: data.source,
-  });
+  try {
+    const base = req.nextUrl.origin;
+    const res = await fetch(`${base}/api/ais`);
+    const data = await res.json();
+    return NextResponse.json({
+      ok: true,
+      vessels: data.vessels?.length ?? 0,
+      source: data.source,
+    });
+  } catch (e: unknown) {
+    console.error("[ais/warm]", e);
+    return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
+  }
 }

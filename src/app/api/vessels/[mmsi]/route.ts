@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 // GET /api/vessels/:mmsi
 
 export async function GET(
@@ -51,6 +54,11 @@ export async function GET(
          v.special_survey_date,
          v.last_dry_dock_date,
          v.manager_name,
+         v.photo_thumb,
+         v.photo_artist,
+         v.photo_license,
+         v.photo_license_url,
+         (v.licensed_photo->>'pageUrl') AS photo_page_url,
          o.owner_name,
          COALESCE(o.manager_name, v.manager_name) AS mgr_name
        FROM vessels v
@@ -104,6 +112,11 @@ export async function GET(
           lastDryDockDate:      r.last_dry_dock_date    || null,
           ownerName:            r.owner_name  || null,
           managerName:          r.mgr_name   || null,
+          photoThumb:           r.photo_thumb      || null,
+          photoArtist:          r.photo_artist     || null,
+          photoLicense:         r.photo_license    || null,
+          photoLicenseUrl:      r.photo_license_url || null,
+          photoPageUrl:         r.photo_page_url   || null,
         },
       },
       { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" } },

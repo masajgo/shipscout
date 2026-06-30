@@ -1,13 +1,38 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-const markets = [
-  { id:"aliaga", name:"Aliağa", country:"Turkey", flag:"🇹🇷", price:332, low:320, high:345, change:4, steel:485, volume:12, hkc:true, yours:true, tide:"Jun 22", yards:22, history:[298,305,310,318,322,315,320,328,332] },
-  { id:"alang", name:"Alang", country:"India", flag:"🇮🇳", price:501, low:490, high:515, change:-3, steel:620, volume:31, hkc:true, yours:false, tide:"Jun 24", yards:180, history:[465,470,480,488,495,492,498,504,501] },
-  { id:"chittagong", name:"Chittagong", country:"Bangladesh", flag:"🇧🇩", price:541, low:530, high:555, change:8, steel:680, volume:18, hkc:false, yours:false, tide:"Jun 20", yards:65, history:[498,505,512,518,525,530,533,538,541] },
-  { id:"gadani", name:"Gadani", country:"Pakistan", flag:"🇵🇰", price:511, low:500, high:525, change:2, steel:645, volume:8, hkc:false, yours:false, tide:"Jun 23", yards:40, history:[472,478,485,490,495,498,502,508,511] },
-];
+// Static metadata not in DB (sparklines, steel, volume, etc.)
+const MARKET_META: Record<string, {
+  id: string; flag: string; change: number; steel: number;
+  volume: number; hkc: boolean; yours: boolean; tide: string;
+  yards: number; history: number[];
+}> = {
+  Aliağa:     { id:"aliaga",     flag:"🇹🇷", change:4,  steel:485, volume:12, hkc:true,  yours:true,  tide:"Jun 22", yards:22,  history:[298,305,310,318,322,315,320,328,332] },
+  Alang:      { id:"alang",      flag:"🇮🇳", change:-3, steel:620, volume:31, hkc:true,  yours:false, tide:"Jun 24", yards:180, history:[465,470,480,488,495,492,498,504,501] },
+  Chittagong: { id:"chittagong", flag:"🇧🇩", change:8,  steel:680, volume:18, hkc:false, yours:false, tide:"Jun 20", yards:65,  history:[498,505,512,518,525,530,533,538,541] },
+  Gadani:     { id:"gadani",     flag:"🇵🇰", change:2,  steel:645, volume:8,  hkc:false, yours:false, tide:"Jun 23", yards:40,  history:[472,478,485,490,495,498,502,508,511] },
+};
+
+type DbYard = { country: string; source: string; updatedAt: string; prices: Record<string, number> };
+
+// Fallback seed — GMS Week 3 2026, used until DB fetch completes
+const STATIC_YARDS: Record<string, DbYard> = {
+  Chittagong: { country:"Bangladesh", source:"GMS Week 3 2026", updatedAt: new Date().toISOString(), prices:{ bulker:400, tanker:420, container:430 } },
+  Gadani:     { country:"Pakistan",   source:"GMS Week 3 2026", updatedAt: new Date().toISOString(), prices:{ bulker:390, tanker:410, container:420 } },
+  Alang:      { country:"India",      source:"GMS Week 3 2026", updatedAt: new Date().toISOString(), prices:{ bulker:380, tanker:400, container:410 } },
+  Aliağa:     { country:"Turkey",     source:"GMS Week 3 2026", updatedAt: new Date().toISOString(), prices:{ bulker:270, tanker:280, container:290 } },
+};
+
+function buildMarkets(yards: Record<string, DbYard>) {
+  const src = Object.keys(yards).length ? yards : STATIC_YARDS;
+  return Object.entries(src).map(([name, y]) => {
+    const meta = MARKET_META[name] ?? { id: name.toLowerCase(), flag:"🌍", change:0, steel:600, volume:0, hkc:false, yours:false, tide:"—", yards:0, history:[] };
+    const price = y.prices.tanker ?? y.prices.bulker ?? 0;
+    return { name, country: y.country, source: y.source, updatedAt: y.updatedAt,
+             prices: y.prices, price, ...meta };
+  }).sort((a, b) => b.price - a.price);
+}
 
 const currencies = [
   { code:"USD", rate:1, symbol:"$" },
@@ -40,12 +65,32 @@ export default function Markets() {
   const [cur, setCur] = useState("USD");
   const [sel, setSel] = useState<string|null>(null);
   const [ldt, setLdt] = useState(8000);
-  const [mkt, setMkt] = useState("alang");
+  const [mkt, setMkt] = useState("chittagong");
+  const [markets, setMarkets] = useState(() => buildMarkets({}));
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [dataSource, setDataSource] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/scrap-prices")
+      .then(r => r.json())
+      .then(d => {
+        if (d.yards) {
+          const built = buildMarkets(d.yards);
+          setMarkets(built);
+          const sample = Object.values(d.yards as Record<string, DbYard>)[0];
+          if (sample) {
+            setLastUpdated(sample.updatedAt);
+            setDataSource(sample.source);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const C = currencies.find(c => c.code === cur) || currencies[0];
   const cv = (p: number) => Math.round(p * C.rate);
-  const calcM = markets.find(m => m.id === mkt) || markets[1];
-  const calcVal = Math.round(ldt * calcM.price * C.rate).toLocaleString();
+  const calcM = markets.find(m => m.id === mkt) || markets[0];
+  const calcVal = calcM ? Math.round(ldt * calcM.price * C.rate).toLocaleString() : "—";
   const selM = markets.find(m => m.id === sel);
 
   return (
@@ -59,7 +104,10 @@ export default function Markets() {
             <span style={{ fontSize:11, fontWeight:600, color:"#1D9E75", letterSpacing:"0.12em", textTransform:"uppercase" as const }}>Scrap Markets</span>
           </div>
           <h1 style={{ fontSize:22, fontWeight:800, letterSpacing:-0.5, margin:0, color:"#101828" }}>Scrap Price Markets</h1>
-          <div style={{ fontSize:12, color:"#667085", marginTop:4 }}>Live $/LDT prices · Updated weekly · Jun 18, 2026 <span style={{ color:"#1D9E75", marginLeft:8 }}>● Live</span></div>
+          <div style={{ fontSize:12, color:"#667085", marginTop:4 }}>
+            Live $/LDT prices · {dataSource ?? "Updated weekly"}{lastUpdated ? ` · ${new Date(lastUpdated).toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" })}` : ""}
+            <span style={{ color:"#1D9E75", marginLeft:8 }}>● Live</span>
+          </div>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:6 }}>
           <span style={{ fontSize:11, color:"#667085", marginRight:4 }}>Currency:</span>
@@ -114,7 +162,7 @@ export default function Markets() {
                     }}>
                       {m.change>0?"+":""}{m.change} this week
                     </span>
-                    <span style={{ fontSize:11, color:"#667085" }}>{C.symbol}{cv(m.low)}–{cv(m.high)}</span>
+                    <span style={{ fontSize:11, color:"#667085" }}>{m.prices.bulker && m.prices.tanker ? `${C.symbol}${cv(m.prices.bulker)}–${cv(m.prices.tanker)}` : ""}</span>
                   </div>
                   <span style={{ fontSize:10, fontWeight:600, padding:"2px 8px", borderRadius:6, fontFamily:"monospace",
                     background: m.hkc ? "#ECFDF3" : "#F9FAFB",
@@ -123,6 +171,17 @@ export default function Markets() {
                   }}>{m.hkc?"✓ HKC":"HKC pending"}</span>
                 </div>
 
+                {/* Vessel-type prices */}
+                {m.prices && Object.keys(m.prices).length > 0 && (
+                  <div style={{ display:"flex", gap:6, marginBottom:12 }}>
+                    {(["bulker","tanker","container"] as const).map(t => m.prices[t] != null && (
+                      <div key={t} style={{ flex:1, background:"#F9FAFB", border:"1px solid #EAECF0", borderRadius:8, padding:"6px 8px", textAlign:"center" as const }}>
+                        <div style={{ fontSize:8, color:"#98A2B3", textTransform:"uppercase" as const, letterSpacing:"0.07em", marginBottom:2 }}>{t}</div>
+                        <div style={{ fontSize:13, fontWeight:700, color:"#101828" }}>{C.symbol}{cv(m.prices[t])}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div style={{ display:"flex", alignItems:"flex-end", justifyContent:"space-between" }}>
                   <div>
                     <div style={{ fontSize:9, color:"#98A2B3", fontFamily:"monospace", letterSpacing:"0.08em", marginBottom:4 }}>9-MONTH TREND</div>
@@ -197,7 +256,7 @@ export default function Markets() {
                     </td>
                     <td style={{ padding:"11px 16px" }}>
                       <div style={{ fontSize:15, fontWeight:700, color:"#101828" }}>{C.symbol}{cv(m.price)}</div>
-                      <div style={{ fontSize:10, color:"#98A2B3" }}>{C.symbol}{cv(m.low)}–{cv(m.high)}</div>
+                      <div style={{ fontSize:10, color:"#98A2B3" }}>{m.prices.bulker && m.prices.tanker ? `${C.symbol}${cv(m.prices.bulker)}–${cv(m.prices.tanker)}` : ""}</div>
                     </td>
                     <td style={{ padding:"11px 16px" }}>
                       <span style={{ fontSize:12, fontWeight:600, padding:"2px 8px", borderRadius:6,
@@ -271,6 +330,19 @@ export default function Markets() {
               </div>
             </div>
 
+            {/* Vessel-type breakdown */}
+            {selM.prices && Object.keys(selM.prices).length > 0 && (
+              <div style={{ background:"#F9FAFB", border:"1px solid #EAECF0", borderRadius:10, padding:12, marginBottom:12 }}>
+                <div style={{ fontSize:9, fontWeight:700, color:"#98A2B3", textTransform:"uppercase" as const, letterSpacing:"0.08em", marginBottom:8 }}>By vessel type</div>
+                {(["bulker","tanker","container"] as const).map(t => selM.prices[t] != null && (
+                  <div key={t} style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
+                    <span style={{ fontSize:11, color:"#667085", textTransform:"capitalize" as const }}>{t}</span>
+                    <span style={{ fontSize:12, fontWeight:700, color:"#101828" }}>{C.symbol}{cv(selM.prices[t])}/LDT</span>
+                  </div>
+                ))}
+                {selM.source && <div style={{ fontSize:9, color:"#98A2B3", marginTop:6 }}>{selM.source}</div>}
+              </div>
+            )}
             {[["Active yards", selM.yards+" yards"], ["Steel price", C.symbol+cv(selM.steel)+"/ton"], ["Volume", selM.volume+" vessels/mo"], ["HKC", selM.hkc?"✓ Certified":"Pending"], ["Beaching", selM.tide]].map(([l, v]) => (
               <div key={String(l)} style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
                 <span style={{ fontSize:11, color:"#667085" }}>{l}</span>

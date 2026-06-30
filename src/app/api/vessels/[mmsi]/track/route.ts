@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 // GET /api/vessels/:mmsi/track?hours=24&simplify=0.0001
 //
 // Returns GeoJSON LineString + raw point array for the last N hours.

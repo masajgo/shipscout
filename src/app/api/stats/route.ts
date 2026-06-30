@@ -1,6 +1,7 @@
 import pool from "@/lib/db";
 import { NextResponse } from "next/server";
 
+export const runtime = "nodejs";
 export const revalidate = 3600; // revalidate every hour
 
 export async function GET() {

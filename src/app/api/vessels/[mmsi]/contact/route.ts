@@ -4,6 +4,7 @@ import { categorizeEmails, guessEmailsFromName, GENERIC_LOCALS } from "@/lib/con
 import type { ContactResult } from "@/lib/contactEnricher";
 
 export const runtime     = "nodejs";
+export const dynamic     = "force-dynamic";
 export const maxDuration = 10;
 
 /*

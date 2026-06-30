@@ -14,6 +14,8 @@ type Vessel = {
   manager: string | null; ownerName: string | null;
   bestEmail: string | null; emailStatus: string | null;
   phone: string | null; website: string | null; linkedinUrl: string | null;
+  photoThumb: string | null; photoArtist: string | null;
+  photoLicense: string | null; photoPageUrl: string | null;
 };
 
 type Filters = {
@@ -439,6 +441,7 @@ export default function VesselsPage() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
               <tr style={{ background: C.card, position: "sticky", top: 0, zIndex: 5 }}>
+                <th style={{ ...th, width: 44 }}></th>
                 <th style={th}><input type="checkbox"
                   checked={selected.size === results.length && results.length > 0}
                   onChange={toggleSelectAll} style={{ accentColor: C.gold }} /></th>
@@ -462,6 +465,29 @@ export default function VesselsPage() {
                   onMouseEnter={e => (e.currentTarget.style.background = "rgba(201,168,76,0.05)")}
                   onMouseLeave={e => (e.currentTarget.style.background = i % 2 === 0 ? "rgba(255,255,255,0.015)" : "transparent")}
                 >
+                  {/* Photo thumbnail */}
+                  <td style={{ ...td, padding: "4px 6px", width: 44 }}>
+                    {v.photoThumb ? (
+                      <a href={v.photoPageUrl ?? v.photoThumb} target="_blank" rel="noreferrer" title={`© ${v.photoArtist ?? "Unknown"} / ${v.photoLicense ?? ""}`}>
+                        <img
+                          src={v.photoThumb}
+                          alt={v.name}
+                          style={{ width: 40, height: 30, objectFit: "cover", borderRadius: 4, display: "block", border: "1px solid rgba(255,255,255,0.1)" }}
+                          onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                      </a>
+                    ) : (
+                      <div style={{ width: 40, height: 30, borderRadius: 4, background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <svg viewBox="0 0 40 30" width={36} height={28} style={{ opacity: 0.15 }}>
+                          <path d={
+                            (v.type || "").toLowerCase().includes("tanker")
+                              ? "M2 26 L5 18 L10 16 L30 16 L35 20 L38 26 Z M11 16 L12 11 L16 11 L16 16 Z"
+                              : "M2 26 L5 18 L10 15 L30 15 L35 18 L38 26 Z M11 15 L11 10 L18 10 L18 15 Z"
+                          } fill="#8FA8B2" />
+                        </svg>
+                      </div>
+                    )}
+                  </td>
                   <td style={td}>
                     <input type="checkbox" checked={selected.has(v.imo)}
                       onChange={() => setSelected(s => {

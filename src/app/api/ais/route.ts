@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 // Returns live vessel count from Supabase (used by the nav "Live · X vessels" badge)
 export async function GET() {

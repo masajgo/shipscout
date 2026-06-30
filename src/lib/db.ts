@@ -18,4 +18,14 @@ const pool = new Pool({
   ssl,
 });
 
+// Kill runaway queries before Vercel's 10s function timeout kicks in
+pool.on("connect", client => {
+  client.query("SET statement_timeout = '8s'").catch(() => {});
+});
+
+// Surface connection errors at startup rather than silently failing later
+pool.on("error", (err) => {
+  console.error("[db] idle client error:", err.message);
+});
+
 export default pool;

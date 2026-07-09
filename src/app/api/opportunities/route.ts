@@ -21,8 +21,6 @@ export interface OpportunityVessel {
   nav_status: number | null;
   scrap_score: number;
   scrap_category: string | null;
-  scrap_value_usd: number | null;
-  scrap_value_estimated: boolean;
   detention_count: number;
   deficiency_count: number;
   special_survey_date: string | null;
@@ -36,6 +34,7 @@ export interface OpportunityVessel {
   emails: string[] | null;
   phones: string[] | null;
   website: string | null;
+  linkedin_url: string | null;
   // computed
   signals: VesselSignal[];
   signal_count: number;
@@ -59,11 +58,11 @@ export async function GET(req: NextRequest) {
     flag: string | null; age: number; built_year: number | null; ldt: number | null;
     deadweight: number | null; gross_tonnage: number | null; speed: number | null;
     nav_status: number | null; scrap_score: number; scrap_category: string | null;
-    scrap_value_usd: number | null; scrap_value_estimated: boolean;
     detention_count: number; deficiency_count: number; special_survey_date: string | null;
     lat: number | null; lon: number | null; dist_aliaga_nm: number | null;
     owner_name: string | null; manager_name: string | null; best_email: string | null;
     emails: string[] | null; phones: string[] | null; website: string | null;
+    linkedin_url: string | null;
   }>(`
     SELECT
       v.mmsi::text, v.imo::text, v.name, v.type, v.type_specific, v.flag,
@@ -71,8 +70,6 @@ export async function GET(req: NextRequest) {
       v.speed, v.nav_status,
       COALESCE(v.scrap_score, 0) AS scrap_score,
       v.scrap_category,
-      v.scrap_value_usd,
-      COALESCE(v.scrap_value_estimated, false) AS scrap_value_estimated,
       COALESCE(v.detention_count, 0)  AS detention_count,
       COALESCE(v.deficiency_count, 0) AS deficiency_count,
       v.special_survey_date::text,
@@ -84,7 +81,8 @@ export async function GET(req: NextRequest) {
         ) / 1852.0)::numeric, 0)
       ELSE NULL END AS dist_aliaga_nm,
       o.owner_name, o.manager_name, o.best_email,
-      o.emails, o.phones, o.website
+      o.emails, o.phones, o.website,
+      COALESCE(o.linkedin_company_url, o.linkedin_url) AS linkedin_url
     FROM vessels v
     LEFT JOIN owners o ON o.imo = v.imo
     WHERE (v.age >= $3 OR v.detention_count > 0)

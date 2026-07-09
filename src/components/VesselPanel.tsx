@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, useState } from "react";
-// scrap prices fetched from DB via /api/scrap-prices
 
 const C = {
   navy: "#0D1F28", mid: "#0F2733", light: "#1A3A4A",
@@ -192,12 +191,6 @@ function EmailBadge({ label, email }: { label: string; email: string }) {
   );
 }
 
-function vesselTypeKey(type: string): "bulker" | "tanker" | "container" {
-  const t = (type || "").toLowerCase();
-  if (t.includes("tank")) return "tanker";
-  if (t.includes("container")) return "container";
-  return "bulker";
-}
 
 export default function VesselPanel({ imo, onClose }: { imo: string; onClose: () => void }) {
   const [data,           setData]           = useState<VesselData | null>(null);
@@ -214,16 +207,6 @@ export default function VesselPanel({ imo, onClose }: { imo: string; onClose: ()
   const [triedFallback,  setTriedFallback]  = useState(false);
   const [photos,         setPhotos]         = useState<{ url: string; thumb: string; artist: string; license: string; licenseUrl: string | null; pageUrl: string | null; attribution: string; isPrimary: boolean }[]>([]);
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
-  const [scrapYards,     setScrapYards]     = useState<Record<string, { country: string; prices: Record<string, number> }>>({});
-
-  // Load scrap prices from DB once
-  useEffect(() => {
-    fetch("/api/scrap-prices")
-      .then(r => r.json())
-      .then(d => { if (d.yards) setScrapYards(d.yards); })
-      .catch(() => {});
-  }, []);
-
   // Load Datalastic vessel data
   useEffect(() => {
     setData(null); setContact(null); setWebFetchedAt(null);
@@ -461,18 +444,6 @@ ShipScout — Maritime Intelligence`;
             <Row label="Built At"  value={data.particulars.builtAt} />
             <Row label="DWT"       value={data.particulars.dwt ? `${data.particulars.dwt.toLocaleString()} t` : "N/A"} highlight />
             <Row label="LDT"       value={data.particulars.ldt ? `${data.particulars.ldt.toLocaleString()} t` : "N/A"} highlight />
-            <Row
-              label="Est. Scrap Value"
-              value={(() => {
-                if (!data.particulars.ldt) return null;
-                const typeKey = vesselTypeKey(data.particulars.type ?? "");
-                const aliaga = scrapYards["Aliağa"];
-                const price = aliaga?.prices?.[typeKey] ?? 280;
-                const val = (data.particulars.ldt * price) / 1_000_000;
-                return `${data.particulars.ldt_estimated ? "~" : ""}$${val.toFixed(1)}M @ Aliağa`;
-              })()}
-              highlight
-            />
             <Row label="GRT"       value={data.particulars.grt ? `${data.particulars.grt.toLocaleString()} t` : null} />
             <Row label="LOA"       value={data.particulars.loa ? `${data.particulars.loa} m` : null} />
             <Row label="Beam"      value={data.particulars.beam ? `${data.particulars.beam} m` : null} />
@@ -483,44 +454,6 @@ ShipScout — Maritime Intelligence`;
             <Row label="Status"    value={data.particulars.status} />
           </Section>
 
-          {/* Estimated Scrap Value */}
-          {data.particulars.ldt && (
-            <Section title="Estimated Scrap Value">
-              {data.particulars.ldt_estimated && (
-                <div style={{ fontSize: 10, color: C.steel, fontStyle: "italic", marginBottom: 8 }}>
-                  LDT estimated (no actual lightship data available)
-                </div>
-              )}
-              {(() => {
-                const typeKey = vesselTypeKey(data.particulars.type ?? "");
-                const YARD_EMOJIS: Record<string, string> = { Chittagong:"🇧🇩", Gadani:"🇵🇰", Alang:"🇮🇳", Aliağa:"🇹🇷" };
-                const yardOrder = ["Chittagong","Gadani","Alang","Aliağa"];
-                const entries = Object.keys(scrapYards).length
-                  ? yardOrder.filter(y => scrapYards[y])
-                  : [];
-                if (!entries.length) {
-                  // DB not loaded yet or empty — show placeholder
-                  return <div style={{ fontSize:11, color:C.steel }}>Loading prices…</div>;
-                }
-                return entries.map(yardName => {
-                  const yard = scrapYards[yardName];
-                  const price = yard.prices[typeKey] ?? yard.prices.bulker ?? 0;
-                  const val = (data.particulars.ldt * price) / 1_000_000;
-                  const fmt = `${data.particulars.ldt_estimated ? "~" : ""}$${val >= 10 ? val.toFixed(1) : val.toFixed(2)}M`;
-                  const emoji = YARD_EMOJIS[yardName] ?? "🌍";
-                  return (
-                    <div key={yardName} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "7px 0", borderBottom: "1px solid rgba(143,168,178,0.08)" }}>
-                      <span style={{ fontSize: 12, color: C.steel }}>{yardName} {emoji}</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: C.green }}>
-                        {fmt}
-                        <span style={{ fontWeight: 400, color: C.steel, marginLeft: 4 }}>@${price}/LDT</span>
-                      </span>
-                    </div>
-                  );
-                });
-              })()}
-            </Section>
-          )}
 
           {/* Survey / Dry Dock */}
           {(data.surveys.lastDryDock || data.surveys.nextDryDock || data.surveys.classExpiry) ? (

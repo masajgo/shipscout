@@ -21,11 +21,6 @@ const SHIP_TYPE_ICONS: Record<string, string> = {
   "Offshore":      "OS",
 };
 
-function fmtScrap(usd: number | null | undefined, est: boolean | null | undefined): string | null {
-  if (!usd || usd < 100_000) return null;
-  const m = usd / 1_000_000;
-  return `${est ? "~" : ""}$${m >= 10 ? m.toFixed(1) : m.toFixed(2)}M`;
-}
 
 type Stats = {
   totalVessels: number;
@@ -42,7 +37,7 @@ export default function Home() {
   const [typeFilter, setTypeFilter] = useState("All");
   const [signalFilter, setSignalFilter] = useState("All Signals");
   const [selectedIMO, setSelectedIMO]  = useState<string | null>(null);
-  const [sortBy, setSortBy]             = useState<"score"|"age"|"value">("score");
+  const [sortBy, setSortBy]             = useState<"score"|"age">("score");
   const [stats, setStats]               = useState<Stats | null>(null);
 
   useEffect(() => {
@@ -66,8 +61,7 @@ export default function Home() {
       return true;
     })
     .sort((a, b) => {
-      if (sortBy === "age")   return (a.age ?? 0) < (b.age ?? 0) ? 1 : -1;
-      if (sortBy === "value") return (b.scrap_value_usd ?? 0) - (a.scrap_value_usd ?? 0);
+      if (sortBy === "age") return (a.age ?? 0) < (b.age ?? 0) ? 1 : -1;
       return (b.score ?? 0) - (a.score ?? 0);
     });
 
@@ -139,9 +133,6 @@ export default function Home() {
                 low:      { bg: "#1A2E1A", color: "#86EFAC" },
               };
               const cat = catColors[featured.scrap_category] ?? catColors.low;
-              const sv = featured.scrap_value_usd && featured.scrap_value_usd > 100_000
-                ? `${featured.scrap_value_estimated ? "~" : ""}$${(featured.scrap_value_usd / 1_000_000).toFixed(1)}M`
-                : null;
               return (
                 <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2E8F0", padding: 24, boxShadow: "0 8px 32px rgba(11,30,61,0.10)" }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "#C9A84C", letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 16 }}>
@@ -168,12 +159,6 @@ export default function Home() {
                       </div>
                     ))}
                   </div>
-                  {sv && (
-                    <div style={{ background: "rgba(201,168,76,0.08)", borderRadius: 8, padding: "10px 14px", marginBottom: 16 }}>
-                      <div style={{ fontSize: 10, color: "#8896A5", textTransform: "uppercase" as const, letterSpacing: "0.04em", marginBottom: 2 }}>Est. Scrap Value</div>
-                      <div style={{ fontSize: 24, fontWeight: 800, color: "#C9A84C" }}>{sv}</div>
-                    </div>
-                  )}
                   <button
                     onClick={() => setSelectedIMO(featured.imo)}
                     style={{ width: "100%", padding: "11px 20px", background: "#C9A84C", color: "#0B1E3D", fontSize: 13, fontWeight: 700, border: "none", borderRadius: 8, cursor: "pointer", marginBottom: 12 }}
@@ -260,23 +245,15 @@ export default function Home() {
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: "#101828" }}>
               {loading ? "Loading vessels..." : `${filtered.length} vessels found`}
-              {!loading && filtered.length > 0 && (() => {
-                const totalUSD = filtered.reduce((s, v) => s + (v.scrap_value_usd ?? 0), 0);
-                return totalUSD > 0 ? (
-                  <span style={{ fontSize: 12, fontWeight: 500, color: "#1D9E75", marginLeft: 10 }}>
-                    · ~${(totalUSD / 1_000_000).toFixed(0)}M total est. scrap value
-                  </span>
-                ) : null;
-              })()}
             </div>
             <div style={{ fontSize: 12, color: "#98A2B3", marginTop: 2 }}>
-              {sortBy === "score" ? "Sorted by scrap score — highest opportunity first" : sortBy === "age" ? "Sorted by age — oldest first" : "Sorted by estimated value — highest first"}
+              {sortBy === "score" ? "Sorted by scrap score — highest opportunity first" : "Sorted by age — oldest first"}
             </div>
           </div>
           <div style={{ display: "flex", gap: 4 }}>
-            {(["score","age","value"] as const).map(s => (
+            {(["score","age"] as const).map(s => (
               <button key={s} onClick={() => setSortBy(s)} style={{ fontSize: 12, color: sortBy===s ? "#101828" : "#667085", border: `1px solid ${sortBy===s ? "#101828" : "#EAECF0"}`, padding: "6px 14px", borderRadius: 7, background: sortBy===s ? "#F2F4F7" : "#fff", cursor: "pointer", fontFamily: "Inter, sans-serif", textTransform: "capitalize" }}>
-                {s === "score" ? "Score ▾" : s === "age" ? "Age ▾" : "Value ▾"}
+                {s === "score" ? "Score ▾" : "Age ▾"}
               </button>
             ))}
           </div>
@@ -353,16 +330,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Scrap value */}
-                {(() => {
-                  const sv = fmtScrap(v.scrap_value_usd, v.scrap_value_estimated);
-                  return sv ? (
-                    <div style={{ textAlign: "right", flexShrink: 0, minWidth: 90 }}>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: "#101828", letterSpacing: -0.5 }}>{sv}</div>
-                      <div style={{ fontSize: 9, color: "#98A2B3", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginTop: 2 }}>Est. scrap value</div>
-                    </div>
-                  ) : <div style={{ minWidth: 90 }} />;
-                })()}
 
                 <div style={{ color: "#C8CDD6", fontSize: 18, flexShrink: 0 }}>→</div>
               </div>

@@ -104,6 +104,16 @@ function calcScrapValue(existingLdt, existingDwt) {
 }
 
 // ─── DB: candidate listesi ────────────────────────────────────────────────────
+//
+// Öncelik sırası (Opportunity Radar sinyalleri):
+//   1. detention_count > 0 AND age > 20          (ticari ömür sonu sinyali)
+//   2. special_survey_date 6 ay içinde AND age>20 (maliyet baskısı)
+//   3. age >= 30                                  (yaş eşiği)
+//   4. Geri kalan (built_year/flag eksik olanlar)
+//
+// Her iki küme de kapsanıyor:
+//   a) owners satırı VAR ama email/phone/website YOK → web enrichment bekliyor
+//   b) owners satırı YOK → Equasis'ten ilk çekim
 
 async function getCandidates(limit) {
   const { rows } = await pool.query(`
@@ -112,17 +122,46 @@ async function getCandidates(limit) {
       v.imo::text,
       v.built_year,
       v.flag,
+      v.age,
       v.speed,
       v.nav_status,
       v.deadweight,
       v.ldt,
-      COALESCE(o.owner_name, '') as existing_owner
+      v.detention_count,
+      v.special_survey_date,
+      COALESCE(o.owner_name, '') AS existing_owner,
+      CASE
+        WHEN o.imo IS NULL THEN 'no_owner_row'
+        WHEN (o.best_email IS NULL
+          AND (o.emails IS NULL OR array_length(o.emails,1) IS NULL)
+          AND (o.phones IS NULL OR array_length(o.phones,1) IS NULL)
+          AND o.website IS NULL
+          AND o.linkedin_url IS NULL
+          AND o.linkedin_company_url IS NULL) THEN 'owner_row_no_contact'
+        ELSE 'has_contact'
+      END AS contact_status
     FROM vessels v
     LEFT JOIN owners o ON o.imo = v.imo
     WHERE v.imo IS NOT NULL
       AND v.imo BETWEEN 1000000 AND 9999999
-      AND (v.built_year IS NULL OR v.flag IS NULL)
-    ORDER BY v.scrap_score DESC NULLS LAST
+      AND (v.built_year IS NULL OR v.flag IS NULL
+           OR o.imo IS NULL
+           OR (o.best_email IS NULL
+               AND (o.emails IS NULL OR array_length(o.emails,1) IS NULL)
+               AND (o.phones IS NULL OR array_length(o.phones,1) IS NULL)
+               AND o.website IS NULL))
+      AND (o.imo IS NULL OR o.equasis_fetched_at IS NULL
+           OR o.equasis_fetched_at < NOW() - INTERVAL '30 days')
+    ORDER BY
+      -- Priority 1: opportunity signals (detention + age)
+      CASE WHEN v.detention_count > 0 AND v.age > 20 THEN 0 ELSE 1 END,
+      -- Priority 2: survey pressure
+      CASE WHEN v.special_survey_date BETWEEN NOW() AND NOW() + INTERVAL '6 months'
+                AND v.age > 20 THEN 0 ELSE 1 END,
+      -- Priority 3: age threshold
+      CASE WHEN v.age >= 30 THEN 0 ELSE 1 END,
+      -- Within same priority: higher scrap_score first
+      v.scrap_score DESC NULLS LAST
     LIMIT $1
   `, [limit]);
   return rows;

@@ -124,10 +124,29 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  results.sort((a, b) => b.opportunity_score - a.opportunity_score);
+  // final sort happens after contactable split below
+
+  const contactable = results.filter(v => {
+    const emails = [...(v.emails?.filter(Boolean) ?? []), ...(v.best_email ? [v.best_email] : [])];
+    return emails.length > 0 || (v.phones?.length ?? 0) > 0 || !!v.website || !!v.linkedin_url;
+  });
+
+  // Sort: contactable first within same score band, then by opportunity_score
+  results.sort((a, b) => {
+    const aC = hasContact(a) ? 1 : 0;
+    const bC = hasContact(b) ? 1 : 0;
+    if (aC !== bC) return bC - aC;
+    return b.opportunity_score - a.opportunity_score;
+  });
 
   return NextResponse.json({
-    total: results.length,
-    vessels: results.slice(0, limit),
+    total:              results.length,
+    contactable_total:  contactable.length,
+    vessels:            results.slice(0, limit),
   });
+
+  function hasContact(v: OpportunityVessel) {
+    const emails = [...(v.emails?.filter(Boolean) ?? []), ...(v.best_email ? [v.best_email] : [])];
+    return emails.length > 0 || (v.phones?.length ?? 0) > 0 || !!v.website || !!v.linkedin_url;
+  }
 }

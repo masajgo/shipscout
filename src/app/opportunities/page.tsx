@@ -170,24 +170,34 @@ function ExpandedRow({ vessel }: { vessel: OpportunityVessel }) {
 }
 
 export default function OpportunitiesPage() {
-  const [vessels, setVessels]   = useState<OpportunityVessel[]>([]);
-  const [total, setTotal]       = useState<number>(0);
-  const [loading, setLoading]   = useState(true);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [vessels, setVessels]           = useState<OpportunityVessel[]>([]);
+  const [total, setTotal]               = useState<number>(0);
+  const [contactableTotal, setContactableTotal] = useState<number>(0);
+  const [loading, setLoading]           = useState(true);
+  const [expanded, setExpanded]         = useState<Set<string>>(new Set());
 
   const [signalFilter, setSignalFilter] = useState<string>("all");
   const [minAge, setMinAge]             = useState<number>(20);
   const [typeFilter, setTypeFilter]     = useState<string>("all");
   const [maxDist, setMaxDist]           = useState<string>("all");
-  const [hasContact, setHasContact]     = useState(false);
+  const [contactOnly, setContactOnly]   = useState(true); // default ON for demo
 
   useEffect(() => {
     setLoading(true);
     fetch("/api/opportunities?limit=500")
       .then(r => r.json())
-      .then(d => { setVessels(d.vessels ?? []); setTotal(d.total ?? 0); })
+      .then(d => {
+        setVessels(d.vessels ?? []);
+        setTotal(d.total ?? 0);
+        setContactableTotal(d.contactable_total ?? 0);
+      })
       .finally(() => setLoading(false));
   }, []);
+
+  function vesselHasContact(v: OpportunityVessel) {
+    const emails = [...(v.emails?.filter(Boolean) ?? []), ...(v.best_email ? [v.best_email] : [])];
+    return emails.length > 0 || (v.phones?.length ?? 0) > 0 || !!v.website || !!v.linkedin_url;
+  }
 
   const filtered = useMemo(() => {
     return vessels.filter(v => {
@@ -195,13 +205,10 @@ export default function OpportunitiesPage() {
       if (v.age < minAge) return false;
       if (typeFilter !== "all" && !v.type?.toLowerCase().includes(typeFilter.toLowerCase())) return false;
       if (maxDist !== "all" && v.dist_aliaga_nm !== null && v.dist_aliaga_nm > parseInt(maxDist)) return false;
-      if (hasContact) {
-        const emails = [...(v.emails ?? []), ...(v.best_email ? [v.best_email] : [])];
-        if (emails.length === 0 && (v.phones?.length ?? 0) === 0 && !v.website && !v.linkedin_url) return false;
-      }
+      if (contactOnly && !vesselHasContact(v)) return false;
       return true;
     });
-  }, [vessels, signalFilter, minAge, typeFilter, maxDist, hasContact]);
+  }, [vessels, signalFilter, minAge, typeFilter, maxDist, contactOnly]);
 
   function toggleExpand(mmsi: string) {
     setExpanded(prev => {
@@ -228,15 +235,28 @@ export default function OpportunitiesPage() {
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "#111827", margin: 0 }}>Opportunity Radar</h1>
-          {!loading && (
-            <span style={{ fontSize: 13, color: "#6B7280" }}>
-              {total.toLocaleString()} vessels with active signals · showing {filtered.length}
-            </span>
-          )}
         </div>
         <p style={{ fontSize: 13, color: "#6B7280", margin: "6px 0 0" }}>
           Vessels showing sell, charter, or recycling signals before listings appear — derived from AIS data, PSC inspections, and survey schedules.
         </p>
+        {!loading && (
+          <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 12, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 20, fontWeight: 800, color: "#111827" }}>
+                {contactableTotal.toLocaleString()}
+              </span>
+              <span style={{ fontSize: 13, color: "#6B7280" }}>contactable</span>
+              <span style={{ fontSize: 13, color: "#D1D5DB" }}>·</span>
+              <span style={{ fontSize: 13, color: "#9CA3AF" }}>
+                {total.toLocaleString()} total opportunities
+              </span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 1, height: 16, background: "#E5E7EB" }} />
+              <span style={{ fontSize: 12, color: "#6B7280" }}>showing {filtered.length}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Filters */}
@@ -290,13 +310,21 @@ export default function OpportunitiesPage() {
 
         <div style={{ width: 1, height: 20, background: "#E5E7EB" }} />
 
-        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#374151", cursor: "pointer" }}>
-          <input type="checkbox" checked={hasContact} onChange={e => setHasContact(e.target.checked)} />
-          Has contact info
-        </label>
+        <button
+          onClick={() => setContactOnly(c => !c)}
+          style={{
+            fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 6, cursor: "pointer",
+            border: contactOnly ? "1px solid #15803D" : "1px solid #D1D5DB",
+            background: contactOnly ? "#F0FDF4" : "#fff",
+            color: contactOnly ? "#15803D" : "#6B7280",
+            display: "flex", alignItems: "center", gap: 6,
+          }}>
+          <span style={{ fontSize: 14 }}>{contactOnly ? "✓" : "○"}</span>
+          {contactOnly ? "Contactable only" : "Show all opportunities"}
+        </button>
 
-        {(signalFilter !== "all" || minAge !== 20 || typeFilter !== "all" || maxDist !== "all" || hasContact) && (
-          <button onClick={() => { setSignalFilter("all"); setMinAge(20); setTypeFilter("all"); setMaxDist("all"); setHasContact(false); }}
+        {(signalFilter !== "all" || minAge !== 20 || typeFilter !== "all" || maxDist !== "all" || !contactOnly) && (
+          <button onClick={() => { setSignalFilter("all"); setMinAge(20); setTypeFilter("all"); setMaxDist("all"); setContactOnly(true); }}
             style={{ fontSize: 11, color: "#6B7280", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
             Reset
           </button>

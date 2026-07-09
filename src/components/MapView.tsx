@@ -934,13 +934,13 @@ export default function MapView() {
                   </a>
                   {contact.emails.length > 0 && (
                     <a href={buildOfferMailto(contact, detail, selected)} style={{ display: "block", textAlign: "center" as const, background: "rgba(29,158,117,0.10)", border: "1px solid rgba(29,158,117,0.28)", borderRadius: 4, padding: "5px 6px", color: S.green, fontSize: 9, fontWeight: 600, textDecoration: "none" }}>
-                      ✉ Email teklifi
+                      ✉ Draft offer email
                     </a>
                   )}
                 </div>
               </div>
             ) : !detail?.ownerName && !detail?.managerName ? (
-              <div style={{ fontSize: 9, color: S.muted, fontStyle: "italic" }}>Owner bilgisi toplanıyor — yarın güncellenir</div>
+              <div style={{ fontSize: 9, color: S.muted, fontStyle: "italic" }}>Owner data being collected — updates tomorrow</div>
             ) : null}
           </div>
 

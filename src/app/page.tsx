@@ -1,6 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import VesselPanel from "@/components/VesselPanel";
 
 const SHIP_TYPES = ["All", "Bulk Carrier", "Tanker", "Container", "General Cargo", "Cruise", "Offshore"];
@@ -45,8 +44,6 @@ export default function Home() {
   const [selectedIMO, setSelectedIMO]  = useState<string | null>(null);
   const [sortBy, setSortBy]             = useState<"score"|"age"|"value">("score");
   const [stats, setStats]               = useState<Stats | null>(null);
-  const [search, setSearch]             = useState("");
-  const router = useRouter();
 
   useEffect(() => {
     fetch("/api/vessels?list=1")
@@ -61,11 +58,6 @@ export default function Home() {
       .then(d => { if (d && !d.error) setStats(d); })
       .catch(() => {});
   }, []);
-
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    if (search.trim()) router.push(`/map?search=${encodeURIComponent(search.trim())}`);
-  }
 
   const currentYear = new Date().getFullYear();
   const filtered = vessels
@@ -94,51 +86,39 @@ export default function Home() {
           {/* LEFT */}
           <div style={{ flex: 1, minWidth: 0 }}>
             {/* Live badge */}
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1px solid #C9A84C", borderRadius: 100, padding: "5px 14px", marginBottom: 24, background: "rgba(201,168,76,0.06)" }}>
-              <span style={{ color: "#1D9E75", fontSize: 10 }}>●</span>
-              <span style={{ fontSize: 11, fontWeight: 600, color: "#0B1E3D", letterSpacing: "0.06em", textTransform: "uppercase" as const }}>Live AIS Tracking</span>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1px solid rgba(29,158,117,0.35)", borderRadius: 100, padding: "5px 14px", marginBottom: 28, background: "rgba(29,158,117,0.06)" }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#1D9E75", display: "inline-block" }} />
+              <span style={{ fontSize: 11, fontWeight: 600, color: "#0B1E3D", letterSpacing: "0.06em", textTransform: "uppercase" as const }}>Live AIS · {stats ? stats.totalVessels.toLocaleString() : "—"} vessels tracked</span>
             </div>
 
-            <h1 style={{ fontSize: 52, fontWeight: 800, color: "#0B1E3D", letterSpacing: "-2px", lineHeight: 1.05, margin: "0 0 20px" }}>
-              The World&apos;s Most<br />
-              Comprehensive Vessel<br />
-              Intelligence <span style={{ color: "#C9A84C" }}>Platform</span>
+            <h1 style={{ fontSize: 56, fontWeight: 800, color: "#0B1E3D", letterSpacing: "-2.5px", lineHeight: 1.0, margin: "0 0 24px" }}>
+              Find it. Scout it.<br />
+              <span style={{ color: "#1D9E75" }}>Close it.</span>
             </h1>
 
-            <p style={{ fontSize: 18, color: "#4A5568", lineHeight: 1.6, margin: "0 0 36px", fontWeight: 400 }}>
-              Search. Compare. Contact Owners.
+            <p style={{ fontSize: 17, color: "#4A5568", lineHeight: 1.65, margin: "0 0 36px", fontWeight: 400, maxWidth: 520 }}>
+              Scrap-eligible and second-hand vessels, their owners&apos; contacts,
+              and S&amp;P intelligence — surfaced before the market moves.
             </p>
 
-            {/* Search box */}
-            <form onSubmit={handleSearch} style={{ display: "flex", background: "#fff", borderRadius: 12, border: "1px solid #E2E8F0", boxShadow: "0 4px 20px rgba(0,0,0,0.08)", overflow: "hidden", marginBottom: 44 }}>
-              <input
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search by vessel name, IMO, MMSI..."
-                style={{ flex: 1, padding: "18px 22px", fontSize: 14, border: "none", outline: "none", color: "#1A1A2E", background: "transparent", fontFamily: "Inter, sans-serif" }}
-              />
-              <button type="submit" style={{ padding: "18px 32px", background: "#0B1E3D", color: "#fff", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer", letterSpacing: "0.04em", flexShrink: 0 }}>
-                Search
-              </button>
-            </form>
-
-            {/* Stats row */}
-            <div style={{ display: "flex", gap: 36, flexWrap: "wrap" as const }}>
-              {[
-                { icon: "⚓", value: stats ? stats.totalVessels.toLocaleString() : "—", label: "Vessels Tracked" },
-                { icon: "👤", value: stats ? stats.ownersFound.toLocaleString() : "—", label: "Owners Found" },
-                { icon: "🌍", value: "150+", label: "Countries" },
-                { icon: "🕐", value: "24/7", label: "Real-time AIS" },
-              ].map(s => (
-                <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ fontSize: 22 }}>{s.icon}</div>
-                  <div>
-                    <div style={{ fontSize: 22, fontWeight: 700, color: "#0B1E3D", lineHeight: 1 }}>{s.value}</div>
-                    <div style={{ fontSize: 11, color: "#8896A5", textTransform: "uppercase" as const, letterSpacing: "0.04em", marginTop: 2 }}>{s.label}</div>
-                  </div>
-                </div>
+            {/* Value props */}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, marginBottom: 40 }}>
+              {["Scrap radar", "Owner contacts", "S&P intelligence"].map(v => (
+                <span key={v} style={{ fontSize: 12, fontWeight: 600, color: "#0B1E3D", border: "1px solid #D1D9E0", borderRadius: 6, padding: "6px 14px", background: "#fff", letterSpacing: "0.01em" }}>{v}</span>
               ))}
+            </div>
+
+            {/* CTAs */}
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" as const }}>
+              <a href="/vessels" style={{ padding: "14px 28px", background: "#0B1E3D", color: "#fff", fontSize: 14, fontWeight: 600, border: "none", borderRadius: 8, cursor: "pointer", letterSpacing: "0.02em", textDecoration: "none", display: "inline-block" }}>
+                Explore vessels
+              </a>
+              <a href="/map" style={{ padding: "14px 28px", background: "#fff", color: "#0B1E3D", fontSize: 14, fontWeight: 600, border: "1px solid #D1D9E0", borderRadius: 8, cursor: "pointer", letterSpacing: "0.02em", textDecoration: "none", display: "inline-block" }}>
+                View map
+              </a>
+              <a href="mailto:contact@shipscout.io?subject=Demo request" style={{ padding: "14px 28px", background: "#fff", color: "#1D9E75", fontSize: 14, fontWeight: 600, border: "1px solid rgba(29,158,117,0.35)", borderRadius: 8, cursor: "pointer", letterSpacing: "0.02em", textDecoration: "none", display: "inline-block" }}>
+                Request demo
+              </a>
             </div>
           </div>
 

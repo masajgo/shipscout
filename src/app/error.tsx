@@ -19,9 +19,9 @@ export default function GlobalError({
       fontFamily: "Inter, sans-serif", color: "#344054",
     }}>
       <div style={{ fontSize: 32 }}>⚠</div>
-      <div style={{ fontSize: 18, fontWeight: 700 }}>Veri yüklenemedi</div>
+      <div style={{ fontSize: 18, fontWeight: 700 }}>Failed to load data</div>
       <div style={{ fontSize: 13, color: "#667085", maxWidth: 320, textAlign: "center" }}>
-        Bu bölüm geçici olarak kullanılamıyor. Diğer sayfalar çalışmaya devam ediyor.
+        This section is temporarily unavailable. Other pages continue to work.
       </div>
       <button
         onClick={reset}
@@ -31,7 +31,7 @@ export default function GlobalError({
           fontSize: 13, fontWeight: 600, cursor: "pointer",
         }}
       >
-        Tekrar dene
+        Try again
       </button>
       {error.digest && (
         <div style={{ fontSize: 10, color: "#98A2B3", fontFamily: "monospace" }}>

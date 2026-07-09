@@ -198,7 +198,7 @@ function guessEmailFormat(emails: string[], domain: string): string | null {
   return null;
 }
 
-// ─── Layer 4: Guess personal email from decision-maker name + detected format ─
+// ─── Layer 4: Guess personal email from decision-maker name ──────────────────
 
 export function guessEmailsFromName(
   managerName: string,
@@ -212,16 +212,43 @@ export function guessEmailsFromName(
   const last  = parts[parts.length - 1];
   const fi    = first[0];
 
-  // emailFormat is like "first_initial.last@domain" — extract the pattern part
   const pattern = emailFormat.split("@")[0];
   let local: string | null = null;
-  if (pattern === "first_initial.last")   local = `${fi}.${last}`;
-  else if (pattern === "first.last")      local = `${first}.${last}`;
+  if (pattern === "first_initial.last")      local = `${fi}.${last}`;
+  else if (pattern === "first.last")         local = `${first}.${last}`;
   else if (pattern === "first_initial-last") local = `${fi}-${last}`;
-  else if (pattern === "firstlast")       local = `${first}${last}`;
+  else if (pattern === "firstlast")          local = `${first}${last}`;
 
   if (!local) return [];
   return [{ email: `${local}@${domain}`, name: managerName, guessed: true as const }];
+}
+
+// Extract domain from the first company email — never invent a domain.
+export function extractDomainFromEmails(emails: string[]): string | null {
+  for (const e of emails) {
+    const domain = e.split("@")[1];
+    if (domain && !PERSONAL.test(domain)) return domain;
+  }
+  return null;
+}
+
+// Generate all 4 common personal-email formats. All entries carry guessed:true.
+export function guessAllFormats(
+  managerName: string,
+  domain: string,
+): { email: string; name: string; guessed: true }[] {
+  if (!managerName || !domain) return [];
+  const parts = managerName.toLowerCase().replace(/[^a-z\s]/g, "").trim().split(/\s+/);
+  if (parts.length < 2) return [];
+  const first = parts[0];
+  const last  = parts[parts.length - 1];
+  const fi    = first[0];
+  return [
+    { email: `${first}.${last}@${domain}`,  name: managerName, guessed: true as const },
+    { email: `${fi}.${last}@${domain}`,     name: managerName, guessed: true as const },
+    { email: `${first}${last}@${domain}`,   name: managerName, guessed: true as const },
+    { email: `${first}-${last}@${domain}`,  name: managerName, guessed: true as const },
+  ];
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -302,8 +329,9 @@ export async function enrichCompanyContact(
     ?? await detectEmailFormat(result.website);
 
   // Layer 4 — guess personal email for named decision-maker
-  if (managerName && result.emailFormat && result.website) {
-    result.guessedEmails = guessEmailsFromName(managerName, result.emailFormat, result.website);
+  const guessDomain = extractDomainFromEmails(result.emails);
+  if (managerName && guessDomain) {
+    result.guessedEmails = guessAllFormats(managerName, guessDomain);
   }
 
   return result;

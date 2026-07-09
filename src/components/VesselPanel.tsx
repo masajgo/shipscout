@@ -63,7 +63,6 @@ function resolveToEmail(contact: ContactResult | null, owner: VesselData["owner"
     if (contact.emailsByType?.department?.[0]) return contact.emailsByType.department[0];
     if (contact.emailsByType?.generic?.[0])    return contact.emailsByType.generic[0];
     if (contact.emails?.[0])                   return contact.emails[0];
-    if (contact.guessedEmails?.[0])            return contact.guessedEmails[0].email;
   }
   return owner?.email || owner?.managerEmail || "";
 }
@@ -75,12 +74,12 @@ function EmailStatusBadge({ email, validations }: { email: string; validations: 
   const isShielded = v?.protected ?? false;
 
   const cfg: Record<string, { dot: string; label: string; labelColor: string }> = {
-    "verified":    { dot: "#22c55e", label: "Doğrulandı",                       labelColor: "#22c55e" },
+    "verified":    { dot: "#22c55e", label: "Verified",                          labelColor: "#22c55e" },
     "catch-all":   { dot: "#eab308", label: "Catch-all",                        labelColor: "#eab308" },
-    "unchecked":   { dot: "rgba(143,168,178,0.5)", label: isShielded ? "Kurumsal koruma" : "Doğrulanamadı", labelColor: "rgba(143,168,178,0.6)" },
-    "syntax_fail": { dot: "#ef4444", label: "Geçersiz",                         labelColor: "#ef4444" },
-    "no_mx":       { dot: "#ef4444", label: "MX yok",                           labelColor: "#ef4444" },
-    "invalid":     { dot: "#ef4444", label: "Geçersiz",                         labelColor: "#ef4444" },
+    "unchecked":   { dot: "rgba(143,168,178,0.5)", label: isShielded ? "Corporate protection" : "Unverified", labelColor: "rgba(143,168,178,0.6)" },
+    "syntax_fail": { dot: "#ef4444", label: "Invalid",                          labelColor: "#ef4444" },
+    "no_mx":       { dot: "#ef4444", label: "No MX",                            labelColor: "#ef4444" },
+    "invalid":     { dot: "#ef4444", label: "Invalid",                          labelColor: "#ef4444" },
   };
   const { dot, label, labelColor } = cfg[status] ?? cfg["unchecked"];
 
@@ -127,7 +126,7 @@ function GuessedEmailRow({
     <div style={{ padding: "7px 0", borderBottom: "1px solid rgba(143,168,178,0.08)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" }}>
         <span style={{ fontSize: 10, color: C.steel, fontStyle: "italic" }}>Est. {g.name}</span>
-        <span style={{ fontSize: 8, fontWeight: 700, color: "#fff", background: "#FB923C", borderRadius: 3, padding: "1px 4px", letterSpacing: "0.04em" }}>TAHMİNİ</span>
+        <span style={{ fontSize: 8, fontWeight: 700, color: "#fff", background: "#FB923C", borderRadius: 3, padding: "1px 4px", letterSpacing: "0.04em" }}>ESTIMATED</span>
         <EmailStatusBadge email={g.email} validations={validations} />
         {!isDefinitive && (
           <button
@@ -135,7 +134,7 @@ function GuessedEmailRow({
             disabled={checking}
             style={{ fontSize: 8, color: checking ? C.steel : "#60A5FA", background: "none", border: "none", cursor: checking ? "default" : "pointer", padding: 0, fontFamily: "monospace" }}
           >
-            {checking ? "doğrulanıyor…" : "Doğrula →"}
+            {checking ? "verifying…" : "Verify →"}
           </button>
         )}
       </div>
@@ -489,7 +488,7 @@ ShipScout — Maritime Intelligence`;
             <Section title="Estimated Scrap Value">
               {data.particulars.ldt_estimated && (
                 <div style={{ fontSize: 10, color: C.steel, fontStyle: "italic", marginBottom: 8 }}>
-                  LDT tahmin edildi (gerçek lightship verisi yok)
+                  LDT estimated (no actual lightship data available)
                 </div>
               )}
               {(() => {
@@ -594,8 +593,8 @@ ShipScout — Maritime Intelligence`;
                   contact.emailsByType.generic.slice(0, 2).map(e => (
                     <div key={e} style={{ padding: "7px 0", borderBottom: "1px solid rgba(143,168,178,0.08)" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 10, color: C.steel }}>Genel</span>
-                        <span style={{ fontSize: 8, fontWeight: 700, color: C.steel, background: "rgba(143,168,178,0.15)", borderRadius: 3, padding: "1px 4px", letterSpacing: "0.04em" }}>GENEL</span>
+                        <span style={{ fontSize: 10, color: C.steel }}>General</span>
+                        <span style={{ fontSize: 8, fontWeight: 700, color: C.steel, background: "rgba(143,168,178,0.15)", borderRadius: 3, padding: "1px 4px", letterSpacing: "0.04em" }}>GENERAL</span>
                         <EmailStatusBadge email={e} validations={contact.emailValidations} />
                       </div>
                       <div style={{ fontSize: 11, fontFamily: "monospace", color: C.fg, wordBreak: "break-all" }}>{e}</div>
@@ -617,7 +616,12 @@ ShipScout — Maritime Intelligence`;
                   ))
                 }
 
-                {/* Layer 4: Guessed personal email — TAHMİNİ badge + lazy ZeroBounce on click */}
+                {/* Layer 4: Guessed personal emails — never confirmed, separate section */}
+                {contact.guessedEmails.length > 0 && (
+                  <div style={{ fontSize: 9, color: "rgba(143,168,178,0.45)", marginTop: 10, marginBottom: 2, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                    Estimated personal email · unverified
+                  </div>
+                )}
                 {contact.guessedEmails.map(g => (
                   <GuessedEmailRow
                     key={g.email}
@@ -651,7 +655,7 @@ ShipScout — Maritime Intelligence`;
                 {/* Last updated */}
                 {webFetchedAt && (
                   <div style={{ fontSize: 10, color: "rgba(143,168,178,0.45)", marginTop: 6 }}>
-                    Son güncelleme: {Math.floor((Date.now() - new Date(webFetchedAt).getTime()) / (1000 * 60 * 60 * 24))} gün önce
+                    Last updated: {Math.floor((Date.now() - new Date(webFetchedAt).getTime()) / (1000 * 60 * 60 * 24))} days ago
                   </div>
                 )}
               </>
@@ -678,14 +682,14 @@ ShipScout — Maritime Intelligence`;
                 target="_blank" rel="noreferrer"
                 style={{ flex: 1, display: "block", textAlign: "center", background: "rgba(108,184,230,0.08)", border: "1px solid rgba(108,184,230,0.25)", borderRadius: 8, padding: "8px 6px", color: C.blue, fontSize: 10, fontWeight: 600, textDecoration: "none", letterSpacing: "0.04em" }}
               >
-                LinkedIn Şirket →
+                LinkedIn Company →
               </a>
               <a
                 href={(contact?.linkedinPeopleUrl) || `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent((data.owner?.managerName || data.owner?.name || "") + " chartering sale purchase")}`}
                 target="_blank" rel="noreferrer"
                 style={{ flex: 1, display: "block", textAlign: "center", background: "rgba(108,184,230,0.08)", border: "1px solid rgba(108,184,230,0.25)", borderRadius: 8, padding: "8px 6px", color: C.blue, fontSize: 10, fontWeight: 600, textDecoration: "none", letterSpacing: "0.04em" }}
               >
-                S&P Yönetici →
+                S&P People →
               </a>
             </div>
           </Section>
@@ -707,7 +711,7 @@ ShipScout — Maritime Intelligence`;
               }}
               style={{ background: C.green, border: "none", borderRadius: 10, padding: "12px 20px", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "Inter, sans-serif" }}
             >
-              ✉ Teklif Emaili Yaz
+              ✉ Draft Offer Email
             </button>
 
             {/* Add to CRM */}
@@ -724,7 +728,7 @@ ShipScout — Maritime Intelligence`;
               }}
               style={{ background: crmAdded ? C.green : "rgba(108,184,230,0.08)", border: `1px solid ${crmAdded ? C.green : "rgba(108,184,230,0.2)"}`, borderRadius: 10, padding: "12px 20px", color: crmAdded ? "#fff" : C.blue, fontSize: 13, fontWeight: 600, cursor: crmAdded ? "default" : "pointer", fontFamily: "Inter, sans-serif" }}
             >
-              {crmAdded ? "✓ CRM'e Eklendi" : "📋 CRM'e Ekle"}
+              {crmAdded ? "✓ Added to CRM" : "📋 Add to CRM"}
             </button>
 
             {/* Watch */}
@@ -741,14 +745,14 @@ ShipScout — Maritime Intelligence`;
               }}
               style={{ background: watching ? C.green : "rgba(143,168,178,0.06)", border: `1px solid ${watching ? C.green : "rgba(143,168,178,0.15)"}`, borderRadius: 10, padding: "12px 20px", color: watching ? "#fff" : C.steel, fontSize: 13, fontWeight: 600, cursor: watching ? "default" : "pointer", fontFamily: "Inter, sans-serif" }}
             >
-              {watching ? "✓ İzleniyor" : "👁 Gemiyi İzle"}
+              {watching ? "✓ Watching" : "👁 Watch Vessel"}
             </button>
           </div>
 
           {/* Email Draft (manual fallback when mailto not possible) */}
           {emailDraft && (
             <div style={{ marginTop: 20, background: C.navy, borderRadius: 12, padding: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.steel, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Email Taslağı</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.steel, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 12 }}>Email Draft</div>
               <textarea
                 value={emailBody}
                 onChange={e => setEmailBody(e.target.value)}
@@ -761,10 +765,10 @@ ShipScout — Maritime Intelligence`;
                     window.location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(`Sale/Purchase Inquiry — MV ${data.particulars.name}`)}&body=${encodeURIComponent(emailBody)}`;
                   }}
                   style={{ flex: 1, background: C.green, border: "none", borderRadius: 8, padding: "10px", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                  📤 Gönder
+                  📤 Send
                 </button>
                 <button onClick={() => setEmailDraft(false)} style={{ background: "none", border: "1px solid rgba(143,168,178,0.2)", borderRadius: 8, padding: "10px 16px", color: C.steel, fontSize: 12, cursor: "pointer" }}>
-                  İptal
+                  Cancel
                 </button>
               </div>
             </div>

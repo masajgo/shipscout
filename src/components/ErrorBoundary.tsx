@@ -39,10 +39,10 @@ export default class ErrorBoundary extends React.Component<Props, State> {
       }}>
         <div style={{ fontSize: 20, marginBottom: 8 }}>⚠</div>
         <div style={{ fontSize: 13, fontWeight: 600, color: "#344054", marginBottom: 4 }}>
-          Veri yüklenemedi
+          Failed to load data
         </div>
         <div style={{ fontSize: 12, marginBottom: 14 }}>
-          Bu bölüm geçici olarak kullanılamıyor.
+          This section is temporarily unavailable.
         </div>
         <button
           onClick={this.reset}
@@ -52,7 +52,7 @@ export default class ErrorBoundary extends React.Component<Props, State> {
             fontSize: 12, fontWeight: 500, cursor: "pointer", color: "#344054",
           }}
         >
-          Tekrar dene
+          Try again
         </button>
       </div>
     );

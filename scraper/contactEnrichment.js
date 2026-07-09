@@ -96,6 +96,35 @@ function guessEmailsFromName(managerName, emailFormat, domain) {
   return [{ email: `${local}@${domain}`, name: managerName, guessed: true }];
 }
 
+// Extract domain from the first company email in the array.
+// Returns null if no suitable email found — never guess with an invented domain.
+function extractDomainFromEmails(emails) {
+  for (const e of emails) {
+    const domain = e.split("@")[1];
+    if (domain && !PERSONAL_EMAIL_DOMAINS.test(domain) && !AGGREGATOR_DOMAINS.test(domain)) {
+      return domain;
+    }
+  }
+  return null;
+}
+
+// Generate all 4 common personal-email formats for a manager name + domain.
+// All entries carry guessed:true so they are never treated as confirmed addresses.
+function guessAllFormats(managerName, domain) {
+  if (!managerName || !domain) return [];
+  const parts = managerName.toLowerCase().replace(/[^a-z\s]/g, "").trim().split(/\s+/);
+  if (parts.length < 2) return [];
+  const first = parts[0];
+  const last  = parts[parts.length - 1];
+  const fi    = first[0];
+  return [
+    { email: `${first}.${last}@${domain}`,  name: managerName, guessed: true },
+    { email: `${fi}.${last}@${domain}`,     name: managerName, guessed: true },
+    { email: `${first}${last}@${domain}`,   name: managerName, guessed: true },
+    { email: `${first}-${last}@${domain}`,  name: managerName, guessed: true },
+  ];
+}
+
 // ─── Domain candidate generator ───────────────────────────────────────────────
 
 // Maritime keywords found in the original name (used to boost specific candidates)
@@ -661,8 +690,9 @@ async function enrichCompanyContact(companyName, managerName, opts = {}) {
   result.emailFormat  = guessEmailFormat(result.emails, result.website)
     || await detectEmailFormat(result.website);
 
-  if (managerName && result.emailFormat && result.website) {
-    result.guessedEmails = guessEmailsFromName(managerName, result.emailFormat, result.website);
+  const guessDomain = extractDomainFromEmails(result.emails);
+  if (managerName && guessDomain) {
+    result.guessedEmails = guessAllFormats(managerName, guessDomain);
   }
 
   // ── Local validation only (syntax + MX) — no ZeroBounce credits spent ───────
@@ -847,6 +877,8 @@ module.exports = {
   enrichWithDb,
   categorizeEmails,
   guessEmailsFromName,
+  guessAllFormats,
+  extractDomainFromEmails,
   generateDomainCandidates,
 };
 

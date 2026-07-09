@@ -31,18 +31,26 @@ if (fs.existsSync(ENV_PATH)) {
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-const BATCH_SIZE       = 50;
-const DELAY_VESSEL_MS  = 750;   // Wikimedia ~1req/sn (3 sorgu/gemi = ~2.5 sn/gemi)
-const DELAY_BATCH_MS   = 2_000; // Batch'ler arası ek bekleme
-const LOG_FILE         = path.join(__dirname, "../logs/photoscan.log");
-const CHECKPOINT_FILE  = path.join(__dirname, "../logs/photo_scan_progress.json");
-const API_BASE         = "https://commons.wikimedia.org/w/api.php";
-const UA               = "ShipScout/1.0 (https://shipscout.io contact@shipscout.io)";
-const TIMEOUT_MS       = 12_000;
+const BATCH_SIZE         = 50;
+const DELAY_VESSEL_MS    = 2_500;  // 750 → 2500: DB IO krizi sonrası yavaşlatıldı
+const DELAY_BATCH_MS     = 30_000; // 2s → 30s: her batch sonrası tam cooldown
+const MID_BATCH_EVERY    = 25;     // her N gemide bir ara mola
+const DELAY_MID_BATCH_MS = 10_000; // ara mola süresi
+const DB_WRITE_BATCH     = 20;     // markChecked'i tek tek değil 20'lik grupla yaz
+const LOG_FILE           = path.join(__dirname, "../logs/photoscan.log");
+const CHECKPOINT_FILE    = path.join(__dirname, "../logs/photo_scan_progress.json");
+const API_BASE           = "https://commons.wikimedia.org/w/api.php";
+const UA                 = "ShipScout/1.0 (https://shipscout.io contact@shipscout.io)";
+const TIMEOUT_MS         = 12_000;
 
 // ─── DB ───────────────────────────────────────────────────────────────────────
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  options:          "-c statement_timeout=15000", // 15s max per statement
+  max:              2,                            // DB'ye aynı anda max 2 bağlantı
+  idleTimeoutMillis: 30_000,
+});
 
 // ─── Logging ──────────────────────────────────────────────────────────────────
 
@@ -121,11 +129,22 @@ async function getTotalRemaining() {
 
 // ─── DB writes ────────────────────────────────────────────────────────────────
 
+// Tek gemi — acil durum / foto-yazma içi kullanım
 async function markChecked(imo) {
   await pool.query(
     "UPDATE vessels SET photo_checked_at = NOW() WHERE imo = $1::bigint",
     [imo]
   );
+}
+
+// Toplu markChecked — DB_WRITE_BATCH'lik gruplarda, tek sorgu
+async function flushMarkChecked(imos) {
+  if (!imos.length) return;
+  await pool.query(
+    "UPDATE vessels SET photo_checked_at = NOW() WHERE imo = ANY($1::bigint[])",
+    [imos],
+  );
+  log(`  DB flush: ${imos.length} gemi markChecked (batch write)`);
 }
 
 /**
@@ -374,18 +393,20 @@ async function main() {
 
   let batchNum = 0;
   const sessionScanned = { found: 0, notFound: 0, errors: 0 };
+  const pendingChecked  = []; // toplu markChecked buffer
 
   while (true) {
     const batch = await getNextBatch();
     if (batch.length === 0) {
-      log("✓ Tüm gemiler tarandı — tamamlandı!");
+      log("✓ All vessels scanned — done!");
       break;
     }
 
     batchNum++;
-    log(`\nBatch #${batchNum} — ${batch.length} gemi (örnek: ${batch[0].name} … ${batch[batch.length-1].name})`);
+    log(`\nBatch #${batchNum} — ${batch.length} vessels`);
 
-    for (const vessel of batch) {
+    for (let idx = 0; idx < batch.length; idx++) {
+      const vessel = batch[idx];
       const { imo, name, scrap_score } = vessel;
       const label = `${name} (IMO ${imo}, score=${scrap_score ?? "—"})`;
 
@@ -393,42 +414,67 @@ async function main() {
         const photos = await findWikimediaPhotos(name, imo);
 
         if (photos.length) {
+          // Foto bulunanlar: savePhotos kendi markChecked'ini içeriyor (ayrı UPDATE)
           await savePhotos(imo, photos);
           sessionScanned.found += photos.length;
           cp.found += photos.length;
           const summary = photos.map(p => `${p.confidence}/${p.license}`).join(", ");
-          log(`  ✓ ${label} → ${photos.length} foto [${summary}]`);
+          log(`  ✓ ${label} → ${photos.length} photo [${summary}]`);
         } else {
-          await markChecked(imo);
+          // Foto yok: buffer'a al, hemen yazmа
+          pendingChecked.push(imo);
           sessionScanned.notFound++;
         }
       } catch (e) {
-        // Tek gemi hatası tüm scan'i durdurmasın
-        log(`  ✗ HATA [${label}]: ${e.message} — atlanıyor`);
+        log(`  ✗ ERROR [${label}]: ${e.message} — skipping`);
         sessionScanned.errors++;
-        try { await markChecked(imo); } catch {}
+        pendingChecked.push(imo); // hata durumunda da işaretlensin
       }
 
       cp.scanned++;
+
+      // Toplu DB yazma: her DB_WRITE_BATCH gemide bir flush
+      if (pendingChecked.length >= DB_WRITE_BATCH) {
+        try { await flushMarkChecked(pendingChecked.splice(0)); } catch (e) {
+          log(`  DB flush error: ${e.message}`);
+        }
+      }
+
+      // Mid-batch mola: her MID_BATCH_EVERY gemide bir DB'ye nefes aldır
+      if ((idx + 1) % MID_BATCH_EVERY === 0 && idx + 1 < batch.length) {
+        log(`  ── mid-batch pause ${DELAY_MID_BATCH_MS / 1000}s (${idx + 1}/${batch.length}) ──`);
+        await sleep(DELAY_MID_BATCH_MS);
+      }
+
       await sleep(DELAY_VESSEL_MS);
     }
 
-    // Batch sonrası ilerleme raporu
-    const remaining = await getTotalRemaining();
-    const totalScanned = totalAtStart - remaining;
-    const pct = totalAtStart > 0 ? ((totalScanned / totalAtStart) * 100).toFixed(1) : "0";
-    const elapsed = Math.round((Date.now() - new Date(cp.startedAt).getTime()) / 60_000);
-    const rate = elapsed > 0 ? (cp.scanned / elapsed).toFixed(1) : "—";
-    const eta = rate > 0 ? Math.round(remaining / rate) : "?";
+    // Batch bitti: kalan pending'i flush et
+    if (pendingChecked.length) {
+      try { await flushMarkChecked(pendingChecked.splice(0)); } catch (e) {
+        log(`  DB flush error (end of batch): ${e.message}`);
+      }
+    }
 
-    log(`──── Batch #${batchNum} bitti ────`);
-    log(`  Bu oturumda: ${sessionScanned.found} foto (≤3/gemi), ${sessionScanned.notFound} yok, ${sessionScanned.errors} hata`);
-    log(`  Toplam: ${cp.scanned} tarandı, ${cp.found} foto | Kalan: ${remaining} | %${pct}`);
-    log(`  Hız: ~${rate} gemi/dk | Tahmini kalan süre: ${eta} dk`);
+    // Batch sonrası ilerleme raporu
+    const remaining   = await getTotalRemaining();
+    const totalScanned = totalAtStart - remaining;
+    const pct     = totalAtStart > 0 ? ((totalScanned / totalAtStart) * 100).toFixed(1) : "0";
+    const elapsed = Math.round((Date.now() - new Date(cp.startedAt).getTime()) / 60_000);
+    const rate    = elapsed > 0 ? (cp.scanned / elapsed).toFixed(1) : "—";
+    const eta     = rate > 0 ? Math.round(remaining / rate) : "?";
+
+    log(`──── Batch #${batchNum} done ────`);
+    log(`  Session: ${sessionScanned.found} photos, ${sessionScanned.notFound} none, ${sessionScanned.errors} errors`);
+    log(`  Total: ${cp.scanned} scanned, ${cp.found} photos | Remaining: ${remaining} | ${pct}%`);
+    log(`  Rate: ~${rate} vessels/min | ETA: ${eta} min`);
 
     saveCheckpoint(cp);
 
-    if (remaining > 0) await sleep(DELAY_BATCH_MS);
+    if (remaining > 0) {
+      log(`  Cooling down ${DELAY_BATCH_MS / 1000}s before next batch…`);
+      await sleep(DELAY_BATCH_MS);
+    }
   }
 
   // Final özet

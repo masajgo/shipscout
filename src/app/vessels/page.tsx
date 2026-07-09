@@ -224,9 +224,9 @@ export default function VesselsPage() {
         body: JSON.stringify({ query: aiQuery }),
       });
       const data = await res.json();
-      if (data.noKey)     { setAiMsg("AI arama yapılandırılmamış."); return; }
-      if (data.noCredits) { setAiMsg("AI arama için bakiye gerekli — filtreler yine çalışır."); return; }
-      if (data.error)     { setAiMsg(`Hata: ${data.error}`); return; }
+      if (data.noKey)     { setAiMsg("AI search not configured."); return; }
+      if (data.noCredits) { setAiMsg("AI search requires balance — filters still work."); return; }
+      if (data.error)     { setAiMsg(`Error: ${data.error}`); return; }
 
       const f = data.filters as Partial<Filters & { type: string[] }>;
       setFilters(prev => ({
@@ -244,8 +244,8 @@ export default function VesselsPage() {
         ...(f.specialSurvey6mo !== undefined ? { specialSurvey6mo: f.specialSurvey6mo } : {}),
         ...(f.hasContact       !== undefined ? { hasContact:       f.hasContact       } : {}),
       }));
-      setAiMsg("Filtreler uygulandı ✓");
-    } catch { setAiMsg("Bağlantı hatası."); }
+      setAiMsg("Filters applied ✓");
+    } catch { setAiMsg("Connection error."); }
     finally { setAiLoading(false); }
   }
 
@@ -280,22 +280,22 @@ export default function VesselsPage() {
         top: 0, maxHeight: "calc(100vh - 110px)",
       }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: C.steel, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 16 }}>
-          Filtreler
+          Filters
         </div>
 
         {/* hasContact toggle */}
         <div style={{ marginBottom: 20 }}>
-          <Toggle checked={filters.hasContact} onChange={v => setF("hasContact", v)} label="İletişimi olanlar" />
+          <Toggle checked={filters.hasContact} onChange={v => setF("hasContact", v)} label="With contact" />
         </div>
 
         {/* Email confidence */}
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 10, color: C.steel, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Email güveni</div>
+          <div style={{ fontSize: 10, color: C.steel, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Email confidence</div>
           <MultiCheck
             options={[
-              { value: "verified",  label: "🟢 Doğrulandı" },
+              { value: "verified",  label: "🟢 Verified" },
               { value: "catch-all", label: "🟡 Catch-all" },
-              { value: "unchecked", label: "⚪ Doğrulanmadı" },
+              { value: "unchecked", label: "⚪ Unverified" },
             ]}
             value={filters.emailStatus}
             onChange={v => setF("emailStatus", v)}
@@ -304,7 +304,7 @@ export default function VesselsPage() {
 
         {/* Scrap risk */}
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 10, color: C.steel, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Scrap riski</div>
+          <div style={{ fontSize: 10, color: C.steel, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Scrap Risk</div>
           <MultiCheck
             options={[
               { value: "critical", label: "🔴 Critical (≥70)" },
@@ -318,14 +318,14 @@ export default function VesselsPage() {
 
         {/* Age */}
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 10, color: C.steel, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Yaş (yıl)</div>
+          <div style={{ fontSize: 10, color: C.steel, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Age (years)</div>
           <NumberRange labelMin="Min" labelMax="Max" valMin={filters.ageMin} valMax={filters.ageMax}
             onMin={v => setF("ageMin", v)} onMax={v => setF("ageMax", v)} />
         </div>
 
         {/* Type */}
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 10, color: C.steel, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Gemi tipi</div>
+          <div style={{ fontSize: 10, color: C.steel, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Vessel Type</div>
           <MultiCheck
             options={VESSEL_TYPES.map(t => ({ value: t, label: t }))}
             value={filters.type}
@@ -335,7 +335,7 @@ export default function VesselsPage() {
 
         {/* Flag */}
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 10, color: C.steel, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Bayrak</div>
+          <div style={{ fontSize: 10, color: C.steel, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Flag</div>
           <input style={inp} placeholder="Panama, Liberia…" value={filters.flag}
             onChange={e => setF("flag", e.target.value)} />
         </div>
@@ -356,19 +356,19 @@ export default function VesselsPage() {
 
         {/* Extras */}
         <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 10, color: C.steel, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Özel</div>
+          <div style={{ fontSize: 10, color: C.steel, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Special</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
               <input type="checkbox" checked={filters.specialSurvey6mo}
                 onChange={e => setF("specialSurvey6mo", e.target.checked)}
                 style={{ accentColor: C.gold }} />
-              <span style={{ fontSize: 12, color: C.fg }}>Special survey ≤6 ay</span>
+              <span style={{ fontSize: 12, color: C.fg }}>Special survey ≤6 months</span>
             </label>
             <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
               <input type="checkbox" checked={filters.hasDetention}
                 onChange={e => setF("hasDetention", e.target.checked)}
                 style={{ accentColor: C.gold }} />
-              <span style={{ fontSize: 12, color: C.fg }}>Detention var</span>
+              <span style={{ fontSize: 12, color: C.fg }}>Has detention</span>
             </label>
           </div>
         </div>
@@ -379,7 +379,7 @@ export default function VesselsPage() {
           style={{ width: "100%", background: "rgba(255,255,255,0.06)", border: `1px solid ${C.border}`,
             borderRadius: 6, padding: "7px 0", color: C.steel, fontSize: 12, cursor: "pointer" }}
         >
-          Temizle
+          Clear
         </button>
       </div>
 
@@ -391,7 +391,7 @@ export default function VesselsPage() {
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <input
               style={{ ...inp, flex: 1, fontSize: 13, padding: "8px 12px" }}
-              placeholder='AI arama: "25 yaş üzeri Türk bayraklı tankerler" veya "critical scrap, iletişimi olan bulk carrier"'
+              placeholder='AI search: "tankers over 25 years old" or "critical scrap, bulk carrier with contact"'
               value={aiQuery}
               onChange={e => setAiQuery(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleAiSearch()}
@@ -403,7 +403,7 @@ export default function VesselsPage() {
                 color: C.navy, fontSize: 12, fontWeight: 700, cursor: aiLoading ? "default" : "pointer",
                 opacity: aiLoading ? 0.7 : 1, whiteSpace: "nowrap" }}
             >
-              {aiLoading ? "…" : "AI Ara"}
+              {aiLoading ? "…" : "AI Search"}
             </button>
           </div>
           {aiMsg && (
@@ -416,7 +416,7 @@ export default function VesselsPage() {
           display: "flex", alignItems: "center", justifyContent: "space-between",
           background: C.navy }}>
           <div style={{ fontSize: 12, color: C.steel }}>
-            {loading ? "Yükleniyor…" : `${total.toLocaleString()} sonuç`}
+            {loading ? "Loading…" : `${total.toLocaleString()} results`}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button
@@ -424,14 +424,14 @@ export default function VesselsPage() {
               style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${C.border}`,
                 borderRadius: 6, padding: "5px 12px", color: C.fg, fontSize: 11, cursor: "pointer" }}
             >
-              {selected.size === results.length && results.length > 0 ? "Seçimi Kaldır" : "Tümünü Seç"}
+              {selected.size === results.length && results.length > 0 ? "Deselect All" : "Select All"}
             </button>
             <button
               onClick={downloadCsv}
               style={{ background: "rgba(29,158,117,0.15)", border: `1px solid rgba(29,158,117,0.3)`,
                 borderRadius: 6, padding: "5px 12px", color: C.green, fontSize: 11, fontWeight: 600, cursor: "pointer" }}
             >
-              ↓ CSV İndir
+              ↓ Download CSV
             </button>
           </div>
         </div>
@@ -445,15 +445,15 @@ export default function VesselsPage() {
                 <th style={th}><input type="checkbox"
                   checked={selected.size === results.length && results.length > 0}
                   onChange={toggleSelectAll} style={{ accentColor: C.gold }} /></th>
-                <th style={th}>Gemi</th>
+                <th style={th}>Vessel</th>
                 <th style={th}>IMO</th>
-                <th style={th}>Yaş</th>
-                <th style={th}>Tip</th>
+                <th style={th}>Age</th>
+                <th style={th}>Type</th>
                 <th style={th}>DWT</th>
                 <th style={th}>Scrap</th>
-                <th style={th}>Yönetici</th>
+                <th style={th}>Manager</th>
                 <th style={th}>Email</th>
-                <th style={th}>Telefon</th>
+                <th style={th}>Phone</th>
                 <th style={th}></th>
               </tr>
             </thead>
@@ -534,7 +534,7 @@ export default function VesselsPage() {
                           style={{ fontSize: 10, color: C.green, textDecoration: "none",
                             padding: "2px 6px", border: `1px solid rgba(29,158,117,0.3)`,
                             borderRadius: 4, display: "inline-block" }}
-                          title="Email gönder"
+                          title="Send email"
                         >✉</a>
                       )}
                       <button
@@ -542,7 +542,7 @@ export default function VesselsPage() {
                         style={{ fontSize: 10, color: C.gold, background: "none",
                           border: `1px solid rgba(201,168,76,0.3)`, borderRadius: 4,
                           padding: "2px 6px", cursor: "pointer" }}
-                        title="Panelde aç"
+                        title="Open in panel"
                       >↗</button>
                       <a
                         href={v.linkedinUrl || `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(v.manager || v.name || "")}`}
@@ -557,7 +557,7 @@ export default function VesselsPage() {
               ))}
               {!loading && results.length === 0 && (
                 <tr><td colSpan={11} style={{ padding: 40, textAlign: "center", color: C.steel }}>
-                  Sonuç bulunamadı — filtreleri değiştirin.
+                  No results found — try changing your filters.
                 </td></tr>
               )}
             </tbody>
@@ -570,12 +570,12 @@ export default function VesselsPage() {
             display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
             background: C.mid }}>
             <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-              style={pgBtn(page === 1)}>← Önceki</button>
+              style={pgBtn(page === 1)}>← Previous</button>
             <span style={{ fontSize: 12, color: C.steel }}>
               {page} / {pages}
             </span>
             <button onClick={() => setPage(p => Math.min(pages, p + 1))} disabled={page === pages}
-              style={pgBtn(page === pages)}>Sonraki →</button>
+              style={pgBtn(page === pages)}>Next →</button>
           </div>
         )}
       </div>

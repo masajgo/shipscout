@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
-import { categorizeEmails, guessEmailsFromName, GENERIC_LOCALS } from "@/lib/contactEnricher";
+import { categorizeEmails, guessAllFormats, extractDomainFromEmails, GENERIC_LOCALS } from "@/lib/contactEnricher";
 import type { ContactResult } from "@/lib/contactEnricher";
 
 export const runtime     = "nodejs";
@@ -84,11 +84,13 @@ export async function GET(
   const generic      = genEmails.length  ? genEmails  : categorized.generic;
   const other        = categorized.other.filter(e => !GENERIC_LOCALS.has(e.split("@")[0]));
 
-  // Layer 4 — prefer DB-stored guessed emails, fall back to runtime guess
+  // Layer 4 — prefer DB-stored guessed emails; fall back to runtime 4-format guess.
+  // Domain is extracted from confirmed company emails — never invented.
+  const guessDomain = extractDomainFromEmails(allEmails);
   const guessedEmails = dbGuessed.length
     ? dbGuessed
-    : (website && emailFormat && managerName)
-      ? guessEmailsFromName(managerName, emailFormat, website)
+    : (managerName && guessDomain)
+      ? guessAllFormats(managerName, guessDomain)
       : [];
 
   const linkedinCompanyUrl = (ownerRow.linkedin_company_url as string | null)

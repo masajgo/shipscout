@@ -70,7 +70,7 @@ async function fetchGRSVessels(): Promise<any[]> {
   } catch { return []; }
 }
 
-// Fetch enriched detail data from sp_listings table
+// Fetch enriched detail data from sp_listings table (GRS scrape)
 async function fetchSPListings(): Promise<Record<string, any>> {
   try {
     const { rows } = await pool.query(`
@@ -86,15 +86,37 @@ async function fetchSPListings(): Promise<Record<string, any>> {
   } catch { return {}; }
 }
 
+// Fetch user-submitted, admin-approved listings
+async function fetchUserListings(): Promise<any[]> {
+  try {
+    const { rows } = await pool.query(`
+      SELECT
+        s.listing_id, s.imo, s.vessel_name, s.listing_type,
+        s.price_usd, s.currency, s.description, s.images,
+        s.broker_name, s.broker_email, s.broker_phone, s.broker_company,
+        s.approved_at,
+        v.type, v.flag, v.built_year, v.length, v.beam, v.draught,
+        v.scrap_score, v.scrap_category
+      FROM sp_listings s
+      LEFT JOIN vessels v ON v.imo::text = s.imo
+      WHERE s.scraped_at IS NULL AND s.status = 'approved'
+      ORDER BY s.approved_at DESC
+    `);
+    return rows;
+  } catch { return []; }
+}
+
 export async function GET() {
   const year = new Date().getFullYear();
 
   let grsVessels: any[] = [];
   let spDetails: Record<string, any> = {};
+  let userListings: any[] = [];
   try {
-    [grsVessels, spDetails] = await Promise.all([
+    [grsVessels, spDetails, userListings] = await Promise.all([
       fetchGRSVessels(),
       fetchSPListings(),
+      fetchUserListings(),
     ]);
   } catch (e: unknown) {
     console.error("[snp] data fetch failed", e);
@@ -213,7 +235,51 @@ export async function GET() {
     });
   }
 
-  const listings = [...datalasticListings, ...grsListings, ...hardcoded]
+  // Map user-submitted approved listings to the same card shape
+  const mappedUserListings = userListings.map((u: any) => {
+    const builtYear = u.built_year || null;
+    const age   = builtYear ? year - builtYear : null;
+    const score = age != null ? Math.min(99, scoreFromAge(age)) : 50;
+    const priceUSD = u.price_usd || null;
+
+    return {
+      id:          u.listing_id,
+      imo:         u.imo,
+      name:        u.vessel_name || `IMO ${u.imo}`,
+      flag:        u.flag        || "Unknown",
+      type:        u.type        || "General Cargo",
+      group:       "User Listed",
+      built:       builtYear     || year,
+      dwt:         0,
+      ldt:         0,
+      age:         age ?? 0,
+      score,
+      length:      u.length      || null,
+      beam:        u.beam        || null,
+      draft:       u.draught     || null,
+      location:    "—",
+      price:       priceUSD
+        ? `${u.currency === "USD" ? "$" : u.currency + " "}${(priceUSD / 1_000_000).toFixed(2)}M`
+        : "POA",
+      priceType:   "Asking",
+      saleType:    u.listing_type === "scrap" ? "distressed" : "voluntary",
+      tags: [
+        ...(age != null ? [{ label: `${age}y old`, type: age >= 30 ? "urgent" : "idle" }] : []),
+        { label: u.listing_type === "sale" ? "For Sale" : u.listing_type === "charter" ? "Charter" : "For Scrap", type: "new" },
+      ],
+      urgent:      score >= 88,
+      source:      "user",
+      images:      Array.isArray(u.images) ? u.images : [],
+      description: u.description || null,
+      brokerName:  u.broker_name    || null,
+      brokerEmail: u.broker_email   || null,
+      brokerPhone: u.broker_phone   || null,
+      brokerCompany: u.broker_company || null,
+      scrap_category: u.scrap_category || null,
+    };
+  });
+
+  const listings = [...datalasticListings, ...grsListings, ...mappedUserListings, ...hardcoded]
     .sort((a, b) => (b?.score ?? 0) - (a?.score ?? 0));
 
   if (listings.length === 0) {

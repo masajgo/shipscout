@@ -10,12 +10,16 @@
     "worker:ais": "node worker/aisWorker.js"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.110.1",
     "@vercel/blob": "^2.4.0",
     "@vercel/kv": "^3.0.0",
     "axios": "^1.18.0",
+    "bcryptjs": "^3.0.3",
     "cheerio": "^1.2.0",
     "dotenv": "^17.4.2",
     "ioredis": "^5.11.1",
+    "jose": "^6.2.3",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
     "lucide-react": "^1.18.0",

@@ -262,6 +262,7 @@ export default function SNPPage() {
             const age      = year - v.built;
             const code     = TYPE_CODE[v.type] || "VS";
             const isGRS    = v.source === "GRS";
+            const isUser   = v.source === "user";
             const expanded = expandedId === v.id;
             return (
               <div key={v.id} style={{ borderRadius: 10, overflow: "hidden", boxShadow: "0 1px 2px rgba(16,24,40,0.04)" }}>
@@ -269,7 +270,7 @@ export default function SNPPage() {
                 <div
                   className="snp-card"
                   onClick={() => {
-                    if (isGRS) {
+                    if (isGRS || isUser) {
                       setExpandedId(expanded ? null : v.id);
                     } else {
                       setSelectedIMO(v.imo);
@@ -306,7 +307,9 @@ export default function SNPPage() {
                       <span style={{ fontSize: 14, fontWeight: 700, color: "#101828" }}>{v.name}</span>
                       {isGRS
                         ? <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: "#0057FF", borderRadius: 4, padding: "1px 6px" }}>GRS</span>
-                        : <span style={{ fontSize: 11, color: "#C8CDD6", fontFamily: "monospace" }}>IMO {v.imo}</span>
+                        : isUser
+                          ? <span style={{ fontSize: 10, fontWeight: 700, color: "#fff", background: "#7C3AED", borderRadius: 4, padding: "1px 6px" }}>LISTED</span>
+                          : <span style={{ fontSize: 11, color: "#C8CDD6", fontFamily: "monospace" }}>IMO {v.imo}</span>
                       }
                       <span style={{ fontSize: 11, color: "#98A2B3" }}>{v.flag}</span>
                     </div>
@@ -348,6 +351,37 @@ export default function SNPPage() {
 
                   <div style={{ color: "#C8CDD6", fontSize: 14, flexShrink: 0, transition: "transform 0.15s", transform: expanded ? "rotate(90deg)" : "none" }}>▶</div>
                 </div>
+
+                {/* User-submitted listing detail panel */}
+                {isUser && expanded && (
+                  <div style={{
+                    background: "#F9FAFB", border: "1px solid #EAECF0",
+                    borderTop: "1px solid #F2F4F7", borderRadius: "0 0 10px 10px",
+                    padding: "16px 20px 18px",
+                  }}>
+                    {Array.isArray(v.images) && v.images.length > 0 && (
+                      <div style={{ display: "flex", gap: 8, overflowX: "auto" as const, marginBottom: 16, paddingBottom: 4 }}>
+                        {v.images.map((url: string, idx: number) => (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img key={idx} src={url} alt={`${v.name} photo ${idx + 1}`}
+                            style={{ height: 140, width: "auto", borderRadius: 7, objectFit: "cover" as const, flexShrink: 0, border: "1px solid #EAECF0" }} />
+                        ))}
+                      </div>
+                    )}
+                    {v.description && (
+                      <p style={{ fontSize: 12, color: "#475467", lineHeight: 1.6, margin: "0 0 12px" }}>
+                        {v.description}
+                      </p>
+                    )}
+                    <div style={{ fontSize: 11, color: "#98A2B3", display: "flex", gap: 16, flexWrap: "wrap" as const }}>
+                      <span>Listed directly by broker</span>
+                      {v.brokerName    && <span>{v.brokerName}</span>}
+                      {v.brokerCompany && <span>{v.brokerCompany}</span>}
+                      {v.brokerEmail   && <a href={`mailto:${v.brokerEmail}`} style={{ color: "#1D9E75", textDecoration: "none" }}>{v.brokerEmail}</a>}
+                      {v.brokerPhone   && <span>{v.brokerPhone}</span>}
+                    </div>
+                  </div>
+                )}
 
                 {/* GRS expanded detail panel */}
                 {isGRS && expanded && (

@@ -18,6 +18,7 @@
 const path = require("path");
 const fs   = require("fs");
 const dns  = require("dns").promises;
+const { lookupLinkedIn } = require("./linkedinLookup");
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -25,7 +26,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 const PERSONAL_EMAIL_DOMAINS = /gmail|hotmail|yahoo|outlook|icloud|proton|aol|live\.com/i;
 
-const AGGREGATOR_DOMAINS = /linkedin|facebook|bloomberg|crunchbase|dnb\.com|zoominfo|rocketreach|leadiq|equasis|marinetraffic|vesseltracker|fleetmon|shipfinder|yellowpages|yelp|trustpilot|glassdoor|indeed|twitter|instagram/i;
+const AGGREGATOR_DOMAINS = /linkedin|facebook|bloomberg|crunchbase|dnb\.com|zoominfo|rocketreach|leadiq|equasis|marinetraffic|vesseltracker|fleetmon|shipfinder|yellowpages|yelp|trustpilot|glassdoor|indeed|twitter|instagram|magicport\.ai|gloap\.net|trusteddocks\.com|world-ships\.com|panadata\.net|courierslist\.com|indexoflebanon\.com|yourmaritime\.com|maritime-database\.com|maritimedex\.com|sanctionschecklist\.com|fleetphoto\.ru|maritime-connector\.com|buzzfile\.com|datanyze\.com|app\.vesselsvalue\.com|marinevesseltraffic\.com|volza\.com|en\.52wmb\.com|ctidirectory\.com|interfishmarket\.com|europages|kompass\.com|cyprusprofile\.com|wn\.com/i;
 
 // Maritime / generic suffixes to strip when deriving domain slug
 // IMPORTANT: maritime-specific compound words must come FIRST so they are
@@ -127,8 +128,21 @@ function guessAllFormats(managerName, domain) {
 
 // ─── Domain candidate generator ───────────────────────────────────────────────
 
-// Maritime keywords found in the original name (used to boost specific candidates)
-const MARITIME_KEYWORDS = ["ship", "ships", "shipping", "marine", "maritime", "navigation", "offshore", "vessel", "fleet", "tanker", "bulk", "cargo", "sea", "ocean", "port"];
+// Maritime keywords — used to validate homepage content.
+// STRONG keywords are shipping-industry-specific (not shared with e-commerce/retail).
+// WEAK keywords appear on non-maritime sites ("free shipping", "sea blue", etc.).
+const MARITIME_STRONG = new Set([
+  "shipmanagement", "seafarer", "shipowner", "drydock", "classification",
+  "shipping", "maritime", "vessel", "fleet", "tanker", "charter",
+]);
+const MARITIME_KEYWORDS = [
+  // strong (industry-specific)
+  "shipmanagement", "seafarer", "shipowner", "drydock", "classification",
+  "shipping", "maritime", "vessel", "fleet", "tanker", "charter",
+  // weak (also found on non-maritime sites)
+  "ship", "ships", "marine", "navigation", "offshore",
+  "bulk", "cargo", "sea", "ocean", "port", "tonnage", "hull", "crew", "berth",
+];
 
 function generateDomainCandidates(companyName) {
   const raw  = companyName.toLowerCase().trim();
@@ -201,10 +215,11 @@ function generateDomainCandidates(companyName) {
 // ─── Web search for domain ────────────────────────────────────────────────────
 
 // Social / aggregator domains to skip in search results (extends AGGREGATOR_DOMAINS)
-const SKIP_SEARCH_HOSTS = /linkedin|facebook|bloomberg|crunchbase|dnb\.com|zoominfo|rocketreach|leadiq|equasis|marinetraffic|vesseltracker|fleetmon|shipfinder|yellowpages|yelp|trustpilot|glassdoor|indeed|twitter|instagram|wikipedia|wikidata|opencorporates|bizapedia|corporationwiki|companieshouse|sec\.gov|patents|scholar\.google|books\.google|maps\.google|play\.google|apps\.apple|youtube|vimeo|reddit|quora|medium|substack|news\.ycombinator|europages|kompass\.com|businessdirectory|bizinformation|thetimes|reuters\.com|ft\.com|lloydslist|vesselfinder|balticshipping|maritime-connector|shipspotting|tradewindsnews|seatrade/i;
+const SKIP_SEARCH_HOSTS = /linkedin|facebook|bloomberg|crunchbase|dnb\.com|zoominfo|rocketreach|leadiq|equasis|marinetraffic|vesseltracker|fleetmon|shipfinder|yellowpages|yelp|trustpilot|glassdoor|indeed|twitter|instagram|wikipedia|wikidata|opencorporates|bizapedia|corporationwiki|companieshouse|sec\.gov|patents|scholar\.google|books\.google|maps\.google|play\.google|apps\.apple|youtube|vimeo|reddit|quora|medium|substack|news\.ycombinator|europages|kompass\.com|businessdirectory|bizinformation|thetimes|reuters\.com|ft\.com|lloydslist|vesselfinder|balticshipping|maritime-connector|shipspotting|tradewindsnews|seatrade|magicport\.ai|gloap\.net|trusteddocks\.com|world-ships\.com|panadata\.net|courierslist\.com|indexoflebanon\.com|yourmaritime\.com|maritime-database\.com|maritimedex\.com|sanctionschecklist\.com|fleetphoto\.ru|buzzfile\.com|datanyze\.com|app\.vesselsvalue\.com|marinevesseltraffic\.com|volza\.com|en\.52wmb\.com|ctidirectory\.com|interfishmarket\.com|findglocal\.com|linktr\.ee|quicktransportsolutions\.com|17track\.net|tracecontainer\.com|unisco\.com|soopage\.com|makeitinthenorth\.nl|cyprusprofile\.com|wn\.com|vietstock\.vn|marketscreener\.com|lursoft\.lv/i;
 
-async function searchWebForDomain(companyName) {
-  const query = `"${companyName}" official website`;
+async function searchWebForDomain(companyName, context = {}) {
+  const countryHint = context.flagCountry ? ` ${context.flagCountry}` : "";
+  const query = `"${companyName}" shipping OR shipmanagement OR maritime${countryHint}`;
   try {
     const res = await fetch(
       `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}&kl=en-us`,
@@ -245,7 +260,7 @@ async function searchWebForDomain(companyName) {
       }
     }
 
-    return [...new Set(domains)].slice(0, 6);
+    return [...new Set(domains)].slice(0, 3);
   } catch (e) {
     console.log(`[contactEnrichment] Web search error: ${e.message}`);
     return [];
@@ -269,19 +284,39 @@ async function probeDomain(domain) {
   return null;
 }
 
-async function findWebsite(companyName) {
-  const raw             = companyName.toLowerCase();
-  const needsValidation = MARITIME_KEYWORDS.some(k => raw.includes(k));
+// Name↔domain overlap score (0.0–1.0). Returns null when company name has no
+// distinguishing tokens (e.g. pure abbreviation like "MSC").
+// Used to reject maritime-passing sites that share zero lexical overlap with the
+// owner name (e.g. "Perama Shipmanagement" → domain "gooby.dk" → score 0.0).
+function scoreDomainMatch(domain, companyName) {
+  const skipRe = /^(ship|ships|shipping|shipmanagement|marine|maritime|navigation|offshore|vessel|fleet|tanker|tankers|bulk|cargo|sea|ocean|port|group|holding|holdings|international|intl|global|ltd|limited|inc|llc|sa|as|ab|bv|gmbh|oy|company|co|management|services|trading|the|and|of|for|dev|comm|gas)$/i;
+  const nameTokens = companyName.toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter(w => w.length > 3 && !skipRe.test(w));
+  if (!nameTokens.length) return null; // can't determine — skip check
 
-  // 1. Web search layer — try DuckDuckGo first
-  const searchDomains = await searchWebForDomain(companyName);
+  // Use full domain string to handle subdomains (ea.one-line.com, etc.)
+  const domainStr = domain.toLowerCase();
+  const matches = nameTokens.filter(t => domainStr.includes(t));
+  return matches.length / nameTokens.length;
+}
+
+async function findWebsite(companyName, context = {}) {
+  // 1. Web search layer — try DuckDuckGo first (maritime-locked query)
+  const searchDomains = await searchWebForDomain(companyName, context);
   if (searchDomains.length) {
     console.log(`[contactEnrichment]   Web search returned: ${searchDomains.join(", ")}`);
     for (const domain of searchDomains) {
       const url = await probeDomain(domain);
       if (!url) continue;
-      if (needsValidation && !(await validateMaritime(url))) {
+      if (!(await validateMaritime(url))) {
         console.log(`[contactEnrichment]   Web search: ${domain} failed maritime check`);
+        continue;
+      }
+      const nameScore = scoreDomainMatch(domain, companyName);
+      if (nameScore !== null && nameScore === 0) {
+        console.log(`[contactEnrichment]   Web search: ${domain} zero name overlap, skipping`);
         continue;
       }
       console.log(`[contactEnrichment]   Domain via web search: ${domain}`);
@@ -290,12 +325,22 @@ async function findWebsite(companyName) {
     console.log(`[contactEnrichment]   Web search candidates exhausted, falling back to heuristic`);
   }
 
-  // 2. Fallback — heuristic candidate list
+  // 2. Fallback — heuristic candidate list (always maritime-validated)
   const candidates = generateDomainCandidates(companyName);
   for (const domain of candidates) {
     const url = await probeDomain(domain);
     if (!url) continue;
-    if (needsValidation && !(await validateMaritime(url))) {
+    // If the probe redirected to a completely different domain (e.g. oceanshipping.com → wn.com),
+    // apply the name-overlap guard on the RESOLVED host to catch redirect squatters/aggregators.
+    const resolvedHost = url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0];
+    if (resolvedHost !== domain && resolvedHost !== `www.${domain}`) {
+      const nameScore = scoreDomainMatch(resolvedHost, companyName);
+      if (nameScore !== null && nameScore === 0) {
+        console.log(`[contactEnrichment]   Skipping ${resolvedHost} (redirect, zero name overlap)`);
+        continue;
+      }
+    }
+    if (!(await validateMaritime(url))) {
       console.log(`[contactEnrichment]   Skipping ${domain} (not maritime)`);
       continue;
     }
@@ -323,15 +368,16 @@ async function fetchPage(url) {
   }
 }
 
-// Check if a homepage looks like a maritime/shipping company
+// Check if a homepage looks like a maritime/shipping company.
+// Requires ≥1 strong industry keyword + ≥3 total to avoid e-commerce false positives
+// ("free shipping", "cargo pants", "sea blue" have 0 strong hits and fail immediately).
 async function validateMaritime(baseUrl) {
   const html = await fetchPage(baseUrl);
   if (!html) return false;
   const text = html.toLowerCase();
-  // Require ≥4 matches to avoid e-commerce sites ("free shipping", "cargo pants",
-  // "sea blue" colors) triggering as maritime companies.
-  const hits = MARITIME_KEYWORDS.filter(k => text.includes(k)).length;
-  return hits >= 4;
+  const matchedKeys = MARITIME_KEYWORDS.filter(k => text.includes(k));
+  const strongHits  = matchedKeys.filter(k => MARITIME_STRONG.has(k)).length;
+  return strongHits >= 1 && matchedKeys.length >= 3;
 }
 
 async function fetchContactHtml(baseUrl) {
@@ -459,6 +505,88 @@ async function detectEmailFormat(domain) {
 const RFC_EMAIL_RE = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
 
 const PROTECTED_MX_RE = /mimecast\.com|pphosted\.com|proofpoint\.com|barracudanetworks\.com|cudamail\.com|mail\.protection\.outlook\.com|eo\.outlook\.com|ironport\.com|iphmx\.com|sma\.cisco\.com|messagelabs\.com|symanteccloud\.com|mailcontrol\.com|spamh\.com|antispameurope\.com|hornetsecurity\.com|retarus\.com|ppe-hosted\.com|hydra\.sophos\.com|reflexion\.net|mailhop\.org/i;
+
+// ── Hunter.io daily credit counter ───────────────────────────────────────────
+
+const HUNTER_USAGE_FILE  = path.join(__dirname, "data", "hunter_usage.json");
+const HUNTER_DAILY_LIMIT = 200;
+const HUNTER_WARN_AT     = 190;
+
+function _hunterDay() {
+  return new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+}
+
+function _loadHunterUsage() {
+  try {
+    if (fs.existsSync(HUNTER_USAGE_FILE)) return JSON.parse(fs.readFileSync(HUNTER_USAGE_FILE, "utf8"));
+  } catch {}
+  return {};
+}
+
+function _saveHunterUsage(data) {
+  fs.mkdirSync(path.dirname(HUNTER_USAGE_FILE), { recursive: true });
+  fs.writeFileSync(HUNTER_USAGE_FILE, JSON.stringify(data, null, 2));
+}
+
+function hunterBudget() {
+  const usage = _loadHunterUsage();
+  const count = usage[_hunterDay()]?.count || 0;
+  return { count, remaining: HUNTER_DAILY_LIMIT - count, ok: count < HUNTER_DAILY_LIMIT };
+}
+
+function _hunterIncrement(domain) {
+  const usage = _loadHunterUsage();
+  const day   = _hunterDay();
+  if (!usage[day]) usage[day] = { count: 0, calls: [] };
+  usage[day].count++;
+  usage[day].calls.push({ domain, at: new Date().toISOString() });
+  _saveHunterUsage(usage);
+  const count = usage[day].count;
+  if (count >= HUNTER_WARN_AT && count < HUNTER_DAILY_LIMIT) {
+    console.warn(`[contactEnrichment] ⚠ Hunter günlük limit dolmak üzere (${count}/${HUNTER_DAILY_LIMIT})`);
+  }
+  return count;
+}
+
+// Calls Hunter domain-search and picks the best personal email (confidence ≥ 70%).
+// Returns { email, firstName, lastName, confidence, type } or null.
+async function hunterDomainSearch(domain, apiKey) {
+  const budget = hunterBudget();
+  if (!budget.ok) {
+    console.log(`[contactEnrichment] Hunter günlük limit doldu (${budget.count}/${HUNTER_DAILY_LIMIT}), skipping`);
+    return null;
+  }
+
+  try {
+    const url = `https://api.hunter.io/v2/domain-search?domain=${encodeURIComponent(domain)}&limit=10&api_key=${apiKey}`;
+    const res  = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+    _hunterIncrement(domain);
+
+    if (!res.ok) {
+      console.log(`[contactEnrichment] Hunter ${res.status} for ${domain}`);
+      return null;
+    }
+
+    const json = await res.json();
+    const emails = json?.data?.emails || [];
+    if (!emails.length) return null;
+
+    // Personal first → generic, within each group highest confidence, min 70%
+    const eligible = emails.filter(e => e.confidence >= 70 && e.value);
+    const personal = eligible.filter(e => e.type === "personal");
+    const generic  = eligible.filter(e => e.type !== "personal");
+
+    const pool = personal.length ? personal : generic;
+    if (!pool.length) return null;
+
+    pool.sort((a, b) => b.confidence - a.confidence);
+    return pool[0]; // { value, first_name, last_name, confidence, type, ... }
+
+  } catch (e) {
+    console.log(`[contactEnrichment] Hunter error for ${domain}: ${e.message}`);
+    return null;
+  }
+}
 
 // ── ZeroBounce monthly credit counter ────────────────────────────────────────
 
@@ -644,7 +772,9 @@ async function enrichCompanyContact(companyName, managerName, opts = {}) {
   const zbApiKey = opts.zbApiKey || null;
   console.log(`[contactEnrichment] Searching: "${companyName}"`);
 
-  const linkedinCompanyUrl = `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(companyName)}`;
+  const knownLinkedIn     = lookupLinkedIn(companyName);
+  const linkedinCompanyUrl = knownLinkedIn
+    || `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(companyName)}`;
   const linkedinPeopleUrl  = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(companyName + " chartering sale purchase")}`;
 
   const result = {
@@ -665,7 +795,7 @@ async function enrichCompanyContact(companyName, managerName, opts = {}) {
     contactPath:        null,
   };
 
-  const baseUrl = await findWebsite(companyName);
+  const baseUrl = await findWebsite(companyName, { flagCountry: opts.flagCountry });
   if (!baseUrl) {
     console.log(`[contactEnrichment]   No website found`);
     return result;
@@ -722,6 +852,33 @@ async function enrichCompanyContact(companyName, managerName, opts = {}) {
 
     result.emailValidations = Object.fromEntries(validationsMap);
     result.bestEmail = pickBestEmail(validationsMap, result.emailsByType);
+  }
+
+  // ── Hunter fallback: if web scrape found no email but we have a domain ────────
+  if (!result.bestEmail && result.emails.length === 0 && result.website && opts.hunterApiKey) {
+    const hunterDomain = result.website.replace(/^https?:\/\/(www\.)?/, "").split("/")[0];
+    console.log(`[contactEnrichment]   No email found — trying Hunter for ${hunterDomain}`);
+    const hit = await hunterDomainSearch(hunterDomain, opts.hunterApiKey);
+    if (hit?.value) {
+      const email = hit.value.toLowerCase();
+      console.log(`[contactEnrichment]   Hunter hit: ${email} (${hit.type}, ${hit.confidence}% confidence)`);
+      result.emails.push(email);
+      const hunterCat = categorizeEmails([email]);
+      for (const bucket of ["department", "generic", "other"]) {
+        result.emailsByType[bucket].push(...hunterCat[bucket]);
+      }
+      result.bestEmail = email;
+      result.emailValidations[email] = {
+        status: "unchecked",
+        isRole: ROLE_LOCALS.has(email.split("@")[0]) || GENERIC_LOCALS.has(email.split("@")[0]),
+        protected: false,
+        source: "hunter",
+        confidence: hit.confidence,
+        checkedAt: new Date().toISOString(),
+      };
+    } else {
+      console.log(`[contactEnrichment]   Hunter: no result for ${hunterDomain}`);
+    }
   }
 
   console.log(`[contactEnrichment]   emails: ${result.emails.slice(0, 3).join(", ") || "none"}`);
@@ -784,9 +941,9 @@ async function enrichWithDb(companyName, imo, pool, managerName, opts = {}) {
             bestEmail:          row.best_email           || null,
             phones:             row.phones || [],
             address:            null,
-            linkedinCompanyUrl: row.linkedin_company_url || `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(companyName)}`,
+            linkedinCompanyUrl: row.linkedin_company_url || lookupLinkedIn(companyName) || `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(companyName)}`,
             linkedinPeopleUrl:  row.linkedin_people_url  || `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(companyName + " chartering sale purchase")}`,
-            linkedinSearchUrl:  row.linkedin_company_url || `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(companyName)}`,
+            linkedinSearchUrl:  row.linkedin_company_url || lookupLinkedIn(companyName) || `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(companyName)}`,
             contactPath:        null,
             source:             "db",
           };
@@ -874,6 +1031,7 @@ module.exports = {
   validateOnOutreach,
   pickBestEmail,
   zbBudget,
+  hunterBudget,
   enrichWithDb,
   categorizeEmails,
   guessEmailsFromName,

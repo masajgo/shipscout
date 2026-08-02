@@ -1,5 +1,5 @@
 # ShipScout — Durum & Yapılacaklar
-*2026-08-02 | Son commit: ff22886 | Branch: main*
+*2026-08-02 | Son commit: a5054fd | Branch: main*
 
 ---
 
@@ -21,6 +21,7 @@
 | **LinkedIn statik lookup — top-50 ship manager** (commit 4a80a88) | ✅ |
 | **SMTP verify Layer 4** — smtpVerify.ts + emailHunter.ts (commit 3814327) | ✅ |
 | **S&P featured vessels** — DB'den canlı (OCEAN ENDEAVOUR + LADY ADRIANA, commit ff22886) | ✅ |
+| **Radar News Signals** — newsRadarScan.js + /api/radar-events + /opportunities UI (commit a5054fd) | ✅ |
 
 ---
 
@@ -137,6 +138,13 @@ LinkedIn btn               kaynak indikatörü (equasis vs scraper)
 | 6 | SMTP verify (Katman 4) | smtpVerify.ts | ✅ Done |
 | 7 | Apollo people search (Katman 3) | emailHunter.ts | ⏸ Stub/TODO |
 | 8 | S&P real listing | snp/route.ts | ✅ Done |
+| 9 | Radar News Signals | newsRadarScan.js + radar-events API | ✅ Done |
+
+### Radar açık blokajlar
+- launchd plist: `launchctl load ~/Desktop/shipscout/launchd/com.shipscout.newsscan.plist` ile aktif et
+- MarEx RSS URL doğrulandı (`/feed`), tekrar test edilebilir
+- OFAC SDN: IMO number eşleşmesi 0 döndü — SDN XML'de `<idType>` string'i "IMO" tam eşleşme yerine farklı bir format kullanıyor olabilir; ileride kontrol et
+- Paris MOU + Tokyo MOU: resmi feed yok, stub olarak bırakıldı
 
 ---
 

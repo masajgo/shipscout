@@ -254,13 +254,13 @@ export function guessAllFormats(
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export type EmailValidationStatus =
-  | "verified" | "catch-all" | "invalid" | "unchecked" | "syntax_fail" | "no_mx";
+  | "verified" | "catch-all" | "invalid" | "unchecked" | "syntax_fail" | "no_mx" | "greylisted" | "blocked";
 
 export interface EmailValidationEntry {
   status:    EmailValidationStatus;
   isRole:    boolean;
   protected?: boolean;
-  source:    "local" | "zerobounce";
+  source:    "local" | "zerobounce" | "smtp";
   checkedAt: string;
 }
 
@@ -328,10 +328,39 @@ export async function enrichCompanyContact(
   result.emailFormat  = guessEmailFormat(allEmails, result.website)
     ?? await detectEmailFormat(result.website);
 
-  // Layer 4 — guess personal email for named decision-maker
+  // Layer 4a — guess personal email for named decision-maker
   const guessDomain = extractDomainFromEmails(result.emails);
   if (managerName && guessDomain) {
     result.guessedEmails = guessAllFormats(managerName, guessDomain);
+  }
+
+  // Layer 4b — SMTP probe for scraped emails (Node.js runtime only, best-effort)
+  if (result.emails.length > 0 && typeof process !== "undefined" && process.versions?.node) {
+    try {
+      const { verifyEmails } = await import("./smtpVerify");
+      const smtpResults = await verifyEmails(result.emails);
+      for (const [email, sr] of smtpResults) {
+        result.emailValidations[email] = {
+          status:    sr.status,
+          isRole:    ROLE_LOCALS.has(email.split("@")[0].toLowerCase()),
+          source:    "smtp" as const,
+          checkedAt: sr.checkedAt,
+        } satisfies EmailValidationEntry;
+      }
+      // Pick bestEmail: first verified, then catch-all, then unchecked
+      const ranked = result.emails
+        .map(e => ({ e, v: result.emailValidations[e] as EmailValidationEntry | undefined }))
+        .sort((a, b) => {
+          const order = { verified: 0, "catch-all": 1, greylisted: 2, unchecked: 3, blocked: 4, no_mx: 5, invalid: 6, syntax_fail: 7 };
+          return (order[a.v?.status ?? "unchecked"] ?? 3) - (order[b.v?.status ?? "unchecked"] ?? 3);
+        });
+      const top = ranked[0];
+      if (top && top.v?.status !== "invalid" && top.v?.status !== "syntax_fail") {
+        result.bestEmail = top.e;
+      }
+    } catch {
+      // SMTP verify unavailable (edge runtime, port blocked) — silently skip
+    }
   }
 
   return result;

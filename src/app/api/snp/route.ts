@@ -213,26 +213,82 @@ export async function GET() {
       .filter(Boolean);
   }
 
-  // Hardcoded verified listings
+    // Featured vessels — query live from vessels + owners tables (zero Datalastic credits)
+  const FEATURED_IMOS = ["7625811", "5073234"];
+  const alreadyShown  = new Set([...datalasticListings, ...grsListings].map((l: any) => l?.imo));
+  const featuredIMOs  = FEATURED_IMOS.filter(imo => !alreadyShown.has(imo));
+
   const hardcoded: any[] = [];
-  const hasOceanEndeavour = [...datalasticListings, ...grsListings].some(l => l?.imo === "7625811");
-  if (!hasOceanEndeavour) {
-    const age = year - 1982;
-    const score = Math.min(99, 90 + Math.min(9, age - 32));
-    hardcoded.push({
-      id: 7625811, imo: "7625811", name: "OCEAN ENDEAVOUR",
-      flag: "Portugal", type: "Passenger", group: "Passenger",
-      built: 1982, dwt: 1762, ldt: 3100, age, score,
-      length: null, beam: null, draft: null,
-      location: "Funchal, Madeira",
-      price: `$${((3100 * (MARKET_PRICES["Aliağa"] ?? 420)) / 1_000_000).toFixed(1)}M`,
-      priceType: "Asking", saleType: "voluntary",
-      tags: [{ label: `${age}y old`, type: "urgent" }, { label: "Survey Due", type: "idle" }],
-      urgent: true, source: "equasis",
-      owner: "ENDEAVOUR PARTNERS UNIPESSOAL",
-      manager: "SUNSTONE SHIPS INC",
-      images: [], description: null,
-    });
+  if (featuredIMOs.length > 0) {
+    try {
+      const { rows } = await pool.query(`
+        SELECT
+          v.imo::text, v.name, v.flag, v.type,
+          v.built_year, v.age, v.deadweight AS dwt, v.ldt,
+          v.length, v.scrap_score, v.scrap_category,
+          v.scrap_value_usd, v.ldt_estimated, v.scrap_value_estimated,
+          v.lat, v.lon, v.destination,
+          o.owner_name, o.manager_name, o.address
+        FROM vessels v
+        LEFT JOIN owners o ON o.imo = v.imo
+        WHERE v.imo = ANY($1::bigint[])
+      `, [featuredIMOs.map(Number)]);
+
+      for (const r of rows) {
+        const built  = r.built_year ? parseInt(r.built_year) : null;
+        const age    = built ? year - built : (r.age ? parseInt(r.age) : null);
+        const dwt    = r.dwt  ? parseInt(r.dwt)  : null;
+        const ldt    = r.ldt  ? parseInt(r.ldt)  : null;
+        const score  = r.scrap_score ? parseInt(r.scrap_score) : (age ? Math.min(99, scoreFromAge(age)) : 50);
+        const market = bestMarket(r.type || "");
+        const mPrice = MARKET_PRICES[market] ?? 450;
+
+        // Price: prefer DB scrap_value_usd, else compute from LDT × market, else POA
+        let price = "POA";
+        let priceType = "Est. scrap value";
+        if (r.scrap_value_usd && parseFloat(r.scrap_value_usd) > 0) {
+          price = `$${(parseFloat(r.scrap_value_usd) / 1_000_000).toFixed(1)}M`;
+          if (r.scrap_value_estimated) priceType = "~Est. scrap value";
+        } else if (ldt && ldt > 0) {
+          price = `$${((ldt * mPrice) / 1_000_000).toFixed(1)}M`;
+        }
+
+        const tags: { label: string; type: string }[] = [];
+        if (age != null) tags.push({ label: `${age}y old`, type: age >= 30 ? "urgent" : "idle" });
+        if (score >= 85) tags.push({ label: "Survey Due", type: "idle" });
+
+        hardcoded.push({
+          id:       parseInt(r.imo),
+          imo:      r.imo,
+          name:     r.name || `IMO ${r.imo}`,
+          flag:     r.flag || "Unknown",
+          type:     r.type || "General Cargo",
+          group:    (r.type || "").toLowerCase().includes("tanker") ? "Tankers" : "Dry Cargo",
+          built:    built ?? year,
+          dwt:      dwt ?? 0,
+          ldt:      ldt ?? 0,
+          age:      age ?? 0,
+          score,
+          length:   r.length ? parseFloat(r.length) : null,
+          beam:     null,
+          draft:    null,
+          location: r.destination || (r.lat && r.lon ? `${parseFloat(r.lat).toFixed(2)}°N ${parseFloat(r.lon).toFixed(2)}°E` : "—"),
+          price,
+          priceType,
+          saleType: (age ?? 0) >= 28 ? "distressed" : "voluntary",
+          tags,
+          urgent:   score >= 88,
+          source:   "equasis",
+          owner:    r.owner_name   || null,
+          manager:  r.manager_name || null,
+          scrap_category: r.scrap_category || "low",
+          images:   [],
+          description: null,
+        });
+      }
+    } catch (e) {
+      console.error("[snp] featured vessel DB lookup failed", e);
+    }
   }
 
   // Map user-submitted approved listings to the same card shape

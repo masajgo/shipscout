@@ -60,7 +60,9 @@ export async function GET(
          v.photo_license_url,
          (v.licensed_photo->>'pageUrl') AS photo_page_url,
          o.owner_name,
-         COALESCE(o.manager_name, v.manager_name) AS mgr_name
+         COALESCE(o.manager_name, v.manager_name) AS mgr_name,
+         o.ism_manager,
+         o.address
        FROM vessels v
        LEFT JOIN owners o ON o.imo = v.imo
        WHERE v.mmsi = $1::bigint`,
@@ -112,6 +114,8 @@ export async function GET(
           lastDryDockDate:      r.last_dry_dock_date    || null,
           ownerName:            r.owner_name  || null,
           managerName:          r.mgr_name   || null,
+          ismManager:           r.ism_manager || null,
+          ownerAddress:         r.address     || null,
           photoThumb:           r.photo_thumb      || null,
           photoArtist:          r.photo_artist     || null,
           photoLicense:         r.photo_license    || null,

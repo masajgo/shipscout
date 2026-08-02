@@ -61,6 +61,8 @@ interface VesselDetail {
   lastDryDockDate:      string | null;
   ownerName:            string | null;
   managerName:          string | null;
+  ismManager:           string | null;
+  ownerAddress:         string | null;
   photoThumb:           string | null;
   photoArtist:          string | null;
   photoLicense:         string | null;
@@ -890,25 +892,45 @@ export default function MapView() {
             </div>
           </div>
 
-          {/* Owner / Manager */}
+          {/* Owner / Manager / ISM */}
           <div style={{ padding: "6px 10px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-            <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 6 }}>Owner / Manager</div>
-            {/* DB'den gelen owner/manager — contact API'den önce göster */}
-            {!contact && detail && (detail.ownerName || detail.managerName) && (
+            <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.12em", color: S.muted, textTransform: "uppercase" as const, marginBottom: 6 }}>Ownership</div>
+
+            {/* Static ownership rows — always show when available */}
+            {detail && (detail.ownerName || detail.managerName || detail.ismManager) && (
               <div style={{ marginBottom: 6 }}>
-                {detail.ownerName && <div style={{ fontSize: 9, fontWeight: 600, color: S.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{detail.ownerName}</div>}
-                {detail.managerName && detail.managerName !== detail.ownerName && (
-                  <div style={{ fontSize: 9, color: S.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Mgr: {detail.managerName}</div>
+                {([
+                  ["Owner",   detail.ownerName],
+                  ["Manager", detail.managerName && detail.managerName !== detail.ownerName ? detail.managerName : null],
+                  ["ISM",     detail.ismManager  && detail.ismManager  !== detail.managerName && detail.ismManager !== detail.ownerName ? detail.ismManager : null],
+                ] as [string, string | null][]).filter(([, v]) => v).map(([label, value]) => (
+                  <div key={label} style={{ display: "flex", gap: 5, marginBottom: 3, overflow: "hidden" }}>
+                    <span style={{ fontSize: 8, color: S.muted, flexShrink: 0, minWidth: 38 }}>{label}</span>
+                    <span style={{ fontSize: 9, fontWeight: 600, color: S.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</span>
+                  </div>
+                ))}
+                {detail.ownerAddress && (
+                  <div style={{ display: "flex", gap: 5, marginTop: 4, overflow: "hidden" }}>
+                    <span style={{ fontSize: 8, color: S.muted, flexShrink: 0, minWidth: 38 }}>Addr</span>
+                    <span style={{ fontSize: 8, color: "#94A3B8", lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{detail.ownerAddress}</span>
+                  </div>
                 )}
               </div>
             )}
+
+            {/* Contact enrichment layer */}
             {contactLoading ? (
-              <div style={{ fontSize: 9, color: S.muted }}>Searching…</div>
+              <div style={{ fontSize: 9, color: S.muted }}>Searching contacts…</div>
             ) : contact ? (
               <div>
-                <div style={{ fontSize: 10, fontWeight: 600, color: S.text, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{contact.company}</div>
                 {contact.phones?.[0] && (
                   <div style={{ fontSize: 9, color: "#94A3B8", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>☎ {contact.phones[0]}</div>
+                )}
+                {contact.address && !detail?.ownerAddress && (
+                  <div style={{ display: "flex", gap: 5, marginBottom: 4, overflow: "hidden" }}>
+                    <span style={{ fontSize: 8, color: S.muted, flexShrink: 0, minWidth: 38 }}>Addr</span>
+                    <span style={{ fontSize: 8, color: "#94A3B8", lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{contact.address}</span>
+                  </div>
                 )}
                 {(() => {
                   const displayEmail = contact.bestEmail
@@ -939,7 +961,7 @@ export default function MapView() {
                   )}
                 </div>
               </div>
-            ) : !detail?.ownerName && !detail?.managerName ? (
+            ) : !detail?.ownerName && !detail?.managerName && !detail?.ismManager ? (
               <div style={{ fontSize: 9, color: S.muted, fontStyle: "italic" }}>Owner data being collected — updates tomorrow</div>
             ) : null}
           </div>

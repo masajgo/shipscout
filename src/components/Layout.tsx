@@ -9,6 +9,7 @@ const NAV = [
   { href: "/markets",  label: "Markets"   },
   { href: "/snp",           label: "S&P"       },
   { href: "/opportunities", label: "Radar"     },
+  { href: "/weekly",        label: "Weekly"    },
   { href: "/compare",       label: "Compare"   },
   { href: "/alerts",   label: "Alerts"    },
   { href: "/crm",      label: "Deal CRM"  },

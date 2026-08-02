@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState, useMemo } from "react";
 import type { OpportunityVessel } from "@/app/api/opportunities/route";
+import type { RadarEvent } from "@/app/api/radar-events/route";
 import { SIGNAL_META, type SignalType } from "@/lib/signals";
 
 const SIGNAL_LABELS: Record<SignalType, string> = {
@@ -18,19 +19,38 @@ function ContactCell({ vessel }: { vessel: OpportunityVessel }) {
     ...(vessel.best_email && !vessel.emails?.includes(vessel.best_email) ? [vessel.best_email] : []),
   ];
   const phones = vessel.phones?.filter(Boolean) ?? [];
-  const hasAny = emails.length > 0 || phones.length > 0 || vessel.website || vessel.linkedin_url;
+  const hasEmailOrPhone = emails.length > 0 || phones.length > 0;
 
-  if (!hasAny) {
+  const ownerLabel = vessel.owner_name ?? vessel.manager_name;
+
+  if (!hasEmailOrPhone) {
     return (
-      <div style={{ fontSize: 11, color: "#D1D5DB", fontStyle: "italic" }}>No contact yet</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        {ownerLabel && (
+          <div style={{ fontSize: 12, fontWeight: 600, color: "#9CA3AF", whiteSpace: "nowrap",
+            overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>
+            {ownerLabel}
+          </div>
+        )}
+        {vessel.website && (
+          <a href={vessel.website.startsWith("http") ? vessel.website : `https://${vessel.website}`}
+            target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+            style={{ fontSize: 11, color: "#D1D5DB", textDecoration: "none",
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 160 }}>
+            {vessel.website.replace(/^https?:\/\//, "")}
+          </a>
+        )}
+        <div style={{ fontSize: 11, color: "#D1D5DB", fontStyle: "italic" }}>No contact yet</div>
+      </div>
     );
   }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      {(vessel.owner_name || vessel.manager_name) && (
-        <div style={{ fontSize: 12, fontWeight: 600, color: "#111827", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>
-          {vessel.owner_name ?? vessel.manager_name}
+      {ownerLabel && (
+        <div style={{ fontSize: 12, fontWeight: 600, color: "#111827", whiteSpace: "nowrap",
+          overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>
+          {ownerLabel}
         </div>
       )}
       <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
@@ -39,7 +59,7 @@ function ContactCell({ vessel }: { vessel: OpportunityVessel }) {
             onClick={e => e.stopPropagation()}
             style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, padding: "3px 8px",
               borderRadius: 5, background: "#EFF6FF", border: "1px solid #BFDBFE", color: "#1D4ED8",
-              textDecoration: "none", whiteSpace: "nowrap" }}>
+              textDecoration: "none", whiteSpace: "nowrap", fontWeight: 600 }}>
             ✉ Email
           </a>
         )}
@@ -48,7 +68,7 @@ function ContactCell({ vessel }: { vessel: OpportunityVessel }) {
             onClick={e => e.stopPropagation()}
             style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, padding: "3px 8px",
               borderRadius: 5, background: "#F0FDF4", border: "1px solid #BBF7D0", color: "#15803D",
-              textDecoration: "none", whiteSpace: "nowrap" }}>
+              textDecoration: "none", whiteSpace: "nowrap", fontWeight: 600 }}>
             ☎ Call
           </a>
         )}
@@ -169,6 +189,172 @@ function ExpandedRow({ vessel }: { vessel: OpportunityVessel }) {
   );
 }
 
+// ─── Event type colours ───────────────────────────────────────────────────────
+
+const EVENT_TYPE_STYLE: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  arrest:      { label: "Arrest",       color: "#991B1B", bg: "#FEF2F2", border: "#FECACA" },
+  detention:   { label: "Detention",    color: "#92400E", bg: "#FFF7ED", border: "#FED7AA" },
+  auction:     { label: "Auction",      color: "#C9A84C", bg: "#FEFCE8", border: "#FDE68A" },
+  bank_seizure:{ label: "Bank Seizure", color: "#1E40AF", bg: "#EFF6FF", border: "#BFDBFE" },
+  sanction:    { label: "Sanction",     color: "#6B21A8", bg: "#FAF5FF", border: "#E9D5FF" },
+  scrap_sale:  { label: "Scrap Sale",   color: "#065F46", bg: "#ECFDF5", border: "#A7F3D0" },
+};
+
+function EventTypeBadge({ type }: { type: string }) {
+  const s = EVENT_TYPE_STYLE[type] ?? { label: type, color: "#374151", bg: "#F3F4F6", border: "#D1D5DB" };
+  return (
+    <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 4,
+      color: s.color, background: s.bg, border: `1px solid ${s.border}`, whiteSpace: "nowrap" }}>
+      {s.label}
+    </span>
+  );
+}
+
+function NewsSignalsSection() {
+  const [events, setEvents]   = useState<RadarEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [typeFilter, setTypeFilter] = useState("all");
+
+  useEffect(() => {
+    setLoading(true);
+    fetch("/api/radar-events?limit=100&days=30")
+      .then(r => r.json())
+      .then(d => setEvents(d.events ?? []))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = useMemo(() =>
+    typeFilter === "all" ? events : events.filter(e => e.event_type === typeFilter),
+    [events, typeFilter]
+  );
+
+  const SELECT: React.CSSProperties = {
+    fontSize: 12, padding: "5px 9px", borderRadius: 6,
+    border: "1px solid #D1D5DB", background: "#fff", color: "#374151", cursor: "pointer",
+  };
+
+  return (
+    <div style={{ marginTop: 48 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 6, flexWrap: "wrap" }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", margin: 0 }}>News Signals</h2>
+        <span style={{ fontSize: 13, color: "#6B7280" }}>Maritime arrests, detentions, auctions & sanctions — last 30 days</span>
+      </div>
+
+      <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14, flexWrap: "wrap",
+        background: "#fff", border: "1px solid #E5E7EB", borderRadius: 10, padding: "10px 14px" }}>
+        <span style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Type</span>
+        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} style={SELECT}>
+          <option value="all">All events</option>
+          {Object.entries(EVENT_TYPE_STYLE).map(([k, v]) => (
+            <option key={k} value={k}>{v.label}</option>
+          ))}
+        </select>
+        {!loading && (
+          <span style={{ fontSize: 12, color: "#9CA3AF", marginLeft: "auto" }}>
+            {filtered.length} event{filtered.length !== 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+
+      {loading ? (
+        <div style={{ padding: 32, textAlign: "center", color: "#9CA3AF", fontSize: 13 }}>Loading news signals…</div>
+      ) : filtered.length === 0 ? (
+        <div style={{ padding: 32, textAlign: "center", color: "#9CA3AF", fontSize: 13 }}>
+          No events in the last 30 days. Run <code>node scripts/newsRadarScan.js</code> to populate.
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {filtered.map(ev => {
+            const hasContact = (ev.emails?.length ?? 0) > 0 || (ev.phones?.length ?? 0) > 0;
+            const contactEmail = ev.emails?.[0] ?? null;
+            const contactPhone = ev.phones?.[0] ?? null;
+            return (
+              <div key={ev.id} style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 10,
+                padding: "14px 16px", display: "flex", gap: 14, flexWrap: "wrap", alignItems: "flex-start" }}>
+
+                {/* Badge + date */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, minWidth: 90 }}>
+                  <EventTypeBadge type={ev.event_type} />
+                  <span style={{ fontSize: 11, color: "#9CA3AF" }}>
+                    {ev.event_date
+                      ? new Date(ev.event_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                      : new Date(ev.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                  </span>
+                </div>
+
+                {/* Main content */}
+                <div style={{ flex: "1 1 280px", minWidth: 200 }}>
+                  {/* Vessel link if matched */}
+                  {ev.matched_vessel_id ? (
+                    <a href={`/?mmsi=${ev.vessel_mmsi}`}
+                      style={{ fontWeight: 700, color: "#1D4ED8", textDecoration: "none", fontSize: 14 }}>
+                      {ev.vessel_name || `IMO ${ev.imo}`}
+                    </a>
+                  ) : (
+                    <span style={{ fontWeight: 700, color: "#111827", fontSize: 14 }}>
+                      {ev.vessel_name || (ev.imo ? `IMO ${ev.imo}` : "Unknown vessel")}
+                    </span>
+                  )}
+                  {ev.location && (
+                    <span style={{ fontSize: 12, color: "#6B7280", marginLeft: 8 }}>{ev.location}</span>
+                  )}
+                  {ev.imo && (
+                    <span style={{ fontSize: 11, color: "#9CA3AF", marginLeft: 8 }}>IMO {ev.imo}</span>
+                  )}
+
+                  <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.55, marginTop: 6 }}>
+                    {ev.summary}
+                  </div>
+
+                  <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 6 }}>
+                    Source: {ev.source_name}
+                  </div>
+                </div>
+
+                {/* Owner / contact if matched */}
+                {ev.matched_vessel_id && (
+                  <div style={{ flexShrink: 0, minWidth: 160, display: "flex", flexDirection: "column", gap: 4 }}>
+                    {(ev.owner_name || ev.manager_name) && (
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>
+                        {ev.owner_name ?? ev.manager_name}
+                      </div>
+                    )}
+                    {hasContact && (
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {contactEmail && (
+                          <a href={`mailto:${contactEmail}`} title={contactEmail}
+                            style={{ fontSize: 11, padding: "2px 8px", borderRadius: 5,
+                              background: "#EFF6FF", border: "1px solid #BFDBFE",
+                              color: "#1D4ED8", textDecoration: "none", fontWeight: 600 }}>
+                            ✉ Email
+                          </a>
+                        )}
+                        {contactPhone && (
+                          <a href={`tel:${contactPhone}`} title={contactPhone}
+                            style={{ fontSize: 11, padding: "2px 8px", borderRadius: 5,
+                              background: "#F0FDF4", border: "1px solid #BBF7D0",
+                              color: "#15803D", textDecoration: "none", fontWeight: 600 }}>
+                            ☎ Call
+                          </a>
+                        )}
+                      </div>
+                    )}
+                    {ev.vessel_flag && (
+                      <div style={{ fontSize: 11, color: "#9CA3AF" }}>{ev.vessel_flag}</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
 export default function OpportunitiesPage() {
   const [vessels, setVessels]           = useState<OpportunityVessel[]>([]);
   const [total, setTotal]               = useState<number>(0);
@@ -196,7 +382,7 @@ export default function OpportunitiesPage() {
 
   function vesselHasContact(v: OpportunityVessel) {
     const emails = [...(v.emails?.filter(Boolean) ?? []), ...(v.best_email ? [v.best_email] : [])];
-    return emails.length > 0 || (v.phones?.length ?? 0) > 0 || !!v.website || !!v.linkedin_url;
+    return emails.length > 0 || (v.phones?.length ?? 0) > 0;
   }
 
   const filtered = useMemo(() => {
@@ -320,7 +506,7 @@ export default function OpportunitiesPage() {
             display: "flex", alignItems: "center", gap: 6,
           }}>
           <span style={{ fontSize: 14 }}>{contactOnly ? "✓" : "○"}</span>
-          {contactOnly ? "Contactable only" : "Show all opportunities"}
+          {contactOnly ? "With contact" : "Show all"}
         </button>
 
         {(signalFilter !== "all" || minAge !== 20 || typeFilter !== "all" || maxDist !== "all" || !contactOnly) && (
@@ -427,6 +613,8 @@ export default function OpportunitiesPage() {
           ))}
         </div>
       )}
+
+      <NewsSignalsSection />
     </div>
   );
 }

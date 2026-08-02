@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.shipscout.newsscan</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/caffeinate</string>
+    <string>-i</string>
+    <string>/usr/local/bin/node</string>
+    <string>/Users/macbook/Desktop/shipscout/scripts/newsRadarScan.js</string>
+  </array>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>8</integer>
+    <key>Minute</key>
+    <integer>30</integer>
+  </dict>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/macbook/Desktop/shipscout</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/Users/macbook/Desktop/shipscout/logs/news_radar.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/macbook/Desktop/shipscout/logs/news_radar.log</string>
+
+  <key>RunAtLoad</key>
+  <false/>
+</dict>
+</plist>

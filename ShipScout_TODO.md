@@ -23,6 +23,9 @@
 | **S&P featured vessels** — DB'den canlı (OCEAN ENDEAVOUR + LADY ADRIANA, commit ff22886) | ✅ |
 | **Radar News Signals** — newsRadarScan.js + /api/radar-events + /opportunities UI (commit a5054fd) | ✅ |
 | **ShipScout Weekly** — generateWeeklyDigest.js + /weekly + /admin/weekly (commit 47aa67c) | ✅ |
+| **Backfill: Paris MOU Jan–Jun 2024** — 328 detentions, parseParisMOUxls.py + importParisMOU.js | ✅ |
+| **Backfill: OFAC SDN vessels** — 1512 sanctions, OFAC parser fix (Vessel Registration idType) | ✅ |
+| **Backfill: 31 weekly digests** — 2023-10-22 → 2024-06-29, Claude Haiku intros | ✅ |
 
 ---
 
@@ -142,15 +145,19 @@ LinkedIn btn               kaynak indikatörü (equasis vs scraper)
 | 9 | Radar News Signals | newsRadarScan.js + radar-events API | ✅ Done |
 
 ### Weekly açık blokajlar
-- `/admin/weekly` → draft'ı "Publish" et → `/weekly` listesinde görünür
+- `/admin/weekly` → 32 digest draft olarak bekliyor — istediğini "Publish" et → `/weekly` listesinde görünür
 - Her Pazartesi 08:00 launchd çalışır (`com.shipscout.weeklydigest` yüklendi ✅)
-- Daha fazla radar_events biriktikçe --backfill ile geçmişi doldurabilirsin
+- **DB'deki durum (2026-08-02):** 1843 radar_events (331 detention + 1512 sanction), 32 weekly_digest (tümü draft)
+- **Hafta dağılımı:** 31 hafta (2023-10-22 → 2024-06-29) + 1 cari hafta (2026-07-26); en büyük hafta Week 17 / 23 event
 
 ### Radar açık blokajlar
 - launchd plist: `launchctl load ~/Desktop/shipscout/launchd/com.shipscout.newsscan.plist` ile aktif et
 - MarEx RSS URL doğrulandı (`/feed`), tekrar test edilebilir
 - OFAC SDN: IMO number eşleşmesi 0 döndü — SDN XML'de `<idType>` string'i "IMO" tam eşleşme yerine farklı bir format kullanıyor olabilir; ileride kontrol et
-- Paris MOU + Tokyo MOU: resmi feed yok, stub olarak bırakıldı
+- Paris MOU Jan–Jun 2024: 328 kayıt import edildi ✅ (2025/2026 XLS dosyaları parismou.org'da halka açık değil — 404)
+- Paris MOU 2025/2026: resmi site XLS dosyalarını gizliyor; alternatif kaynak yok
+- Tokyo MOU: detention list JS ile render ediliyor, download edilebilir yapılandırılmış veri yok
+- OFAC SDN: 1512 gemi kaydı import edildi ✅ (idType="Vessel Registration Identification" ile fix yapıldı)
 
 ---
 

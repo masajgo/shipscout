@@ -347,9 +347,16 @@ async function fetchOFACSanctions() {
       for (const idBlock of idBlocks) {
         const idType   = extractFirst(idBlock, 'idType');
         const idNumber = extractFirst(idBlock, 'idNumber');
-        if (idType && idType.toUpperCase().includes('IMO') && idNumber) {
-          imo = idNumber.replace(/\D/g, ''); // digits only
-          break;
+        // OFAC stores IMO as idType="Vessel Registration Identification", idNumber="IMO 9XXXXXX"
+        if (idType && idNumber &&
+            (idType.toUpperCase().includes('IMO') ||
+             idType.toUpperCase().includes('VESSEL REGISTRATION'))) {
+          const digits = idNumber.replace(/\D/g, '');
+          // Valid IMO: 7 digits, starts 7–9
+          if (/^[789]\d{6}$/.test(digits)) {
+            imo = digits;
+            break;
+          }
         }
       }
     }

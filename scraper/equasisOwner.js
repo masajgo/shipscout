@@ -278,16 +278,28 @@ function parseShipPage(html) {
 
   const roleTable = $('th[data-field="Role"]').closest('table');
   if (roleTable.length) {
+    // Build column index map from data-field attributes (robust against Equasis reordering)
+    const colIdx = {};
+    roleTable.find('thead th').each((i, th) => {
+      const field = ($(th).attr('data-field') || '').toLowerCase().trim();
+      if (field) colIdx[field] = i;
+    });
+    const iIdx    = colIdx['imo number']       ?? 0;
+    const roleIdx = colIdx['role']             ?? 1;
+    const nameIdx = colIdx['name of company']  ?? 2;
+    const addrIdx = colIdx['address']          ?? 3;
+    const sinceIdx= colIdx['date of effect']   ?? 4;
+
     roleTable.find('tbody tr').each((_, tr) => {
       const tds = $(tr).find('td').map((_, td) => $(td).text().trim().replace(/\s+/g, " ")).get();
-      if (tds.length < 4) return;
-      const [companyImo, role, name, address, since] = tds;
+      if (tds.length < 3) return;
+      const role = tds[roleIdx];
       if (!role) return;
       out.companies[role] = {
-        companyImo: companyImo || null,
-        name: name || null,
-        address: address || null,
-        since: since || null,
+        companyImo: tds[iIdx]    || null,
+        name:       tds[nameIdx] || null,
+        address:    tds[addrIdx] || null,
+        since:      tds[sinceIdx]|| null,
       };
     });
   }
@@ -295,15 +307,30 @@ function parseShipPage(html) {
   const owner = out.companies["Registered owner"];
   if (owner) { out.ownerName = owner.name; out.ownerAddress = owner.address; }
 
-  const sm = out.companies["Ship manager/Commercial manager"]
-         || out.companies["Ship manager"]
-         || out.companies["Commercial manager"]
-         || out.companies["ISM Manager"];
+  // Equasis uses different role spellings across vessels — match case-insensitively
+  const companyByRole = (roles) => {
+    for (const candidate of roles) {
+      for (const key of Object.keys(out.companies)) {
+        if (key.toLowerCase() === candidate.toLowerCase()) return out.companies[key];
+      }
+    }
+    return null;
+  };
+
+  const sm = companyByRole([
+    "Ship manager/Commercial manager",
+    "Ship manager",
+    "Commercial manager",
+    "Technical manager",
+    "ISM Manager",
+  ]);
   if (sm) { out.managerName = sm.name; out.managerAddress = sm.address; }
 
-  const doc = out.companies["Document of Compliance Doc Company"]
-          || out.companies["Document of compliance Doc company"]
-          || out.companies["DoC company"];
+  const doc = companyByRole([
+    "Document of Compliance Doc Company",
+    "Document of compliance Doc company",
+    "DoC company",
+  ]);
   if (doc) { out.docCompanyName = doc.name; out.docCompanyAddress = doc.address; }
 
   return out;

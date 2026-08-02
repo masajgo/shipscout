@@ -1,5 +1,5 @@
 # ShipScout — Durum & Yapılacaklar
-*2026-08-02 | Son commit: a5054fd | Branch: main*
+*2026-08-02 | Son commit: 47aa67c | Branch: main*
 
 ---
 
@@ -22,6 +22,7 @@
 | **SMTP verify Layer 4** — smtpVerify.ts + emailHunter.ts (commit 3814327) | ✅ |
 | **S&P featured vessels** — DB'den canlı (OCEAN ENDEAVOUR + LADY ADRIANA, commit ff22886) | ✅ |
 | **Radar News Signals** — newsRadarScan.js + /api/radar-events + /opportunities UI (commit a5054fd) | ✅ |
+| **ShipScout Weekly** — generateWeeklyDigest.js + /weekly + /admin/weekly (commit 47aa67c) | ✅ |
 
 ---
 
@@ -139,6 +140,11 @@ LinkedIn btn               kaynak indikatörü (equasis vs scraper)
 | 7 | Apollo people search (Katman 3) | emailHunter.ts | ⏸ Stub/TODO |
 | 8 | S&P real listing | snp/route.ts | ✅ Done |
 | 9 | Radar News Signals | newsRadarScan.js + radar-events API | ✅ Done |
+
+### Weekly açık blokajlar
+- `/admin/weekly` → draft'ı "Publish" et → `/weekly` listesinde görünür
+- Her Pazartesi 08:00 launchd çalışır (`com.shipscout.weeklydigest` yüklendi ✅)
+- Daha fazla radar_events biriktikçe --backfill ile geçmişi doldurabilirsin
 
 ### Radar açık blokajlar
 - launchd plist: `launchctl load ~/Desktop/shipscout/launchd/com.shipscout.newsscan.plist` ile aktif et

@@ -26,6 +26,7 @@
 | **Backfill: Paris MOU Jan–Jun 2024** — 328 detentions, parseParisMOUxls.py + importParisMOU.js | ✅ |
 | **Backfill: OFAC SDN vessels** — 1512 sanctions, OFAC parser fix (Vessel Registration idType) | ✅ |
 | **Backfill: 31 weekly digests** — 2023-10-22 → 2024-06-29, Claude Haiku intros | ✅ |
+| **Weekly Magazine Format** — masthead, lead story, 2-col grid, vessel photos, editorials | ✅ |
 
 ---
 

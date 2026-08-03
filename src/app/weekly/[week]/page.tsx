@@ -190,7 +190,7 @@ function DFWBadge({ type }: { type: string }) {
   );
 }
 
-function DFWRow({ ev, currentYear }: { ev: WeeklyDigestEvent; currentYear: number }) {
+function DFWRow({ ev, currentYear, weekSlug }: { ev: WeeklyDigestEvent; currentYear: number; weekSlug: string }) {
   const built = ev.vessel_built ? Number(ev.vessel_built) : null;
   const age   = built ? `${currentYear - built}yr` : "—";
   const dwt   = ev.vessel_dwt ? Number(ev.vessel_dwt).toLocaleString() : "—";
@@ -205,18 +205,12 @@ function DFWRow({ ev, currentYear }: { ev: WeeklyDigestEvent; currentYear: numbe
         <DFWBadge type={ev.event_type} />
       </td>
       <td style={{ padding: "8px 12px 8px 0", verticalAlign: "middle" }}>
-        {ev.vessel_mmsi ? (
-          <Link href={`/?mmsi=${ev.vessel_mmsi}`} style={{ textDecoration: "none" }}>
-            <span style={{ fontWeight: 700, color: NAVY, fontFamily: "'Georgia', serif",
-              fontSize: 13, borderBottom: `1px solid ${GREEN}` }}>
-              {name}
-            </span>
-          </Link>
-        ) : (
-          <span style={{ fontWeight: 700, color: NAVY, fontFamily: "'Georgia', serif", fontSize: 13 }}>
+        <Link href={`/weekly/${weekSlug}/${ev.id}`} style={{ textDecoration: "none" }}>
+          <span style={{ fontWeight: 700, color: NAVY, fontFamily: "'Georgia', serif",
+            fontSize: 13, borderBottom: `1px solid ${GREEN}` }}>
             {name}
           </span>
-        )}
+        </Link>
         {ev.imo && (
           <div style={{ fontSize: 10, color: "#9CA3AF", fontFamily: "monospace", marginTop: 1 }}>
             IMO {ev.imo}
@@ -261,7 +255,7 @@ function DFWRow({ ev, currentYear }: { ev: WeeklyDigestEvent; currentYear: numbe
   );
 }
 
-function DistressedFleetWatch({ events }: { events: WeeklyDigestEvent[] }) {
+function DistressedFleetWatch({ events, weekSlug }: { events: WeeklyDigestEvent[]; weekSlug: string }) {
   const [expanded, setExpanded] = useState(false);
   const LIMIT = 20;
   const currentYear = new Date().getFullYear();
@@ -326,7 +320,7 @@ function DistressedFleetWatch({ events }: { events: WeeklyDigestEvent[] }) {
           </thead>
           <tbody>
             {shown.map(ev => (
-              <DFWRow key={ev.id} ev={ev} currentYear={currentYear} />
+              <DFWRow key={ev.id} ev={ev} currentYear={currentYear} weekSlug={weekSlug} />
             ))}
           </tbody>
         </table>
@@ -349,7 +343,7 @@ function DistressedFleetWatch({ events }: { events: WeeklyDigestEvent[] }) {
 
 // ─── Lead story ───────────────────────────────────────────────────────────────
 
-function LeadStory({ ev }: { ev: WeeklyDigestEvent }) {
+function LeadStory({ ev, weekSlug }: { ev: WeeklyDigestEvent; weekSlug: string }) {
   const dateStr = ev.event_date ? formatDate(ev.event_date) : null;
   const specs   = vesselSpecs(ev);
   const text    = stripMarkdown(ev.editorial_summary || ev.summary);
@@ -386,20 +380,13 @@ function LeadStory({ ev }: { ev: WeeklyDigestEvent }) {
 
       {/* Vessel name */}
       {name && (
-        ev.vessel_mmsi ? (
-          <Link href={`/?mmsi=${ev.vessel_mmsi}`} style={{ textDecoration: "none" }}>
-            <h2 style={{ fontSize: 34, fontWeight: 800, color: NAVY, margin: "0 0 18px",
-              fontFamily: "'Georgia', serif", letterSpacing: "-0.02em", lineHeight: 1.1,
-              borderBottom: `2px solid ${GREEN}`, display: "inline" }}>
-              {name}
-            </h2>
-          </Link>
-        ) : (
+        <Link href={`/weekly/${weekSlug}/${ev.id}`} style={{ textDecoration: "none" }}>
           <h2 style={{ fontSize: 34, fontWeight: 800, color: NAVY, margin: "0 0 18px",
-            fontFamily: "'Georgia', serif", letterSpacing: "-0.02em", lineHeight: 1.1 }}>
+            fontFamily: "'Georgia', serif", letterSpacing: "-0.02em", lineHeight: 1.1,
+            borderBottom: `2px solid ${GREEN}`, display: "inline" }}>
             {name}
           </h2>
-        )
+        </Link>
       )}
 
       {/* Editorial text */}
@@ -431,14 +418,15 @@ function LeadStory({ ev }: { ev: WeeklyDigestEvent }) {
 
 // ─── Grid card ────────────────────────────────────────────────────────────────
 
-function GridCard({ ev }: { ev: WeeklyDigestEvent }) {
+function GridCard({ ev, weekSlug }: { ev: WeeklyDigestEvent; weekSlug: string }) {
   const dateStr = ev.event_date ? formatDate(ev.event_date) : null;
   const specs   = vesselSpecs(ev);
   const name    = ev.vessel_name || (ev.imo ? `IMO ${ev.imo}` : null);
 
   return (
+    <Link href={`/weekly/${weekSlug}/${ev.id}`} style={{ textDecoration: "none", display: "block" }}>
     <div style={{ border: "1px solid #E5E7EB", borderRadius: 8, overflow: "hidden",
-      background: "#fff", display: "flex", flexDirection: "column" }}>
+      background: "#fff", display: "flex", flexDirection: "column", height: "100%" }}>
 
       {/* Photo */}
       <VesselPhoto ev={ev} height={180} />
@@ -459,20 +447,10 @@ function GridCard({ ev }: { ev: WeeklyDigestEvent }) {
 
         {/* Vessel name */}
         {name && (
-          ev.vessel_mmsi ? (
-            <Link href={`/?mmsi=${ev.vessel_mmsi}`} style={{ textDecoration: "none" }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: NAVY,
-                fontFamily: "'Georgia', serif", lineHeight: 1.25,
-                borderBottom: `1px solid ${GREEN}`, display: "inline" }}>
-                {name}
-              </div>
-            </Link>
-          ) : (
-            <div style={{ fontSize: 16, fontWeight: 700, color: NAVY,
-              fontFamily: "'Georgia', serif", lineHeight: 1.25 }}>
-              {name}
-            </div>
-          )
+          <div style={{ fontSize: 16, fontWeight: 700, color: NAVY,
+            fontFamily: "'Georgia', serif", lineHeight: 1.25 }}>
+            {name}
+          </div>
         )}
 
         {/* Location */}
@@ -509,24 +487,23 @@ function GridCard({ ev }: { ev: WeeklyDigestEvent }) {
         </div>
       </div>
     </div>
+    </Link>
   );
 }
 
 // ─── Category section ─────────────────────────────────────────────────────────
 
 function CategorySection({
-  label, events, leadId, color,
+  label, events, leadId, color, weekSlug,
 }: {
   label: string; events: WeeklyDigestEvent[];
-  leadId: number | null; color: string;
+  leadId: number | null; color: string; weekSlug: string;
 }) {
-  // Exclude lead story from section (already shown above)
   const sectionEvents = events.filter(e => e.id !== leadId);
   if (sectionEvents.length === 0) return null;
 
   return (
     <div style={{ marginBottom: 48 }}>
-      {/* Section header */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20,
         borderBottom: `2px solid ${color}`, paddingBottom: 10 }}>
         <h2 style={{ fontSize: 13, fontWeight: 800, color, margin: 0,
@@ -540,9 +517,8 @@ function CategorySection({
         </span>
       </div>
 
-      {/* 2-col grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
-        {sectionEvents.map(ev => <GridCard key={ev.id} ev={ev} />)}
+        {sectionEvents.map(ev => <GridCard key={ev.id} ev={ev} weekSlug={weekSlug} />)}
       </div>
     </div>
   );
@@ -659,10 +635,10 @@ export default function WeeklyDigestPage({ params }: { params: Promise<{ week: s
         )}
 
         {/* ── Lead story ── */}
-        {leadEvent && <LeadStory ev={leadEvent} />}
+        {leadEvent && <LeadStory ev={leadEvent} weekSlug={week} />}
 
         {/* ── Distressed Fleet Watch ── */}
-        <DistressedFleetWatch events={digest.events} />
+        <DistressedFleetWatch events={digest.events} weekSlug={week} />
 
         {/* ── Category sections ── */}
         {grouped.map(cat => (
@@ -672,6 +648,7 @@ export default function WeeklyDigestPage({ params }: { params: Promise<{ week: s
             events={cat.events}
             leadId={leadEvent?.id ?? null}
             color={cat.color}
+            weekSlug={week}
           />
         ))}
 

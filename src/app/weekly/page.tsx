@@ -34,7 +34,7 @@ function CategoryPill({ label, count, style }: {
 
 // ─── Issue card ───────────────────────────────────────────────────────────────
 
-function IssueCard({ d }: { d: WeeklyDigestSummary }) {
+function IssueCard({ d, isCurrent }: { d: WeeklyDigestSummary; isCurrent?: boolean }) {
   const [hover, setHover] = useState(false);
   const hasPhoto = !!d.lead_photo_thumb || !!d.lead_photo_url;
 
@@ -76,6 +76,16 @@ function IssueCard({ d }: { d: WeeklyDigestSummary }) {
                 <line x1="4" y1="28" x2="40" y2="28" stroke={GREEN} strokeWidth="1.8"
                   strokeLinecap="round"/>
               </svg>
+            </div>
+          )}
+          {/* THIS WEEK badge */}
+          {isCurrent && (
+            <div style={{ position: "absolute", top: 10, right: 12,
+              fontSize: 9, fontWeight: 900, letterSpacing: "0.16em",
+              textTransform: "uppercase", color: NAVY,
+              fontFamily: "Inter, sans-serif",
+              background: GOLD, padding: "3px 9px", borderRadius: 3 }}>
+              This Week
             </div>
           )}
           {/* Week label overlay */}
@@ -188,7 +198,7 @@ export default function WeeklyArchivePage() {
                 fontFamily: "Inter, sans-serif" }}>
                 Latest Issue
               </div>
-              <IssueCard d={latest} />
+              <IssueCard d={latest} isCurrent />
             </div>
           )}
 

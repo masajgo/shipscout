@@ -102,6 +102,12 @@ export async function GET(req: Request) {
         results.found++;
         results.details.push(`FOUND ${imo} ${name}`);
       } else {
+        // Insert sentinel so this IMO is not re-scanned
+        await pool.query(`
+          INSERT INTO vessel_photos (imo, photo_url, source, match_confidence, is_primary)
+          VALUES ($1, 'none', 'Wikimedia Commons', 'no_match', false)
+          ON CONFLICT DO NOTHING
+        `, [BigInt(imo)]);
         results.missing++;
       }
       await new Promise(r => setTimeout(r, 400));

@@ -11,16 +11,20 @@ const GREEN  = "#1D9E75";
 const GOLD   = "#C9A84C";
 
 const CATEGORY_META = [
-  { key: "arrest_seizure", label: "Arrests & Seizures", types: ["arrest", "bank_seizure"],
+  { key: "arrest_seizure",   label: "Arrests & Seizures",  types: ["arrest", "bank_seizure"],
     color: "#991B1B", bg: "#FEF2F2", border: "#FECACA" },
-  { key: "auction",        label: "Judicial Auctions",  types: ["auction"],
+  { key: "judicial_auction", label: "Judicial Auctions",   types: ["auction", "judicial_auction"],
     color: "#92400E", bg: "#FFFBEB", border: "#FDE68A" },
-  { key: "detention",      label: "PSC Detentions",     types: ["detention"],
-    color: "#7C3D12", bg: "#FFF7ED", border: "#FED7AA" },
-  { key: "sanction",       label: "Sanctions",          types: ["sanction"],
+  { key: "bankruptcy",       label: "Bankruptcy",           types: ["bankruptcy"],
     color: "#4C1D95", bg: "#F5F3FF", border: "#DDD6FE" },
-  { key: "scrap_sale",     label: "Scrap Candidates",   types: ["scrap_sale"],
+  { key: "detention",        label: "PSC Detentions",       types: ["detention"],
+    color: "#7C3D12", bg: "#FFF7ED", border: "#FED7AA" },
+  { key: "sanction_cat",  label: "Sanctions",           types: ["sanction"],
+    color: "#374151", bg: "#F9FAFB", border: "#D1D5DB" },
+  { key: "scrap_sale",    label: "Scrap Candidates",   types: ["scrap_sale"],
     color: "#064E3B", bg: "#ECFDF5", border: "#A7F3D0" },
+  { key: "layup",         label: "Laid-Up Vessels",    types: ["layup"],
+    color: "#1E40AF", bg: "#EFF6FF", border: "#BFDBFE" },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -146,6 +150,200 @@ function ContactBadge() {
       fontFamily: "Inter, sans-serif" }}>
       Contact available
     </span>
+  );
+}
+
+// ─── Distressed Fleet Watch ───────────────────────────────────────────────────
+
+const DFW_PRIORITY: Record<string, number> = {
+  judicial_auction: 1, auction: 1,
+  bank_seizure:     2,
+  bankruptcy:       3,
+  arrest:           4,
+  detention:        5,
+  sanction:         6,
+  scrap_sale:       7,
+  layup:            8,
+};
+
+const DFW_BADGE: Record<string, { color: string; bg: string; border: string; label: string }> = {
+  arrest:           { color: "#991B1B", bg: "#FEF2F2", border: "#FECACA", label: "Arrest" },
+  bank_seizure:     { color: "#7F1D1D", bg: "#FEF2F2", border: "#FECACA", label: "Bank Seizure" },
+  judicial_auction: { color: "#92400E", bg: "#FFFBEB", border: "#FDE68A", label: "Auction" },
+  auction:          { color: "#92400E", bg: "#FFFBEB", border: "#FDE68A", label: "Auction" },
+  bankruptcy:       { color: "#4C1D95", bg: "#F5F3FF", border: "#DDD6FE", label: "Bankruptcy" },
+  detention:        { color: "#7C3D12", bg: "#FFF7ED", border: "#FED7AA", label: "Detention" },
+  sanction:         { color: "#374151", bg: "#F9FAFB", border: "#D1D5DB", label: "Sanction" },
+  scrap_sale:       { color: "#064E3B", bg: "#ECFDF5", border: "#A7F3D0", label: "Scrap" },
+  layup:            { color: "#1E40AF", bg: "#EFF6FF", border: "#BFDBFE", label: "Layup" },
+};
+
+function DFWBadge({ type }: { type: string }) {
+  const s = DFW_BADGE[type] ?? { color: "#374151", bg: "#F9FAFB", border: "#D1D5DB", label: type };
+  return (
+    <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 3,
+      color: s.color, background: s.bg, border: `1px solid ${s.border}`,
+      textTransform: "uppercase", letterSpacing: "0.07em", whiteSpace: "nowrap",
+      fontFamily: "Inter, sans-serif" }}>
+      {s.label}
+    </span>
+  );
+}
+
+function DFWRow({ ev, currentYear }: { ev: WeeklyDigestEvent; currentYear: number }) {
+  const built = ev.vessel_built ? Number(ev.vessel_built) : null;
+  const age   = built ? `${currentYear - built}yr` : "—";
+  const dwt   = ev.vessel_dwt ? Number(ev.vessel_dwt).toLocaleString() : "—";
+  const dateStr = ev.event_date
+    ? new Date(ev.event_date + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short" })
+    : "—";
+  const name  = ev.vessel_name || (ev.imo ? `IMO ${ev.imo}` : "—");
+
+  return (
+    <tr style={{ borderBottom: "1px solid #F3F4F6" }}>
+      <td style={{ padding: "8px 10px 8px 0", verticalAlign: "middle", whiteSpace: "nowrap" }}>
+        <DFWBadge type={ev.event_type} />
+      </td>
+      <td style={{ padding: "8px 12px 8px 0", verticalAlign: "middle" }}>
+        {ev.vessel_mmsi ? (
+          <Link href={`/?mmsi=${ev.vessel_mmsi}`} style={{ textDecoration: "none" }}>
+            <span style={{ fontWeight: 700, color: NAVY, fontFamily: "'Georgia', serif",
+              fontSize: 13, borderBottom: `1px solid ${GREEN}` }}>
+              {name}
+            </span>
+          </Link>
+        ) : (
+          <span style={{ fontWeight: 700, color: NAVY, fontFamily: "'Georgia', serif", fontSize: 13 }}>
+            {name}
+          </span>
+        )}
+        {ev.imo && (
+          <div style={{ fontSize: 10, color: "#9CA3AF", fontFamily: "monospace", marginTop: 1 }}>
+            IMO {ev.imo}
+          </div>
+        )}
+        {ev.has_contact && (
+          <div style={{ marginTop: 3 }}>
+            <span style={{ fontSize: 9, fontWeight: 600, padding: "1px 5px", borderRadius: 3,
+              color: GREEN, background: "#ECFDF5", border: "1px solid #A7F3D0",
+              fontFamily: "Inter, sans-serif" }}>
+              Contact
+            </span>
+          </div>
+        )}
+      </td>
+      <td style={{ padding: "8px 12px 8px 0", fontSize: 11, color: "#6B7280",
+        fontFamily: "Inter, sans-serif", whiteSpace: "nowrap", verticalAlign: "middle" }}>
+        {ev.vessel_type || "—"}
+      </td>
+      <td style={{ padding: "8px 12px 8px 0", fontSize: 11, color: "#374151",
+        fontFamily: "Inter, sans-serif", whiteSpace: "nowrap", verticalAlign: "middle",
+        textAlign: "right" }}>
+        {dwt}
+      </td>
+      <td style={{ padding: "8px 12px 8px 0", fontSize: 11, color: "#6B7280",
+        fontFamily: "Inter, sans-serif", whiteSpace: "nowrap", verticalAlign: "middle" }}>
+        {age}
+      </td>
+      <td style={{ padding: "8px 12px 8px 0", fontSize: 11, color: "#6B7280",
+        fontFamily: "Inter, sans-serif", verticalAlign: "middle", maxWidth: 140 }}>
+        {ev.location || "—"}
+      </td>
+      <td style={{ padding: "8px 12px 8px 0", fontSize: 11, color: "#6B7280",
+        fontFamily: "Inter, sans-serif", whiteSpace: "nowrap", verticalAlign: "middle" }}>
+        {dateStr}
+      </td>
+      <td style={{ padding: "8px 0 8px 0", fontSize: 10, color: "#9CA3AF",
+        fontFamily: "Inter, sans-serif", verticalAlign: "middle" }}>
+        {ev.source_name}
+      </td>
+    </tr>
+  );
+}
+
+function DistressedFleetWatch({ events }: { events: WeeklyDigestEvent[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const LIMIT = 20;
+  const currentYear = new Date().getFullYear();
+
+  const sorted = [...events].sort((a, b) => {
+    const pa = DFW_PRIORITY[a.event_type] ?? 99;
+    const pb = DFW_PRIORITY[b.event_type] ?? 99;
+    if (pa !== pb) return pa - pb;
+    return (Number(b.vessel_dwt) || 0) - (Number(a.vessel_dwt) || 0);
+  });
+
+  const shown   = expanded ? sorted : sorted.slice(0, LIMIT);
+  const hasMore = sorted.length > LIMIT;
+
+  if (sorted.length === 0) return null;
+
+  const typeCounts = sorted.reduce((acc, ev) => {
+    const label = DFW_BADGE[ev.event_type]?.label ?? ev.event_type;
+    acc[label] = (acc[label] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  return (
+    <section style={{ marginBottom: 52, pageBreakInside: "avoid" }}>
+      {/* Header */}
+      <div style={{ borderBottom: `2px solid ${GOLD}`, paddingBottom: 10, marginBottom: 20,
+        display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12,
+        flexWrap: "wrap" }}>
+        <h2 style={{ fontSize: 13, fontWeight: 900, color: NAVY, margin: 0,
+          textTransform: "uppercase", letterSpacing: "0.14em",
+          fontFamily: "Inter, sans-serif" }}>
+          Distressed Fleet Watch
+        </h2>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+          {Object.entries(typeCounts).map(([label, count]) => (
+            <span key={label} style={{ fontSize: 10, color: "#6B7280",
+              fontFamily: "Inter, sans-serif" }}>
+              {label} ({count})
+            </span>
+          ))}
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#9CA3AF",
+            fontFamily: "Inter, sans-serif" }}>
+            {sorted.length} total
+          </span>
+        </div>
+      </div>
+
+      {/* Table wrapper — horizontal scroll on mobile */}
+      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 560 }}>
+          <thead>
+            <tr style={{ borderBottom: "2px solid #E5E7EB" }}>
+              {["Event", "Vessel", "Type", "DWT", "Age", "Location", "Date", "Source"].map(h => (
+                <th key={h} style={{ padding: "6px 12px 6px 0", textAlign: h === "DWT" ? "right" : "left",
+                  fontSize: 10, fontWeight: 800, color: "#9CA3AF",
+                  textTransform: "uppercase", letterSpacing: "0.1em",
+                  fontFamily: "Inter, sans-serif", whiteSpace: "nowrap" }}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map(ev => (
+              <DFWRow key={ev.id} ev={ev} currentYear={currentYear} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Expand button */}
+      {hasMore && !expanded && (
+        <button
+          onClick={() => setExpanded(true)}
+          className="no-print"
+          style={{ marginTop: 12, fontSize: 12, fontWeight: 600, color: GREEN,
+            background: "none", border: `1px solid ${GREEN}`, borderRadius: 5,
+            padding: "6px 16px", cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
+          View all {sorted.length} vessels
+        </button>
+      )}
+    </section>
   );
 }
 
@@ -462,6 +660,9 @@ export default function WeeklyDigestPage({ params }: { params: Promise<{ week: s
 
         {/* ── Lead story ── */}
         {leadEvent && <LeadStory ev={leadEvent} />}
+
+        {/* ── Distressed Fleet Watch ── */}
+        <DistressedFleetWatch events={digest.events} />
 
         {/* ── Category sections ── */}
         {grouped.map(cat => (

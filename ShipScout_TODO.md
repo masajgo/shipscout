@@ -27,6 +27,7 @@
 | **Backfill: OFAC SDN vessels** — 1512 sanctions, OFAC parser fix (Vessel Registration idType) | ✅ |
 | **Backfill: 31 weekly digests** — 2023-10-22 → 2024-06-29, Claude Haiku intros | ✅ |
 | **Weekly Magazine Format** — masthead, lead story, 2-col grid, vessel photos, editorials | ✅ |
+| **Distressed Fleet Watch** — DFW table UI + newsRadarScan: bank_seizure, judicial_auction, bankruptcy, layup | ✅ (UI+script ready; migration pending DB password fix) |
 
 ---
 
@@ -155,6 +156,9 @@ LinkedIn btn               kaynak indikatörü (equasis vs scraper)
 - launchd plist: `launchctl load ~/Desktop/shipscout/launchd/com.shipscout.newsscan.plist` ile aktif et
 - MarEx RSS URL doğrulandı (`/feed`), tekrar test edilebilir
 - OFAC SDN: IMO number eşleşmesi 0 döndü — SDN XML'de `<idType>` string'i "IMO" tam eşleşme yerine farklı bir format kullanıyor olabilir; ileride kontrol et
+- **DB şifresi rotasyonu** — Keychain'deki şifre Supabase ile eşleşmiyor; Supabase Dashboard → Settings → Database → Connection string'deki şifreyi kontrol et, Keychain'i güncelle, sonra adımlar: (1) `.env.local` güncellendi (şifreyi encode ederek) (2) `node -e "pool.query('SELECT 1')"` test (3) `npx vercel env rm DATABASE_URL production --yes && security find-generic-password -a shipscout -s shipscout-db -w | npx vercel env add DATABASE_URL production` (4) `npx vercel --prod`
+- **DFW migration** — DB düzelince: `node -e "require('dotenv').config({path:'.env.local'}); require('pg').Pool({connectionString:process.env.DATABASE_URL}).query(require('fs').readFileSync('scripts/migrate_distressed.sql','utf8')).then(()=>console.log('OK'))"` çalıştır
+- **DFW ilk scan** — migration sonrası: `node scripts/newsRadarScan.js` + `node scripts/generateWeeklyDigest.js` (bu haftanın digest'ini yenile)
 - Paris MOU Jan–Jun 2024: 328 kayıt import edildi ✅ (2025/2026 XLS dosyaları parismou.org'da halka açık değil — 404)
 - Paris MOU 2025/2026: resmi site XLS dosyalarını gizliyor; alternatif kaynak yok
 - Tokyo MOU: detention list JS ile render ediliyor, download edilebilir yapılandırılmış veri yok

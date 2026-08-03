@@ -8,6 +8,7 @@ import type { WeeklyDigestSummary } from "@/app/api/weekly/route";
 const NAVY  = "#101828";
 const GREEN = "#1D9E75";
 const GOLD  = "#C9A84C";
+const BG    = "#FAFAF8";
 
 const EVENT_STYLE: Record<string, { color: string; bg: string; border: string }> = {
   arrest_seizure: { color: "#991B1B", bg: "#FEF2F2",  border: "#FECACA" },
@@ -102,8 +103,8 @@ function IssueCard({ d, isCurrent }: { d: WeeklyDigestSummary; isCurrent?: boole
         <div style={{ padding: "16px 18px 18px", display: "flex",
           flexDirection: "column", gap: 10, flex: 1 }}>
 
-          <div style={{ fontSize: 17, fontWeight: 700, color: NAVY,
-            fontFamily: "'Georgia', serif", lineHeight: 1.25 }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: NAVY,
+            fontFamily: "var(--font-serif, 'Georgia', serif)", lineHeight: 1.2 }}>
             {d.week_label}
           </div>
 
@@ -157,46 +158,46 @@ export default function WeeklyArchivePage() {
   const archive  = digests.slice(1);
 
   return (
-    <div style={{ maxWidth: 960, margin: "0 auto", padding: "40px 24px 80px" }}>
+    <div style={{ background: BG, minHeight: "100vh" }}>
+    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "40px 32px 100px" }}>
 
       {/* ── Masthead ── */}
-      <div style={{ marginBottom: 40 }}>
+      <header style={{ marginBottom: 48 }}>
         <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.2em",
           textTransform: "uppercase", color: GREEN,
-          fontFamily: "Inter, sans-serif", marginBottom: 10 }}>
+          fontFamily: "Inter, sans-serif", marginBottom: 8 }}>
           ShipScout Intelligence
         </div>
-        <div style={{ fontSize: 44, fontWeight: 900, color: NAVY,
-          letterSpacing: "-0.03em", lineHeight: 0.9,
-          fontFamily: "'Georgia', serif", marginBottom: 14 }}>
+        <div style={{ fontSize: "clamp(44px, 7vw, 68px)", fontWeight: 800, color: NAVY,
+          letterSpacing: "-0.035em", lineHeight: 0.92,
+          fontFamily: "var(--font-serif, 'Georgia', serif)", marginBottom: 16 }}>
           SHIPSCOUT<br />WEEKLY
         </div>
-        <div style={{ height: 2, background: GOLD, marginBottom: 14 }} />
-        <p style={{ fontSize: 14, color: "#6B7280", margin: 0,
-          fontFamily: "Inter, sans-serif" }}>
+        <div style={{ height: 2, background: GOLD, marginBottom: 16, maxWidth: 480 }} />
+        <p style={{ fontSize: 14, color: "#6B7280", margin: 0, fontFamily: "Inter, sans-serif" }}>
           Weekly maritime intelligence — arrests, detentions, sanctions, and auctions.
         </p>
-      </div>
+      </header>
 
       {loading ? (
-        <div style={{ textAlign: "center", color: "#9CA3AF", padding: 64,
-          fontFamily: "Inter, sans-serif" }}>
+        <div style={{ textAlign: "center", color: "#9CA3AF", padding: 64, fontFamily: "Inter, sans-serif" }}>
           Loading issues…
         </div>
       ) : digests.length === 0 ? (
-        <div style={{ textAlign: "center", color: "#9CA3AF", padding: 64,
-          fontFamily: "Inter, sans-serif" }}>
+        <div style={{ textAlign: "center", color: "#9CA3AF", padding: 64, fontFamily: "Inter, sans-serif" }}>
           No published issues yet.
         </div>
       ) : (
         <>
           {/* ── Latest issue (featured) ── */}
           {latest && (
-            <div style={{ marginBottom: 40 }}>
-              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.15em",
-                textTransform: "uppercase", color: GOLD, marginBottom: 14,
-                fontFamily: "Inter, sans-serif" }}>
-                Latest Issue
+            <div style={{ marginBottom: 52 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18 }}>
+                <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.14em",
+                  textTransform: "uppercase", color: GOLD, fontFamily: "Inter, sans-serif" }}>
+                  Latest Issue
+                </span>
+                <div style={{ flex: 1, height: 1, background: GOLD, opacity: 0.25 }} />
               </div>
               <IssueCard d={latest} isCurrent />
             </div>
@@ -205,21 +206,28 @@ export default function WeeklyArchivePage() {
           {/* ── Archive grid ── */}
           {archive.length > 0 && (
             <>
-              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.15em",
-                textTransform: "uppercase", color: "#9CA3AF", marginBottom: 16,
-                fontFamily: "Inter, sans-serif", borderTop: "1px solid #E5E7EB",
-                paddingTop: 24 }}>
-                Archive — {archive.length} issues
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20,
+                borderTop: "1px solid #E5E7EB", paddingTop: 32 }}>
+                <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.14em",
+                  textTransform: "uppercase", color: "#9CA3AF", fontFamily: "Inter, sans-serif",
+                  whiteSpace: "nowrap" }}>
+                  Previous Issues
+                </span>
+                <span style={{ fontSize: 11, color: "#C4C9D4", fontFamily: "Inter, sans-serif" }}>
+                  {archive.length}
+                </span>
+                <div style={{ flex: 1, height: 1, background: "#E5E7EB" }} />
               </div>
               <div style={{ display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-                gap: 16 }}>
+                gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                gap: 24 }}>
                 {archive.map(d => <IssueCard key={d.week_start} d={d} />)}
               </div>
             </>
           )}
         </>
       )}
+    </div>
     </div>
   );
 }

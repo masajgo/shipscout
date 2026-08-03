@@ -2,262 +2,320 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { use } from "react";
+import VesselTypeSVG from "@/components/VesselTypeSVG";
 import type { WeeklyDigestDetail, WeeklyDigestEvent } from "@/app/api/weekly/[week]/route";
 
-// ─── Design tokens ────────────────────────────────────────────────────────────
+// ─── Tokens ────────────────────────────────────────────────────────────────────
+const NAVY  = "#101828";
+const GREEN = "#1D9E75";
+const GOLD  = "#C9A84C";
+const BG    = "#FAFAF8";
 
-const NAVY   = "#101828";
-const GREEN  = "#1D9E75";
-const GOLD   = "#C9A84C";
+// ─── Event type config ──────────────────────────────────────────────────────────
+const TYPE_CFG: Record<string, { label: string; color: string; bar: string }> = {
+  arrest:           { label: "Arrest",          color: "#991B1B", bar: "#EF4444" },
+  bank_seizure:     { label: "Bank Seizure",     color: "#7F1D1D", bar: "#DC2626" },
+  judicial_auction: { label: "Judicial Auction", color: "#92400E", bar: "#F59E0B" },
+  auction:          { label: "Judicial Auction", color: "#92400E", bar: "#F59E0B" },
+  bankruptcy:       { label: "Bankruptcy",       color: "#4C1D95", bar: "#8B5CF6" },
+  detention:        { label: "PSC Detention",    color: "#7C3D12", bar: "#EA580C" },
+  sanction:         { label: "Sanction",         color: "#374151", bar: "#6B7280" },
+  scrap_sale:       { label: "Scrap Sale",       color: "#064E3B", bar: "#10B981" },
+  layup:            { label: "Layup",            color: "#1E40AF", bar: "#3B82F6" },
+};
 
 const CATEGORY_META = [
   { key: "arrest_seizure",   label: "Arrests & Seizures",  types: ["arrest", "bank_seizure"],
-    color: "#991B1B", bg: "#FEF2F2", border: "#FECACA" },
+    color: "#991B1B", bar: "#EF4444" },
   { key: "judicial_auction", label: "Judicial Auctions",   types: ["auction", "judicial_auction"],
-    color: "#92400E", bg: "#FFFBEB", border: "#FDE68A" },
+    color: "#92400E", bar: "#F59E0B" },
   { key: "bankruptcy",       label: "Bankruptcy",           types: ["bankruptcy"],
-    color: "#4C1D95", bg: "#F5F3FF", border: "#DDD6FE" },
+    color: "#4C1D95", bar: "#8B5CF6" },
   { key: "detention",        label: "PSC Detentions",       types: ["detention"],
-    color: "#7C3D12", bg: "#FFF7ED", border: "#FED7AA" },
-  { key: "sanction_cat",  label: "Sanctions",           types: ["sanction"],
-    color: "#374151", bg: "#F9FAFB", border: "#D1D5DB" },
-  { key: "scrap_sale",    label: "Scrap Candidates",   types: ["scrap_sale"],
-    color: "#064E3B", bg: "#ECFDF5", border: "#A7F3D0" },
-  { key: "layup",         label: "Laid-Up Vessels",    types: ["layup"],
-    color: "#1E40AF", bg: "#EFF6FF", border: "#BFDBFE" },
+    color: "#7C3D12", bar: "#EA580C" },
+  { key: "sanction_cat",     label: "Sanctions",            types: ["sanction"],
+    color: "#374151", bar: "#6B7280" },
+  { key: "scrap_sale",       label: "Scrap Candidates",    types: ["scrap_sale"],
+    color: "#064E3B", bar: "#10B981" },
+  { key: "layup",            label: "Laid-Up Vessels",      types: ["layup"],
+    color: "#1E40AF", bar: "#3B82F6" },
 ];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+const DFW_PRIORITY: Record<string, number> = {
+  judicial_auction: 1, auction: 1,
+  bank_seizure: 2, bankruptcy: 3, arrest: 4,
+  detention: 5, sanction: 6, scrap_sale: 7, layup: 8,
+};
 
-function stripMarkdown(text: string): string {
-  return text
-    .replace(/^#+\s+.*$/gm, "")
-    .replace(/\*\*(.*?)\*\*/g, "$1")
-    .replace(/\*(.*?)\*/g, "$1")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+function stripMarkdown(t: string) {
+  return t.replace(/^#+\s+.*$/gm, "").replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1").replace(/\n{3,}/g, "\n\n").trim();
 }
-
-function formatDate(iso: string) {
-  return new Date(iso + "T00:00:00Z").toLocaleDateString("en-GB", {
-    day: "numeric", month: "long", year: "numeric",
-  });
+function formatDateShort(iso: string) {
+  return new Date(iso + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
-
-function categoryOf(eventType: string) {
-  return CATEGORY_META.find(c => c.types.includes(eventType))
-    ?? { color: "#374151", bg: "#F3F4F6", border: "#D1D5DB", label: eventType };
+function formatDateLong(iso: string) {
+  return new Date(iso + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 }
-
-function typeLabel(t: string) {
-  return t.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+function cfg(type: string) {
+  return TYPE_CFG[type] ?? { label: type.replace(/_/g, " "), color: "#374151", bar: "#6B7280" };
 }
-
 function vesselSpecs(ev: WeeklyDigestEvent) {
   return [
-    ev.imo         ? `IMO ${ev.imo}`                                              : null,
     ev.vessel_type ?? null,
-    ev.vessel_dwt  ? `${Number(ev.vessel_dwt).toLocaleString()} DWT`             : null,
-    ev.vessel_built ? `Built ${ev.vessel_built}`                                  : null,
+    ev.vessel_dwt  ? `${Number(ev.vessel_dwt).toLocaleString()} DWT` : null,
     ev.vessel_flag ?? null,
   ].filter(Boolean).join(" · ");
 }
 
-// ─── Placeholder photo ────────────────────────────────────────────────────────
-
-function PlaceholderPhoto({ type, imo, height }: { type?: string | null; imo?: string | null; height: number }) {
+// ─── Photo helpers ──────────────────────────────────────────────────────────────
+function CardPhoto({ ev, heightPct = 75 }: { ev: WeeklyDigestEvent; heightPct?: number }) {
   return (
-    <div style={{ width: "100%", height, background: NAVY, display: "flex",
-      flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
-      <svg width="44" height="44" viewBox="0 0 44 44" fill="none"
-        xmlns="http://www.w3.org/2000/svg" opacity={0.55}>
-        {/* simple ship hull side-view */}
-        <path d="M4 28 L8 18 L36 18 L40 28 Z" stroke={GREEN} strokeWidth="1.8" fill="none" strokeLinejoin="round"/>
-        <line x1="22" y1="10" x2="22" y2="18" stroke={GREEN} strokeWidth="1.8" strokeLinecap="round"/>
-        <path d="M14 10 L22 10 L30 14 L14 14 Z" stroke={GREEN} strokeWidth="1.5" fill="none" strokeLinejoin="round"/>
-        <line x1="4" y1="28" x2="40" y2="28" stroke={GREEN} strokeWidth="1.8" strokeLinecap="round"/>
-      </svg>
-      {type && (
-        <div style={{ fontSize: 11, color: "#4B5563", fontFamily: "Inter, sans-serif",
-          letterSpacing: "0.08em", textTransform: "uppercase" }}>
-          {type}
-        </div>
-      )}
-      {imo && (
-        <div style={{ fontSize: 10, color: "#374151", fontFamily: "monospace" }}>
-          IMO {imo}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Photo with attribution ───────────────────────────────────────────────────
-
-function VesselPhoto({ ev, height, rounded = false }: {
-  ev: WeeklyDigestEvent; height: number; rounded?: boolean;
-}) {
-  const hasPhoto = !!ev.photo_url;
-  const borderRadius = rounded ? 6 : 0;
-
-  return (
-    <div style={{ position: "relative", width: "100%", height, overflow: "hidden",
-      borderRadius, flexShrink: 0 }}>
-      {hasPhoto ? (
+    <div style={{ position: "relative", width: "100%", paddingTop: `${heightPct}%`, overflow: "hidden", flexShrink: 0 }}>
+      {ev.photo_url ? (
         <>
           <img
-            src={ev.photo_thumb || ev.photo_url!}
-            alt={ev.vessel_name ?? `IMO ${ev.imo}`}
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            src={ev.photo_thumb || ev.photo_url}
+            alt={ev.vessel_name ?? ""}
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
             loading="lazy"
           />
           {ev.photo_attribution && (
             <div style={{ position: "absolute", bottom: 0, right: 0,
-              fontSize: 9, color: "rgba(255,255,255,0.75)",
-              background: "rgba(0,0,0,0.45)", padding: "2px 6px",
-              fontFamily: "Inter, sans-serif", lineHeight: 1.4 }}>
+              fontSize: 9, color: "rgba(255,255,255,0.7)", background: "rgba(0,0,0,0.4)",
+              padding: "2px 6px", fontFamily: "Inter, sans-serif" }}>
               {ev.photo_attribution}
             </div>
           )}
         </>
       ) : (
-        <PlaceholderPhoto type={ev.vessel_type} imo={ev.imo} height={height} />
+        <div style={{ position: "absolute", inset: 0 }}>
+          <VesselTypeSVG vesselType={ev.vessel_type} imo={ev.imo} width="100%" height="100%" theme="light" />
+        </div>
       )}
     </div>
   );
 }
 
-// ─── Type badge ───────────────────────────────────────────────────────────────
-
-function TypeBadge({ type }: { type: string }) {
-  const cat = categoryOf(type);
+// ─── Category label (bar style, no pill) ────────────────────────────────────────
+function TypeBar({ type }: { type: string }) {
+  const c = cfg(type);
   return (
-    <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 3,
-      color: cat.color, background: cat.bg, border: `1px solid ${cat.border}`,
-      textTransform: "uppercase", letterSpacing: "0.07em", whiteSpace: "nowrap",
-      fontFamily: "Inter, sans-serif" }}>
-      {typeLabel(type)}
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+      <span style={{ width: 3, height: 14, background: c.bar, borderRadius: 2, flexShrink: 0, display: "inline-block" }} />
+      <span style={{ fontSize: 10, fontWeight: 700, color: c.color, textTransform: "uppercase",
+        letterSpacing: "0.1em", fontFamily: "Inter, sans-serif" }}>
+        {c.label}
+      </span>
     </span>
   );
 }
 
-// ─── Contact badge ────────────────────────────────────────────────────────────
-
-function ContactBadge() {
+// ─── Section header ─────────────────────────────────────────────────────────────
+function SectionHeader({ label, count, color }: { label: string; count: number; color: string }) {
   return (
-    <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 3,
-      color: GREEN, background: "#ECFDF5", border: "1px solid #A7F3D0",
-      fontFamily: "Inter, sans-serif" }}>
-      Contact available
-    </span>
+    <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 28 }}>
+      <span style={{ fontSize: 11, fontWeight: 800, color, textTransform: "uppercase",
+        letterSpacing: "0.12em", fontFamily: "Inter, sans-serif", whiteSpace: "nowrap" }}>
+        {label}
+      </span>
+      <span style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF",
+        fontFamily: "Inter, sans-serif" }}>
+        {count}
+      </span>
+      <div style={{ flex: 1, height: 1, background: color, opacity: 0.25 }} />
+    </div>
   );
 }
 
-// ─── Distressed Fleet Watch ───────────────────────────────────────────────────
-
-const DFW_PRIORITY: Record<string, number> = {
-  judicial_auction: 1, auction: 1,
-  bank_seizure:     2,
-  bankruptcy:       3,
-  arrest:           4,
-  detention:        5,
-  sanction:         6,
-  scrap_sale:       7,
-  layup:            8,
-};
-
-const DFW_BADGE: Record<string, { color: string; bg: string; border: string; label: string }> = {
-  arrest:           { color: "#991B1B", bg: "#FEF2F2", border: "#FECACA", label: "Arrest" },
-  bank_seizure:     { color: "#7F1D1D", bg: "#FEF2F2", border: "#FECACA", label: "Bank Seizure" },
-  judicial_auction: { color: "#92400E", bg: "#FFFBEB", border: "#FDE68A", label: "Auction" },
-  auction:          { color: "#92400E", bg: "#FFFBEB", border: "#FDE68A", label: "Auction" },
-  bankruptcy:       { color: "#4C1D95", bg: "#F5F3FF", border: "#DDD6FE", label: "Bankruptcy" },
-  detention:        { color: "#7C3D12", bg: "#FFF7ED", border: "#FED7AA", label: "Detention" },
-  sanction:         { color: "#374151", bg: "#F9FAFB", border: "#D1D5DB", label: "Sanction" },
-  scrap_sale:       { color: "#064E3B", bg: "#ECFDF5", border: "#A7F3D0", label: "Scrap" },
-  layup:            { color: "#1E40AF", bg: "#EFF6FF", border: "#BFDBFE", label: "Layup" },
-};
-
-function DFWBadge({ type }: { type: string }) {
-  const s = DFW_BADGE[type] ?? { color: "#374151", bg: "#F9FAFB", border: "#D1D5DB", label: type };
-  return (
-    <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 3,
-      color: s.color, background: s.bg, border: `1px solid ${s.border}`,
-      textTransform: "uppercase", letterSpacing: "0.07em", whiteSpace: "nowrap",
-      fontFamily: "Inter, sans-serif" }}>
-      {s.label}
-    </span>
-  );
-}
-
-function DFWRow({ ev, currentYear, weekSlug }: { ev: WeeklyDigestEvent; currentYear: number; weekSlug: string }) {
-  const built = ev.vessel_built ? Number(ev.vessel_built) : null;
-  const age   = built ? `${currentYear - built}yr` : "—";
-  const dwt   = ev.vessel_dwt ? Number(ev.vessel_dwt).toLocaleString() : "—";
-  const dateStr = ev.event_date
-    ? new Date(ev.event_date + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short" })
-    : "—";
-  const name  = ev.vessel_name || (ev.imo ? `IMO ${ev.imo}` : "—");
+// ─── Lead Story ─────────────────────────────────────────────────────────────────
+function LeadStory({ ev, weekSlug }: { ev: WeeklyDigestEvent; weekSlug: string }) {
+  const name = ev.vessel_name || (ev.imo ? `IMO ${ev.imo}` : null);
+  const text = ev.editorial_summary ? stripMarkdown(ev.editorial_summary) : ev.summary;
+  const specs = vesselSpecs(ev);
+  const c = cfg(ev.event_type);
 
   return (
-    <tr style={{ borderBottom: "1px solid #F3F4F6" }}>
-      <td style={{ padding: "8px 10px 8px 0", verticalAlign: "middle", whiteSpace: "nowrap" }}>
-        <DFWBadge type={ev.event_type} />
-      </td>
-      <td style={{ padding: "8px 12px 8px 0", verticalAlign: "middle" }}>
-        <Link href={`/weekly/${weekSlug}/${ev.id}`} style={{ textDecoration: "none" }}>
-          <span style={{ fontWeight: 700, color: NAVY, fontFamily: "'Georgia', serif",
-            fontSize: 13, borderBottom: `1px solid ${GREEN}` }}>
-            {name}
-          </span>
-        </Link>
-        {ev.imo && (
-          <div style={{ fontSize: 10, color: "#9CA3AF", fontFamily: "monospace", marginTop: 1 }}>
-            IMO {ev.imo}
+    <section style={{ marginBottom: 64 }}>
+      <Link href={`/weekly/${weekSlug}/${ev.id}`} style={{ textDecoration: "none", display: "block" }}>
+        {/* 16:9 hero with gradient overlay */}
+        <div style={{ position: "relative", width: "100%", paddingTop: "56.25%", overflow: "hidden", borderRadius: 4 }}>
+          {ev.photo_url ? (
+            <img
+              src={ev.photo_thumb || ev.photo_url}
+              alt={name ?? ""}
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          ) : (
+            <div style={{ position: "absolute", inset: 0 }}>
+              <VesselTypeSVG vesselType={ev.vessel_type} imo={ev.imo} width="100%" height="100%" theme="light" />
+            </div>
+          )}
+
+          {/* Bottom gradient overlay */}
+          <div style={{ position: "absolute", inset: 0,
+            background: "linear-gradient(to top, rgba(16,24,40,0.92) 0%, rgba(16,24,40,0.55) 38%, transparent 72%)" }} />
+
+          {/* Content on overlay */}
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "28px 32px" }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                <span style={{ width: 3, height: 12, background: GOLD, borderRadius: 2, display: "inline-block" }} />
+                <span style={{ fontSize: 10, fontWeight: 800, color: GOLD, textTransform: "uppercase",
+                  letterSpacing: "0.12em", fontFamily: "Inter, sans-serif" }}>
+                  Lead Story
+                </span>
+              </span>
+              <span style={{ width: 1, height: 10, background: "rgba(255,255,255,0.3)", display: "inline-block" }} />
+              <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.75)",
+                textTransform: "uppercase", letterSpacing: "0.1em", fontFamily: "Inter, sans-serif" }}>
+                {c.label}
+              </span>
+              {ev.location && (
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", fontFamily: "Inter, sans-serif" }}>
+                  · {ev.location}
+                </span>
+              )}
+            </div>
+            {name && (
+              <h2 style={{ fontSize: "clamp(24px, 3.5vw, 38px)", fontWeight: 700, color: "#fff",
+                margin: "0 0 6px", fontFamily: "var(--font-serif, Georgia, serif)",
+                lineHeight: 1.1, letterSpacing: "-0.01em" }}>
+                {name}
+              </h2>
+            )}
+            {ev.event_date && (
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", fontFamily: "Inter, sans-serif" }}>
+                {formatDateLong(ev.event_date)}
+              </div>
+            )}
+            {ev.photo_attribution && (
+              <div style={{ position: "absolute", bottom: 8, right: 12,
+                fontSize: 9, color: "rgba(255,255,255,0.4)", fontFamily: "Inter, sans-serif" }}>
+                {ev.photo_attribution}
+              </div>
+            )}
           </div>
-        )}
-        {ev.has_contact && (
-          <div style={{ marginTop: 3 }}>
-            <span style={{ fontSize: 9, fontWeight: 600, padding: "1px 5px", borderRadius: 3,
-              color: GREEN, background: "#ECFDF5", border: "1px solid #A7F3D0",
-              fontFamily: "Inter, sans-serif" }}>
-              Contact
-            </span>
-          </div>
-        )}
-      </td>
-      <td style={{ padding: "8px 12px 8px 0", fontSize: 11, color: "#6B7280",
-        fontFamily: "Inter, sans-serif", whiteSpace: "nowrap", verticalAlign: "middle" }}>
-        {ev.vessel_type || "—"}
-      </td>
-      <td style={{ padding: "8px 12px 8px 0", fontSize: 11, color: "#374151",
-        fontFamily: "Inter, sans-serif", whiteSpace: "nowrap", verticalAlign: "middle",
-        textAlign: "right" }}>
-        {dwt}
-      </td>
-      <td style={{ padding: "8px 12px 8px 0", fontSize: 11, color: "#6B7280",
-        fontFamily: "Inter, sans-serif", whiteSpace: "nowrap", verticalAlign: "middle" }}>
-        {age}
-      </td>
-      <td style={{ padding: "8px 12px 8px 0", fontSize: 11, color: "#6B7280",
-        fontFamily: "Inter, sans-serif", verticalAlign: "middle", maxWidth: 140 }}>
-        {ev.location || "—"}
-      </td>
-      <td style={{ padding: "8px 12px 8px 0", fontSize: 11, color: "#6B7280",
-        fontFamily: "Inter, sans-serif", whiteSpace: "nowrap", verticalAlign: "middle" }}>
-        {dateStr}
-      </td>
-      <td style={{ padding: "8px 0 8px 0", fontSize: 10, color: "#9CA3AF",
-        fontFamily: "Inter, sans-serif", verticalAlign: "middle" }}>
-        {ev.source_name}
-      </td>
-    </tr>
+        </div>
+      </Link>
+
+      {/* Editorial text below photo */}
+      {text && (
+        <div style={{ marginTop: 20, maxWidth: 760 }}>
+          <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.75, margin: "0 0 12px",
+            fontFamily: "var(--font-serif, Georgia, serif)" }}>
+            {text}
+          </p>
+          {specs && (
+            <div style={{ fontSize: 12, color: "#9CA3AF", fontFamily: "Inter, sans-serif",
+              borderTop: "1px solid #E5E7EB", paddingTop: 10, marginTop: 14 }}>
+              {specs}
+              {ev.source_name && <span style={{ color: "#D1D5DB" }}> · {ev.source_name}</span>}
+            </div>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
 
+// ─── Grid Card ──────────────────────────────────────────────────────────────────
+function GridCard({ ev, weekSlug }: { ev: WeeklyDigestEvent; weekSlug: string }) {
+  const name = ev.vessel_name || (ev.imo ? `IMO ${ev.imo}` : null);
+  const specs = vesselSpecs(ev);
+  const [hover, setHover] = useState(false);
+
+  return (
+    <Link href={`/weekly/${weekSlug}/${ev.id}`} style={{ textDecoration: "none", display: "block" }}>
+      <article
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        style={{ background: "#fff", border: `1px solid ${hover ? "#D1D5DB" : "#E5E7EB"}`,
+          borderRadius: 6, overflow: "hidden", display: "flex", flexDirection: "column",
+          transition: "border-color 0.15s, box-shadow 0.15s",
+          boxShadow: hover ? "0 4px 20px rgba(16,24,40,0.07)" : "none", height: "100%" }}>
+
+        {/* 4:3 photo */}
+        <CardPhoto ev={ev} heightPct={75} />
+
+        {/* Content */}
+        <div style={{ padding: "16px 18px 18px", flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+          <TypeBar type={ev.event_type} />
+
+          {name && (
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: NAVY, margin: 0,
+              fontFamily: "var(--font-serif, Georgia, serif)", lineHeight: 1.25,
+              letterSpacing: "-0.01em" }}>
+              {name}
+            </h3>
+          )}
+
+          <p style={{ fontSize: 13, color: "#4B5563", lineHeight: 1.65, margin: 0,
+            fontFamily: "Inter, sans-serif",
+            display: "-webkit-box", WebkitLineClamp: 3,
+            WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}>
+            {ev.summary}
+          </p>
+
+          <div style={{ flex: 1 }} />
+
+          {/* Meta footer */}
+          <div style={{ borderTop: "1px solid #F3F4F6", paddingTop: 10, marginTop: 4,
+            display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+            {ev.event_date && (
+              <span style={{ fontSize: 11, color: "#9CA3AF", fontFamily: "Inter, sans-serif" }}>
+                {formatDateShort(ev.event_date)}
+              </span>
+            )}
+            {ev.location && (
+              <span style={{ fontSize: 11, color: "#9CA3AF", fontFamily: "Inter, sans-serif" }}>
+                · {ev.location}
+              </span>
+            )}
+            {specs && (
+              <span style={{ fontSize: 11, color: "#C4C9D4", fontFamily: "Inter, sans-serif" }}>
+                · {specs}
+              </span>
+            )}
+            {ev.has_contact && (
+              <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: 600, color: GREEN,
+                fontFamily: "Inter, sans-serif" }}>
+                Contact ✓
+              </span>
+            )}
+          </div>
+        </div>
+      </article>
+    </Link>
+  );
+}
+
+// ─── Category Section ────────────────────────────────────────────────────────────
+function CategorySection({
+  label, events, leadId, color, bar, weekSlug,
+}: {
+  label: string; events: WeeklyDigestEvent[];
+  leadId: number | null; color: string; bar: string; weekSlug: string;
+}) {
+  const sectionEvents = events.filter(e => e.id !== leadId);
+  if (sectionEvents.length === 0) return null;
+
+  return (
+    <section style={{ marginBottom: 56 }}>
+      <SectionHeader label={label} count={sectionEvents.length} color={bar} />
+      <div className="grid-2col" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 32 }}>
+        {sectionEvents.map(ev => <GridCard key={ev.id} ev={ev} weekSlug={weekSlug} />)}
+      </div>
+    </section>
+  );
+}
+
+// ─── Distressed Fleet Watch ───────────────────────────────────────────────────────
 function DistressedFleetWatch({ events, weekSlug }: { events: WeeklyDigestEvent[]; weekSlug: string }) {
   const [expanded, setExpanded] = useState(false);
-  const LIMIT = 20;
+  const [hoverRow, setHoverRow] = useState<number | null>(null);
+  const LIMIT = 15;
   const currentYear = new Date().getFullYear();
 
   const sorted = [...events].sort((a, b) => {
@@ -267,73 +325,117 @@ function DistressedFleetWatch({ events, weekSlug }: { events: WeeklyDigestEvent[
     return (Number(b.vessel_dwt) || 0) - (Number(a.vessel_dwt) || 0);
   });
 
-  const shown   = expanded ? sorted : sorted.slice(0, LIMIT);
-  const hasMore = sorted.length > LIMIT;
-
+  const shown = expanded ? sorted : sorted.slice(0, LIMIT);
   if (sorted.length === 0) return null;
 
-  const typeCounts = sorted.reduce((acc, ev) => {
-    const label = DFW_BADGE[ev.event_type]?.label ?? ev.event_type;
-    acc[label] = (acc[label] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
   return (
-    <section style={{ marginBottom: 52, pageBreakInside: "avoid" }}>
+    <section style={{ marginBottom: 64 }}>
       {/* Header */}
-      <div style={{ borderBottom: `2px solid ${GOLD}`, paddingBottom: 10, marginBottom: 20,
-        display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12,
-        flexWrap: "wrap" }}>
-        <h2 style={{ fontSize: 13, fontWeight: 900, color: NAVY, margin: 0,
-          textTransform: "uppercase", letterSpacing: "0.14em",
-          fontFamily: "Inter, sans-serif" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24,
+        paddingBottom: 14, borderBottom: `2px solid ${GOLD}` }}>
+        <h2 style={{ fontSize: 11, fontWeight: 900, color: NAVY, margin: 0,
+          textTransform: "uppercase", letterSpacing: "0.16em", fontFamily: "Inter, sans-serif" }}>
           Distressed Fleet Watch
         </h2>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-          {Object.entries(typeCounts).map(([label, count]) => (
-            <span key={label} style={{ fontSize: 10, color: "#6B7280",
-              fontFamily: "Inter, sans-serif" }}>
-              {label} ({count})
-            </span>
-          ))}
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#9CA3AF",
-            fontFamily: "Inter, sans-serif" }}>
-            {sorted.length} total
-          </span>
-        </div>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", fontFamily: "Inter, sans-serif" }}>
+          {sorted.length}
+        </span>
+        <div style={{ flex: 1, height: 1, background: GOLD, opacity: 0.2 }} />
       </div>
 
-      {/* Table wrapper — horizontal scroll on mobile */}
-      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 560 }}>
+      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" as any }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 580 }}>
           <thead>
-            <tr style={{ borderBottom: "2px solid #E5E7EB" }}>
-              {["Event", "Vessel", "Type", "DWT", "Age", "Location", "Date", "Source"].map(h => (
-                <th key={h} style={{ padding: "6px 12px 6px 0", textAlign: h === "DWT" ? "right" : "left",
-                  fontSize: 10, fontWeight: 800, color: "#9CA3AF",
+            <tr>
+              {["Event", "Vessel", "Type", "DWT", "Age", "Location", "Date"].map(h => (
+                <th key={h} style={{ padding: "0 16px 12px 0", textAlign: h === "DWT" ? "right" : "left",
+                  fontSize: 10, fontWeight: 700, color: "#9CA3AF",
                   textTransform: "uppercase", letterSpacing: "0.1em",
-                  fontFamily: "Inter, sans-serif", whiteSpace: "nowrap" }}>
+                  fontFamily: "Inter, sans-serif", whiteSpace: "nowrap",
+                  borderBottom: "1px solid #E5E7EB" }}>
                   {h}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {shown.map(ev => (
-              <DFWRow key={ev.id} ev={ev} currentYear={currentYear} weekSlug={weekSlug} />
-            ))}
+            {shown.map(ev => {
+              const built = ev.vessel_built ? Number(ev.vessel_built) : null;
+              const age   = built ? `${currentYear - built}y` : "—";
+              const dwt   = ev.vessel_dwt ? Number(ev.vessel_dwt).toLocaleString() : "—";
+              const dateStr = ev.event_date ? formatDateShort(ev.event_date) : "—";
+              const name  = ev.vessel_name || (ev.imo ? `IMO ${ev.imo}` : "—");
+              const c     = cfg(ev.event_type);
+
+              return (
+                <tr key={ev.id}
+                  onMouseEnter={() => setHoverRow(ev.id)}
+                  onMouseLeave={() => setHoverRow(null)}
+                  style={{ borderBottom: "1px solid #F3F4F6",
+                    background: hoverRow === ev.id ? "rgba(16,24,40,0.03)" : "transparent",
+                    transition: "background 0.1s" }}>
+
+                  {/* Event badge — bar style */}
+                  <td style={{ padding: "0 16px 0 0", height: 56, verticalAlign: "middle", whiteSpace: "nowrap" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ width: 3, height: 16, background: c.bar, borderRadius: 2, flexShrink: 0, display: "inline-block" }} />
+                      <span style={{ fontSize: 10, fontWeight: 700, color: c.color,
+                        textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "Inter, sans-serif" }}>
+                        {c.label}
+                      </span>
+                    </span>
+                  </td>
+
+                  {/* Vessel name */}
+                  <td style={{ padding: "0 16px 0 0", height: 56, verticalAlign: "middle" }}>
+                    <Link href={`/weekly/${weekSlug}/${ev.id}`} style={{ textDecoration: "none" }}>
+                      <div style={{ fontWeight: 700, color: NAVY, fontFamily: "var(--font-serif, Georgia, serif)",
+                        fontSize: 14, lineHeight: 1.2 }}>
+                        {name}
+                      </div>
+                      {ev.imo && (
+                        <div style={{ fontSize: 10, color: "#9CA3AF", fontFamily: "monospace", marginTop: 2 }}>
+                          IMO {ev.imo}
+                        </div>
+                      )}
+                    </Link>
+                  </td>
+
+                  <td style={{ padding: "0 16px 0 0", fontSize: 12, color: "#6B7280",
+                    fontFamily: "Inter, sans-serif", whiteSpace: "nowrap", verticalAlign: "middle" }}>
+                    {ev.vessel_type || "—"}
+                  </td>
+                  <td style={{ padding: "0 16px 0 0", fontSize: 12, color: "#374151",
+                    fontFamily: "Inter, sans-serif", whiteSpace: "nowrap", verticalAlign: "middle",
+                    textAlign: "right" }}>
+                    {dwt}
+                  </td>
+                  <td style={{ padding: "0 16px 0 0", fontSize: 12, color: "#6B7280",
+                    fontFamily: "Inter, sans-serif", whiteSpace: "nowrap", verticalAlign: "middle" }}>
+                    {age}
+                  </td>
+                  <td style={{ padding: "0 16px 0 0", fontSize: 12, color: "#6B7280",
+                    fontFamily: "Inter, sans-serif", verticalAlign: "middle", maxWidth: 150 }}>
+                    {ev.location || "—"}
+                  </td>
+                  <td style={{ padding: "0", fontSize: 12, color: "#9CA3AF",
+                    fontFamily: "Inter, sans-serif", whiteSpace: "nowrap", verticalAlign: "middle" }}>
+                    {dateStr}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
-      {/* Expand button */}
-      {hasMore && !expanded && (
+      {sorted.length > LIMIT && !expanded && (
         <button
           onClick={() => setExpanded(true)}
           className="no-print"
-          style={{ marginTop: 12, fontSize: 12, fontWeight: 600, color: GREEN,
-            background: "none", border: `1px solid ${GREEN}`, borderRadius: 5,
-            padding: "6px 16px", cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
+          style={{ marginTop: 16, fontSize: 12, fontWeight: 600, color: GREEN,
+            background: "none", border: `1px solid ${GREEN}`, borderRadius: 4,
+            padding: "7px 18px", cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
           View all {sorted.length} vessels
         </button>
       )}
@@ -341,195 +443,11 @@ function DistressedFleetWatch({ events, weekSlug }: { events: WeeklyDigestEvent[
   );
 }
 
-// ─── Lead story ───────────────────────────────────────────────────────────────
-
-function LeadStory({ ev, weekSlug }: { ev: WeeklyDigestEvent; weekSlug: string }) {
-  const dateStr = ev.event_date ? formatDate(ev.event_date) : null;
-  const specs   = vesselSpecs(ev);
-  const text    = stripMarkdown(ev.editorial_summary || ev.summary);
-  const name    = ev.vessel_name || (ev.imo ? `IMO ${ev.imo}` : null);
-
-  return (
-    <section style={{ marginBottom: 52 }}>
-      {/* Section kicker */}
-      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.18em",
-        textTransform: "uppercase", color: GOLD, fontFamily: "Inter, sans-serif",
-        marginBottom: 14 }}>
-        Lead Story
-      </div>
-
-      {/* Cover photo */}
-      <div style={{ borderRadius: 8, overflow: "hidden", marginBottom: 24, position: "relative" }}>
-        <VesselPhoto ev={ev} height={400} />
-      </div>
-
-      {/* Meta row */}
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
-        <TypeBadge type={ev.event_type} />
-        {ev.location && (
-          <span style={{ fontSize: 13, color: "#6B7280", fontFamily: "Inter, sans-serif" }}>
-            {ev.location}
-          </span>
-        )}
-        {dateStr && (
-          <span style={{ fontSize: 12, color: "#9CA3AF", fontFamily: "Inter, sans-serif" }}>
-            {dateStr}
-          </span>
-        )}
-      </div>
-
-      {/* Vessel name */}
-      {name && (
-        <Link href={`/weekly/${weekSlug}/${ev.id}`} style={{ textDecoration: "none" }}>
-          <h2 style={{ fontSize: 34, fontWeight: 800, color: NAVY, margin: "0 0 18px",
-            fontFamily: "'Georgia', serif", letterSpacing: "-0.02em", lineHeight: 1.1,
-            borderBottom: `2px solid ${GREEN}`, display: "inline" }}>
-            {name}
-          </h2>
-        </Link>
-      )}
-
-      {/* Editorial text */}
-      {text && (
-        <p style={{ fontSize: 17, color: "#1F2937", lineHeight: 1.8, margin: "0 0 20px",
-          fontFamily: "'Georgia', serif" }}>
-          {text}
-        </p>
-      )}
-
-      {/* Vessel specs */}
-      {specs && (
-        <div style={{ fontSize: 12, color: "#6B7280", fontFamily: "Inter, sans-serif",
-          borderTop: `1px solid #F3F4F6`, paddingTop: 12, marginBottom: 14 }}>
-          {specs}
-        </div>
-      )}
-
-      {/* Footer row */}
-      <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-        {ev.has_contact && <ContactBadge />}
-        <span style={{ fontSize: 11, color: "#9CA3AF", fontFamily: "Inter, sans-serif" }}>
-          Source: {ev.source_name}
-        </span>
-      </div>
-    </section>
-  );
-}
-
-// ─── Grid card ────────────────────────────────────────────────────────────────
-
-function GridCard({ ev, weekSlug }: { ev: WeeklyDigestEvent; weekSlug: string }) {
-  const dateStr = ev.event_date ? formatDate(ev.event_date) : null;
-  const specs   = vesselSpecs(ev);
-  const name    = ev.vessel_name || (ev.imo ? `IMO ${ev.imo}` : null);
-
-  return (
-    <Link href={`/weekly/${weekSlug}/${ev.id}`} style={{ textDecoration: "none", display: "block" }}>
-    <div style={{ border: "1px solid #E5E7EB", borderRadius: 8, overflow: "hidden",
-      background: "#fff", display: "flex", flexDirection: "column", height: "100%" }}>
-
-      {/* Photo */}
-      <VesselPhoto ev={ev} height={180} />
-
-      {/* Content */}
-      <div style={{ padding: "14px 16px 16px", flex: 1, display: "flex",
-        flexDirection: "column", gap: 8 }}>
-
-        {/* Badge + meta */}
-        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-          <TypeBadge type={ev.event_type} />
-          {dateStr && (
-            <span style={{ fontSize: 10, color: "#9CA3AF", fontFamily: "Inter, sans-serif" }}>
-              {dateStr}
-            </span>
-          )}
-        </div>
-
-        {/* Vessel name */}
-        {name && (
-          <div style={{ fontSize: 16, fontWeight: 700, color: NAVY,
-            fontFamily: "'Georgia', serif", lineHeight: 1.25 }}>
-            {name}
-          </div>
-        )}
-
-        {/* Location */}
-        {ev.location && (
-          <div style={{ fontSize: 11, color: "#6B7280", fontFamily: "Inter, sans-serif" }}>
-            {ev.location}
-          </div>
-        )}
-
-        {/* Summary */}
-        <p style={{ fontSize: 13, color: "#374151", lineHeight: 1.65, margin: 0,
-          fontFamily: "Inter, sans-serif",
-          display: "-webkit-box", WebkitLineClamp: 4,
-          WebkitBoxOrient: "vertical", overflow: "hidden" } as React.CSSProperties}>
-          {ev.summary}
-        </p>
-
-        {/* Spacer */}
-        <div style={{ flex: 1 }} />
-
-        {/* Specs + source */}
-        {specs && (
-          <div style={{ fontSize: 10, color: "#9CA3AF", fontFamily: "Inter, sans-serif",
-            borderTop: "1px solid #F3F4F6", paddingTop: 8, marginTop: 4 }}>
-            {specs}
-          </div>
-        )}
-
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          {ev.has_contact && <ContactBadge />}
-          <span style={{ fontSize: 10, color: "#9CA3AF", fontFamily: "Inter, sans-serif" }}>
-            {ev.source_name}
-          </span>
-        </div>
-      </div>
-    </div>
-    </Link>
-  );
-}
-
-// ─── Category section ─────────────────────────────────────────────────────────
-
-function CategorySection({
-  label, events, leadId, color, weekSlug,
-}: {
-  label: string; events: WeeklyDigestEvent[];
-  leadId: number | null; color: string; weekSlug: string;
-}) {
-  const sectionEvents = events.filter(e => e.id !== leadId);
-  if (sectionEvents.length === 0) return null;
-
-  return (
-    <div style={{ marginBottom: 48 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20,
-        borderBottom: `2px solid ${color}`, paddingBottom: 10 }}>
-        <h2 style={{ fontSize: 13, fontWeight: 800, color, margin: 0,
-          textTransform: "uppercase", letterSpacing: "0.12em",
-          fontFamily: "Inter, sans-serif" }}>
-          {label}
-        </h2>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#9CA3AF",
-          fontFamily: "Inter, sans-serif" }}>
-          {sectionEvents.length}
-        </span>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
-        {sectionEvents.map(ev => <GridCard key={ev.id} ev={ev} weekSlug={weekSlug} />)}
-      </div>
-    </div>
-  );
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
+// ─── Page ───────────────────────────────────────────────────────────────────────
 export default function WeeklyDigestPage({ params }: { params: Promise<{ week: string }> }) {
-  const { week }  = use(params);
-  const [digest, setDigest]   = useState<WeeklyDigestDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { week } = use(params);
+  const [digest,   setDigest]   = useState<WeeklyDigestDetail | null>(null);
+  const [loading,  setLoading]  = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
@@ -543,8 +461,7 @@ export default function WeeklyDigestPage({ params }: { params: Promise<{ week: s
 
   if (loading) {
     return (
-      <div style={{ textAlign: "center", color: "#9CA3AF", padding: 80,
-        fontFamily: "Inter, sans-serif" }}>
+      <div style={{ textAlign: "center", color: "#9CA3AF", padding: 80, fontFamily: "Inter, sans-serif" }}>
         Loading…
       </div>
     );
@@ -555,8 +472,7 @@ export default function WeeklyDigestPage({ params }: { params: Promise<{ week: s
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "60px 24px",
         fontFamily: "Inter, sans-serif", textAlign: "center" }}>
         <div style={{ fontSize: 16, color: "#6B7280" }}>Digest not found.</div>
-        <Link href="/weekly" style={{ color: GREEN, fontSize: 14,
-          marginTop: 16, display: "inline-block" }}>
+        <Link href="/weekly" style={{ color: GREEN, fontSize: 14, marginTop: 16, display: "inline-block" }}>
           ← Back to archive
         </Link>
       </div>
@@ -579,88 +495,88 @@ export default function WeeklyDigestPage({ params }: { params: Promise<{ week: s
           nav, header, .no-print { display: none !important; }
           body { background: #fff !important; }
           a { color: inherit !important; text-decoration: none !important; }
-          .grid-2col { grid-template-columns: repeat(2, 1fr) !important; }
         }
-        @media (max-width: 600px) {
-          .grid-2col { grid-template-columns: 1fr !important; }
+        @media (max-width: 640px) {
+          .grid-2col { grid-template-columns: 1fr !important; gap: 20px !important; }
         }
       `}</style>
 
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "36px 24px 80px",
-        fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+      <div style={{ background: BG, minHeight: "100vh" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "40px 32px 100px" }}>
 
-        {/* Back */}
-        <div className="no-print" style={{ marginBottom: 28 }}>
-          <Link href="/weekly"
-            style={{ fontSize: 13, color: "#6B7280", textDecoration: "none",
-              fontFamily: "Inter, sans-serif" }}>
-            ← All issues
-          </Link>
-        </div>
+          {/* ── Back ── */}
+          <div className="no-print" style={{ marginBottom: 32 }}>
+            <Link href="/weekly"
+              style={{ fontSize: 12, color: "#9CA3AF", textDecoration: "none",
+                fontFamily: "Inter, sans-serif", letterSpacing: "0.04em" }}>
+              ← All issues
+            </Link>
+          </div>
 
-        {/* ── Masthead ── */}
-        <div style={{ marginBottom: 36 }}>
-          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.2em",
-            textTransform: "uppercase", color: GREEN,
-            fontFamily: "Inter, sans-serif", marginBottom: 10 }}>
-            ShipScout Intelligence
-          </div>
-          <div style={{ fontSize: 52, fontWeight: 900, color: NAVY,
-            letterSpacing: "-0.035em", lineHeight: 0.9,
-            fontFamily: "'Georgia', serif", marginBottom: 16 }}>
-            SHIPSCOUT<br />WEEKLY
-          </div>
-          <div style={{ height: 2, background: GOLD, marginBottom: 16 }} />
-          <div style={{ display: "flex", justifyContent: "space-between",
-            alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: NAVY,
-              fontFamily: "'Georgia', serif" }}>
-              {digest.week_label}
+          {/* ── Masthead ── */}
+          <header style={{ marginBottom: 48 }}>
+            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.2em",
+              textTransform: "uppercase", color: GREEN,
+              fontFamily: "Inter, sans-serif", marginBottom: 8 }}>
+              ShipScout Intelligence
             </div>
-            <div style={{ fontSize: 13, color: "#9CA3AF",
-              fontFamily: "Inter, sans-serif" }}>
-              {digest.event_count} event{digest.event_count !== 1 ? "s" : ""}
+            <div style={{ fontSize: "clamp(44px, 7vw, 68px)", fontWeight: 800, color: NAVY,
+              letterSpacing: "-0.035em", lineHeight: 0.92,
+              fontFamily: "var(--font-serif, Georgia, serif)", marginBottom: 16 }}>
+              SHIPSCOUT<br />WEEKLY
             </div>
-          </div>
-        </div>
+            <div style={{ height: 2, background: GOLD, marginBottom: 16, maxWidth: 560 }} />
+            <div style={{ display: "flex", justifyContent: "space-between",
+              alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
+              <div style={{ fontSize: 20, fontWeight: 600, color: "#374151",
+                fontFamily: "var(--font-serif, Georgia, serif)" }}>
+                {digest.week_label}
+              </div>
+              <div style={{ fontSize: 13, color: "#9CA3AF", fontFamily: "Inter, sans-serif" }}>
+                {digest.event_count} event{digest.event_count !== 1 ? "s" : ""}
+              </div>
+            </div>
+          </header>
 
-        {/* ── Intro ── */}
-        {digest.intro_text && (
-          <p style={{ fontSize: 15, color: "#4B5563", lineHeight: 1.8,
-            margin: "0 0 40px", fontStyle: "italic",
-            borderLeft: `3px solid ${GOLD}`, paddingLeft: 16,
-            fontFamily: "'Georgia', serif" }}>
-            {digest.intro_text}
-          </p>
-        )}
+          {/* ── Intro ── */}
+          {digest.intro_text && (
+            <p style={{ fontSize: 15, color: "#6B7280", lineHeight: 1.75,
+              margin: "0 0 48px", fontStyle: "italic",
+              borderLeft: `3px solid ${GOLD}`, paddingLeft: 18, maxWidth: 680,
+              fontFamily: "var(--font-serif, Georgia, serif)" }}>
+              {digest.intro_text}
+            </p>
+          )}
 
-        {/* ── Lead story ── */}
-        {leadEvent && <LeadStory ev={leadEvent} weekSlug={week} />}
+          {/* ── Lead Story ── */}
+          {leadEvent && <LeadStory ev={leadEvent} weekSlug={week} />}
 
-        {/* ── Distressed Fleet Watch ── */}
-        <DistressedFleetWatch events={digest.events} weekSlug={week} />
+          {/* ── Distressed Fleet Watch ── */}
+          <DistressedFleetWatch events={digest.events} weekSlug={week} />
 
-        {/* ── Category sections ── */}
-        {grouped.map(cat => (
-          <CategorySection
-            key={cat.key}
-            label={cat.label}
-            events={cat.events}
-            leadId={leadEvent?.id ?? null}
-            color={cat.color}
-            weekSlug={week}
-          />
-        ))}
+          {/* ── Category Sections ── */}
+          {grouped.map(cat => (
+            <CategorySection
+              key={cat.key}
+              label={cat.label}
+              events={cat.events}
+              leadId={leadEvent?.id ?? null}
+              color={cat.color}
+              bar={cat.bar}
+              weekSlug={week}
+            />
+          ))}
 
-        {/* ── Footer ── */}
-        <div style={{ borderTop: `1px solid #E5E7EB`, paddingTop: 24, marginTop: 40,
-          display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-          <span style={{ fontSize: 11, color: "#9CA3AF", fontFamily: "Inter, sans-serif" }}>
-            Compiled by ShipScout · shipscout.io
-          </span>
-          <span style={{ fontSize: 11, color: "#9CA3AF", fontFamily: "Inter, sans-serif" }}>
-            Contact details available to registered users only.
-          </span>
+          {/* ── Footer ── */}
+          <footer style={{ borderTop: "1px solid #E5E7EB", paddingTop: 24, marginTop: 48,
+            display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+            <span style={{ fontSize: 11, color: "#9CA3AF", fontFamily: "Inter, sans-serif" }}>
+              Compiled by ShipScout · shipscout.io
+            </span>
+            <span style={{ fontSize: 11, color: "#9CA3AF", fontFamily: "Inter, sans-serif" }}>
+              Contact details available to registered users only.
+            </span>
+          </footer>
         </div>
       </div>
     </>

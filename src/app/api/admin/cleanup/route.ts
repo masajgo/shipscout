@@ -168,5 +168,37 @@ export async function GET(req: Request) {
     return NextResponse.json(results);
   }
 
-  return NextResponse.json({ error: "Unknown action. Use: status, fix-markdown, fix-photos, delete-old-data" });
+  // ── Run pending DB migrations ──────────────────────────────────────────────
+  if (action === "migrate") {
+    const migrations = [
+      // Article columns for radar_events
+      `ALTER TABLE radar_events ADD COLUMN IF NOT EXISTS article_headline TEXT`,
+      `ALTER TABLE radar_events ADD COLUMN IF NOT EXISTS article_body TEXT`,
+      `CREATE INDEX IF NOT EXISTS radar_events_article_idx ON radar_events(id) WHERE article_headline IS NOT NULL`,
+      // Distressed event types
+      `DO $$ BEGIN
+         IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='radar_events' AND column_name='event_type') THEN
+           ALTER TABLE radar_events DROP CONSTRAINT IF EXISTS radar_events_event_type_check;
+         END IF;
+       END $$`,
+    ];
+    const done: string[] = [];
+    for (const sql of migrations) {
+      try {
+        await pool.query(sql);
+        done.push(`OK: ${sql.slice(0, 60)}`);
+      } catch (e: any) {
+        done.push(`ERR: ${e.message}`);
+      }
+    }
+    return NextResponse.json({ migrations_run: done.length, results: done });
+  }
+
+  // ── Publish all digests ────────────────────────────────────────────────────
+  if (action === "publish-all") {
+    const { rowCount } = await pool.query(`UPDATE weekly_digests SET published=true WHERE published=false`);
+    return NextResponse.json({ published: rowCount });
+  }
+
+  return NextResponse.json({ error: "Unknown action. Use: status, fix-markdown, fix-photos, delete-old-data, migrate, publish-all" });
 }

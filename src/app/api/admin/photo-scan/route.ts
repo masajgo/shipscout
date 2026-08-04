@@ -5,10 +5,15 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // 5 min
 
-const BATCH_SIZE  = 10;
 const THUMB_WIDTH = 960;
 const COMMONS_API = "https://commons.wikimedia.org/w/api.php";
 const CC_LICENSES = ["cc-by", "cc-by-sa", "cc0", "pd", "public domain"];
+
+// Filename patterns that indicate non-ship images
+const BAD_FILENAME = /signature|sign\b|logo|emblem|stamp|portrait|drawing|painting|coat[_-]of[_-]arms|flag\b|map\b|chart\b|crest|seal\b|symbol|autograph/i;
+// Minimum acceptable aspect ratio range for ship photos
+const MIN_ASPECT = 0.4;
+const MAX_ASPECT = 3.5;
 
 function stripHtml(s: string) {
   return s.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&quot;/g, '"').trim();
@@ -23,7 +28,7 @@ async function searchCommons(imo: string) {
   const params = new URLSearchParams({
     action: "query", generator: "search",
     gsrsearch: `${imo} ship`, gsrnamespace: "6", gsrlimit: "5",
-    prop: "imageinfo", iiprop: "url|extmetadata|mime",
+    prop: "imageinfo", iiprop: "url|extmetadata|mime|size",
     iiurlwidth: String(THUMB_WIDTH), format: "json", origin: "*",
   });
   const res = await fetch(`${COMMONS_API}?${params}`, {
@@ -35,6 +40,23 @@ async function searchCommons(imo: string) {
   return data?.query?.pages ?? {};
 }
 
+function isValidShipPhoto(ii: any, title: string): boolean {
+  // Reject SVG files (almost never actual photos of ships)
+  if (ii.mime === "image/svg+xml") return false;
+
+  // Reject by filename keywords
+  const filename = decodeURIComponent(title.replace(/^File:/i, ""));
+  if (BAD_FILENAME.test(filename)) return false;
+
+  // Reject by aspect ratio if dimensions available
+  if (ii.width && ii.height) {
+    const aspect = ii.width / ii.height;
+    if (aspect < MIN_ASPECT || aspect > MAX_ASPECT) return false;
+  }
+
+  return true;
+}
+
 function pickBestPhoto(pages: Record<string, any>, imo: string, name: string) {
   const candidates: any[] = [];
   for (const page of Object.values(pages) as any[]) {
@@ -43,8 +65,9 @@ function pickBestPhoto(pages: Record<string, any>, imo: string, name: string) {
     const meta    = ii.extmetadata ?? {};
     const license = meta.LicenseShortName?.value ?? meta.License?.value ?? "";
     if (!isCC(license)) continue;
-    const artist  = stripHtml(meta.Artist?.value ?? "");
     const title   = page.title ?? "";
+    if (!isValidShipPhoto(ii, title)) continue;
+    const artist  = stripHtml(meta.Artist?.value ?? "");
     const desc    = stripHtml(meta.ImageDescription?.value ?? "");
     let score = 0;
     if (title.includes(imo) || desc.includes(imo)) score += 10;

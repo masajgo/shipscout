@@ -1,6 +1,17 @@
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 
+function stripMd(t: string | null): string | null {
+  if (!t) return t;
+  return t
+    .replace(/^#+\s+.*$/gm, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim() || null;
+}
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -96,7 +107,7 @@ export async function GET(
       LEFT JOIN LATERAL (
         SELECT photo_url, photo_thumb, attribution, license_url
         FROM vessel_photos
-        WHERE imo::text = re.imo AND photo_url IS NOT NULL
+        WHERE imo::text = re.imo AND photo_url IS NOT NULL AND photo_url <> 'none'
         ORDER BY is_primary DESC NULLS LAST, id ASC
         LIMIT 1
       ) vp ON true
@@ -106,8 +117,18 @@ export async function GET(
       ORDER BY re.event_date ASC NULLS LAST, re.created_at ASC
     `, [digest.week_start, digest.week_end]);
 
+    const cleanDigest = {
+      ...digest,
+      intro_text: stripMd(digest.intro_text),
+      events: eventsRes.rows.map(ev => ({
+        ...ev,
+        editorial_summary: stripMd(ev.editorial_summary),
+        summary: stripMd(ev.summary) ?? ev.summary,
+      })),
+    };
+
     return NextResponse.json(
-      { ...digest, events: eventsRes.rows },
+      cleanDigest,
       { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } }
     );
   } catch (e) {

@@ -138,7 +138,7 @@ const EVENT_JOINS = `
   LEFT JOIN LATERAL (
     SELECT photo_url, photo_thumb, attribution, license_url
     FROM vessel_photos
-    WHERE imo::text = re.imo AND photo_url IS NOT NULL
+    WHERE imo::text = re.imo AND photo_url IS NOT NULL AND photo_url <> 'none'
     ORDER BY is_primary DESC NULLS LAST, id ASC
     LIMIT 1
   ) vp ON true

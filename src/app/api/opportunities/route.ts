@@ -124,29 +124,24 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // final sort happens after contactable split below
-
-  const contactable = results.filter(v => {
+  // contactable = real email or phone (website/linkedin alone doesn't count)
+  function hasContact(v: OpportunityVessel) {
     const emails = [...(v.emails?.filter(Boolean) ?? []), ...(v.best_email ? [v.best_email] : [])];
-    return emails.length > 0 || (v.phones?.length ?? 0) > 0 || !!v.website || !!v.linkedin_url;
-  });
+    return emails.length > 0 || (v.phones?.length ?? 0) > 0;
+  }
 
-  // Sort: contactable first within same score band, then by opportunity_score
+  // Sort: contactable first → more signals → higher score
   results.sort((a, b) => {
     const aC = hasContact(a) ? 1 : 0;
     const bC = hasContact(b) ? 1 : 0;
     if (aC !== bC) return bC - aC;
+    if (a.signal_count !== b.signal_count) return b.signal_count - a.signal_count;
     return b.opportunity_score - a.opportunity_score;
   });
 
   return NextResponse.json({
-    total:              results.length,
-    contactable_total:  contactable.length,
-    vessels:            results.slice(0, limit),
+    total:             results.length,
+    contactable_total: results.filter(hasContact).length,
+    vessels:           results.slice(0, limit),
   });
-
-  function hasContact(v: OpportunityVessel) {
-    const emails = [...(v.emails?.filter(Boolean) ?? []), ...(v.best_email ? [v.best_email] : [])];
-    return emails.length > 0 || (v.phones?.length ?? 0) > 0 || !!v.website || !!v.linkedin_url;
-  }
 }

@@ -26,7 +26,7 @@ const { Pool } = require("pg");
 
 require("dotenv").config({ path: path.join(__dirname, "../.env.local") });
 
-const { enrichCompanyContact, enrichWithDb } = require("../scraper/contactEnrichment");
+const { enrichCompanyContact, hunterBudget } = require("../scraper/contactEnrichment");
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -63,6 +63,15 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const randomDelay = () => sleep(DELAY_MIN_MS + Math.random() * (DELAY_MAX_MS - DELAY_MIN_MS));
 const log = msg => process.stdout.write(`[${new Date().toISOString().slice(11,19)}] ${msg}\n`);
 
+function withTimeout(promise, ms, label) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout after ${ms / 1000}s: ${label}`)), ms)
+    ),
+  ]);
+}
+
 // ─── Checkpoint ───────────────────────────────────────────────────────────────
 
 function loadCheckpoint() {
@@ -73,6 +82,86 @@ function loadCheckpoint() {
 
 function saveCheckpoint(cp) {
   fs.writeFileSync(CHECKPOINT_FILE, JSON.stringify(cp, null, 2));
+}
+
+// ─── ISO flag → country name (for maritime-locked search query context) ────────
+
+const FLAG_COUNTRY = {
+  PA: "Panama", LR: "Liberia", MH: "Marshall Islands", BS: "Bahamas",
+  MT: "Malta", CY: "Cyprus", BZ: "Belize", TO: "Tonga", PW: "Palau",
+  AG: "Antigua", KN: "Saint Kitts", VC: "Saint Vincent", TC: "Turks Caicos",
+  KM: "Comoros", SL: "Sierra Leone", MG: "Madagascar", TG: "Togo",
+  GQ: "Equatorial Guinea", GD: "Grenada", BB: "Barbados",
+  TZ: "Tanzania", MZ: "Mozambique", VU: "Vanuatu",
+  NO: "Norway", GR: "Greece", DE: "Germany", GB: "United Kingdom",
+  CN: "China", JP: "Japan", KR: "South Korea", IN: "India",
+  TR: "Turkey", RU: "Russia", IT: "Italy", NL: "Netherlands",
+  DK: "Denmark", FR: "France", ES: "Spain", SE: "Sweden",
+  SG: "Singapore", HK: "Hong Kong", PH: "Philippines", ID: "Indonesia",
+  MY: "Malaysia", VN: "Vietnam", TH: "Thailand", AE: "UAE",
+  SA: "Saudi Arabia", IR: "Iran", PK: "Pakistan", EG: "Egypt",
+};
+
+function flagToCountry(isoCode) {
+  if (!isoCode) return null;
+  return FLAG_COUNTRY[isoCode.toUpperCase()] || null;
+}
+
+// ─── Batch DB flush ───────────────────────────────────────────────────────────
+// Writes up to BATCH_SIZE enrichment results in a single transaction.
+// Uses COALESCE so existing data is never overwritten with NULL.
+
+async function flushToDb(pending, cp) {
+  if (!pending.length) return;
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    for (const { imo, result } of pending) {
+      await client.query(`
+        UPDATE owners SET
+          website              = COALESCE($2, website),
+          emails               = COALESCE($3::text[], emails),
+          phones               = COALESCE($4::text[], phones),
+          address              = COALESCE($5, address),
+          email_format         = COALESCE($6, email_format),
+          department_emails    = $7::text[],
+          generic_emails       = $8::text[],
+          guessed_emails       = $9::jsonb,
+          linkedin_company_url = $10,
+          linkedin_people_url  = $11,
+          email_validations    = COALESCE($12::jsonb, email_validations),
+          best_email           = COALESCE($13, best_email),
+          contact_source       = 'web',
+          web_fetched_at       = now()
+        WHERE imo = $1::bigint
+      `, [
+        imo,
+        result.website    || null,
+        result.emails?.length   ? result.emails   : null,
+        result.phones?.length   ? result.phones   : null,
+        result.address          || null,
+        result.emailFormat      || null,
+        result.emailsByType?.department || [],
+        result.emailsByType?.generic    || [],
+        JSON.stringify(result.guessedEmails || []),
+        result.linkedinCompanyUrl,
+        result.linkedinPeopleUrl,
+        Object.keys(result.emailValidations || {}).length
+          ? JSON.stringify(result.emailValidations) : null,
+        result.bestEmail || null,
+      ]);
+      cp.done.push(imo);
+    }
+    await client.query("COMMIT");
+    saveCheckpoint(cp);
+    log(`  [flush] ${pending.length} rows committed to DB`);
+  } catch (e) {
+    await client.query("ROLLBACK");
+    log(`  [flush] ROLLBACK — ${e.message}`);
+    throw e;
+  } finally {
+    client.release();
+  }
 }
 
 // ─── DB: opportunity owner candidates ─────────────────────────────────────────
@@ -89,6 +178,7 @@ async function getCandidates(limit, skipImos) {
       v.age,
       v.detention_count,
       v.special_survey_date,
+      v.flag,
       o.owner_name,
       o.manager_name,
       o.ism_manager,
@@ -128,7 +218,9 @@ async function main() {
   const cp = loadCheckpoint();
   if (FRESH) { cp.done = []; log("Checkpoint cleared."); }
 
-  log(`Mode: ${DRY_RUN ? "DRY RUN (no DB writes)" : "LIVE"} | Limit: ${LIMIT} | Already done: ${cp.done.length}`);
+  const hunterKey = process.env.HUNTER_API_KEY;
+  const hBudget   = hunterKey ? hunterBudget() : null;
+  log(`Mode: ${DRY_RUN ? "DRY RUN (no DB writes)" : "LIVE"} | Limit: ${LIMIT} | Already done: ${cp.done.length}${hBudget ? ` | Hunter: ${hBudget.remaining}/${200} credits remaining today` : " | Hunter: disabled (no HUNTER_API_KEY)"}`);
 
   const candidates = await getCandidates(LIMIT, cp.done);
   log(`Found ${candidates.length} candidates to enrich`);
@@ -146,23 +238,28 @@ async function main() {
   let foundWebsite = 0;
   let noResult = 0;
 
+  // Live mode: buffer results for batch DB flush every BATCH_SIZE
+  const pendingWrites = [];
+
   for (const row of candidates) {
     const companyName = row.owner_name || row.manager_name || row.ism_manager;
     if (!companyName) { processed++; continue; }
 
     const managerName = row.manager_name || row.ism_manager || null;
+    const flagCountry = flagToCountry(row.flag) || undefined;
+    const enrichOpts  = {
+      ...(flagCountry ? { flagCountry } : {}),
+      ...(process.env.HUNTER_API_KEY ? { hunterApiKey: process.env.HUNTER_API_KEY } : {}),
+    };
 
-    log(`[${processed + 1}/${candidates.length}] IMO ${row.imo} — ${companyName} (${row.vessel_name}, age ${row.age}${row.detention_count > 0 ? ", DETAINED" : ""})`);
+    log(`[${processed + 1}/${candidates.length}] IMO ${row.imo} — ${companyName} (${row.vessel_name}, age ${row.age}${row.detention_count > 0 ? ", DETAINED" : ""}${flagCountry ? `, ${flagCountry}` : ""})`);
 
     try {
-      let result;
-
-      if (DRY_RUN) {
-        // Dry run: scrape but don't persist
-        result = await enrichCompanyContact(companyName, managerName);
-      } else {
-        result = await enrichWithDb(companyName, row.imo, pool, managerName);
-      }
+      const result = await withTimeout(
+        enrichCompanyContact(companyName, managerName, enrichOpts),
+        45_000,
+        companyName
+      );
 
       const gotEmail   = (result.emails?.length > 0) || !!result.bestEmail;
       const gotPhone   = result.phones?.length > 0;
@@ -181,7 +278,7 @@ async function main() {
 
       log(`  → ${summary || "nothing found"}`);
 
-      if (!DRY_RUN) cp.done.push(row.imo);
+      if (!DRY_RUN) pendingWrites.push({ imo: row.imo, result });
 
     } catch (e) {
       log(`  ✗ Error: ${e.message}`);
@@ -196,18 +293,22 @@ async function main() {
       log(`── Progress: ${processed} processed | ${foundEmail} email | ${foundPhone} phone | ${foundWebsite} website | email rate ${pct}% ──`);
     }
 
-    // Batch pause every BATCH_SIZE (don't pause after last item)
+    // Batch flush every BATCH_SIZE: one transaction → 10s pause
     if (processed % BATCH_SIZE === 0 && processed < candidates.length) {
+      if (!DRY_RUN && pendingWrites.length) {
+        await flushToDb(pendingWrites.splice(0), cp);
+      }
       log(`  [batch pause ${BATCH_PAUSE_MS / 1000}s]`);
-      if (!DRY_RUN) saveCheckpoint(cp);
       await sleep(BATCH_PAUSE_MS);
     } else {
       await randomDelay();
     }
   }
 
-  // Final checkpoint save
-  if (!DRY_RUN) saveCheckpoint(cp);
+  // Flush remaining items (last partial batch)
+  if (!DRY_RUN && pendingWrites.length) {
+    await flushToDb(pendingWrites.splice(0), cp);
+  }
 
   // ── Final report ─────────────────────────────────────────────────────────────
   const emailPct = processed > 0 ? ((foundEmail / processed) * 100).toFixed(1) : "0";

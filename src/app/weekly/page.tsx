@@ -74,6 +74,7 @@ function IssueCard({ d, isCurrent }: { d: WeeklyDigestSummary; isCurrent?: boole
                 width="100%"
                 height="100%"
                 theme="dark"
+                size="cover"
               />
             </div>
           )}

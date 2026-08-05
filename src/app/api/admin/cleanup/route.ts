@@ -28,7 +28,8 @@ const BAD_FILENAME = /signature|sign\b|logo|emblem|stamp|portrait|drawing|painti
 export async function GET(req: Request) {
   if (!auth(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const action = new URL(req.url).searchParams.get("action") ?? "status";
+  const url    = new URL(req.url);
+  const action = url.searchParams.get("action") ?? "status";
   const results: Record<string, any> = {};
 
   // ── Status ────────────────────────────────────────────────────────────────
@@ -229,6 +230,49 @@ export async function GET(req: Request) {
       await pool.query(`DELETE FROM weekly_digests WHERE id=$1`, [r.id]);
     }
     return NextResponse.json({ deleted_empty_digests: rows.length, weeks: rows.map(r => r.week_start) });
+  }
+
+  // ── Prune old digests (keep only May 2026+, event_count>0) ───────────────────
+  if (action === "prune-old-digests") {
+    const cutoff = url.searchParams.get("before") ?? "2026-05-04";
+
+    // Nullify FK references from digests being deleted
+    await pool.query(`
+      UPDATE weekly_digests SET lead_story_id = NULL
+      WHERE week_start < $1::date AND lead_story_id IS NOT NULL
+    `, [cutoff]);
+
+    const { rowCount: pruned } = await pool.query(
+      `DELETE FROM weekly_digests WHERE week_start < $1::date`, [cutoff]
+    );
+
+    // Also delete digests with no qualifying events
+    const { rows: emptyRows } = await pool.query(`
+      SELECT d.id, d.week_start::text
+      FROM weekly_digests d
+      WHERE NOT EXISTS (
+        SELECT 1 FROM radar_events re
+        WHERE COALESCE(re.event_date, re.created_at::date) BETWEEN d.week_start AND d.week_end
+          AND (re.event_type != 'sanction' OR re.event_date IS NOT NULL)
+          AND re.event_type NOT IN ('layup', 'judicial_auction')
+      )
+    `);
+    for (const r of emptyRows) {
+      await pool.query(`DELETE FROM weekly_digests WHERE id=$1`, [r.id]);
+    }
+
+    const { rows: remaining } = await pool.query(
+      `SELECT count(*)::int AS n, min(week_start)::text AS earliest, max(week_start)::text AS latest FROM weekly_digests`
+    );
+
+    return NextResponse.json({
+      deleted_old: pruned,
+      deleted_empty: emptyRows.length,
+      remaining: remaining[0].n,
+      earliest_week: remaining[0].earliest,
+      latest_week: remaining[0].latest,
+      cutoff,
+    });
   }
 
   if (action === "delete-sanctions") {

@@ -63,12 +63,28 @@ function groupByCategory(events: any[]): Record<string, { label: string; events:
 
 const EVENT_PRIORITY: Record<string, number> = { auction: 1, bank_seizure: 2, arrest: 3, bankruptcy: 4, sanction: 5, detention: 6, scrap_sale: 7 };
 
-function selectLead(events: any[]): any | null {
+// Returns IMOs (as text) that have a real photo in vessel_photos
+async function fetchPhotoImos(events: any[]): Promise<Set<string>> {
+  const imos = [...new Set(events.map((e: any) => e.imo).filter(Boolean))];
+  if (!imos.length) return new Set();
+  const { rows } = await pool.query(
+    `SELECT imo::text FROM vessel_photos
+     WHERE imo::text = ANY($1) AND photo_url IS NOT NULL AND photo_url <> 'none'`,
+    [imos]
+  );
+  return new Set(rows.map((r: any) => r.imo));
+}
+
+function selectLead(events: any[], photoImos: Set<string> = new Set()): any | null {
   if (!events.length) return null;
   return [...events].sort((a, b) => {
     const pa = EVENT_PRIORITY[a.event_type] ?? 99;
     const pb = EVENT_PRIORITY[b.event_type] ?? 99;
     if (pa !== pb) return pa - pb;
+    // Within same priority tier: prefer events with photos (better cover)
+    const aPhoto = photoImos.has(a.imo ?? "");
+    const bPhoto = photoImos.has(b.imo ?? "");
+    if (aPhoto !== bPhoto) return aPhoto ? -1 : 1;
     return (Number(b.deadweight) || 0) - (Number(a.deadweight) || 0);
   })[0];
 }
@@ -191,25 +207,29 @@ export async function GET(req: Request) {
   type WeekJob = { weekStart: Date; isRegen: boolean };
   const jobs: WeekJob[] = [];
 
+  // Backfill only touches weeks from May 2026 onwards (prevents THETIS old dates creating stale digests)
+  const BACKFILL_MIN_DATE = "2026-05-04";
+
   if (mode === "regen") {
     const { rows } = await pool.query(`SELECT week_start::text FROM weekly_digests ORDER BY week_start ASC`);
     for (const r of rows) {
       jobs.push({ weekStart: new Date(r.week_start + "T00:00:00Z"), isRegen: true });
     }
   } else if (mode === "current") {
-    // Current week (today is within this week)
     const now = new Date();
     const ws  = getMondayOf(now);
     jobs.push({ weekStart: ws, isRegen: false });
   } else {
-    // backfill: all weeks present in radar_events that have no digest
+    // backfill: weeks with events but no digest — only from BACKFILL_MIN_DATE onwards
     const { rows: existingRows } = await pool.query(`SELECT to_char(week_start,'YYYY-MM-DD') AS ws FROM weekly_digests`);
     const existing = new Set(existingRows.map((r: any) => r.ws));
 
     const { rows: weekRows } = await pool.query(`
       SELECT DISTINCT date_trunc('week', COALESCE(event_date, created_at::date))::date AS wmon
-      FROM radar_events ORDER BY wmon ASC
-    `);
+      FROM radar_events
+      WHERE COALESCE(event_date, created_at::date) >= $1::date
+      ORDER BY wmon ASC
+    `, [BACKFILL_MIN_DATE]);
     for (const r of weekRows) {
       const s = (r.wmon instanceof Date ? r.wmon.toISOString() : String(r.wmon)).slice(0, 10);
       if (!existing.has(s)) {
@@ -228,7 +248,9 @@ export async function GET(req: Request) {
     const events = await fetchEventsForWeek(ws, we);
     if (events.length === 0) { processed.push(`SKIP ${weekLabel} — no events`); continue; }
 
-    const lead = selectLead(events);
+    // Photo-aware lead selection: within same priority tier, prefer events with vessel photos
+    const photoImos = await fetchPhotoImos(events);
+    const lead = selectLead(events, photoImos);
     let leadId: number | null = lead?.id ?? null;
     let editorial: string | null = null;
 
@@ -243,11 +265,23 @@ export async function GET(req: Request) {
     }
 
     if (isRegen) {
+      // Regen: fully regenerate intro + update lead + event count
+      const groups = groupByCategory(events);
+      let introText: string | null = null;
+      try {
+        introText = await generateIntro(weekLabel, groups);
+      } catch (e: any) {
+        processed.push(`WARN ${weekLabel} intro failed: ${e.message}`);
+      }
       await pool.query(
-        `UPDATE weekly_digests SET lead_story_id=$1, event_count=$2 WHERE week_start=$3::date`,
-        [leadId, events.length, ws]
+        `UPDATE weekly_digests
+         SET lead_story_id=$1, event_count=$2,
+             intro_text=COALESCE($3, intro_text)
+         WHERE week_start=$4::date`,
+        [leadId, events.length, introText, ws]
       );
-      processed.push(`REGEN ${weekLabel} — ${events.length} events, lead=${leadId}`);
+      const hasPhoto = lead?.imo ? photoImos.has(lead.imo) : false;
+      processed.push(`REGEN ${weekLabel} — ${events.length} events, lead=${leadId}(${hasPhoto ? "photo" : "no-photo"}), intro=${!!introText}`);
       weeksCount++;
       continue;
     }

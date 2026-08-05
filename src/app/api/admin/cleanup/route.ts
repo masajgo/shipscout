@@ -210,6 +210,7 @@ export async function GET(req: Request) {
         SELECT 1 FROM radar_events re
         WHERE COALESCE(re.event_date, re.created_at::date) BETWEEN d.week_start AND d.week_end
           AND (re.event_type != 'sanction' OR re.event_date IS NOT NULL)
+          AND re.event_type NOT IN ('layup', 'judicial_auction')
       )
     `);
     for (const r of rows) {

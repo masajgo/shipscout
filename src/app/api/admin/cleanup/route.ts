@@ -202,10 +202,10 @@ export async function GET(req: Request) {
 
   // ── Delete baseline OFAC sanctions ─────────────────────────────────────────
   if (action === "delete-sanctions") {
-    const { rowCount } = await pool.query(
-      `DELETE FROM radar_events WHERE event_type = 'sanction'`
+    const res = await pool.query(
+      `DELETE FROM radar_events WHERE event_type = 'sanction' RETURNING id`
     );
-    return NextResponse.json({ deleted_sanctions: rowCount });
+    return NextResponse.json({ deleted_sanctions: res.rows.length });
   }
 
   return NextResponse.json({ error: "Unknown action. Use: status, fix-markdown, fix-photos, delete-old-data, migrate, publish-all, delete-sanctions" });

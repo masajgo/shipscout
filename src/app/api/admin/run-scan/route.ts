@@ -311,13 +311,18 @@ async function findMatchedVesselId(imo: string | null, vessel_name: string | nul
   return rows.length > 0 ? rows[0].mmsi : null;
 }
 
+function sanitizeDate(d: string | null): string | null {
+  if (!d) return null;
+  return /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null;
+}
+
 async function insertEvent(ev: ClassifiedEvent & { matched_vessel_id: string | null }) {
   await pool.query(
     `INSERT INTO radar_events
        (imo, vessel_name, event_type, event_date, location,
         source_name, summary, matched_vessel_id, raw_headline)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-    [ev.imo, ev.vessel_name, ev.event_type, ev.event_date, ev.location,
+    [ev.imo, ev.vessel_name, ev.event_type, sanitizeDate(ev.event_date), ev.location,
      ev.source_name, ev.summary, ev.matched_vessel_id, ev.raw_headline]
   );
 }

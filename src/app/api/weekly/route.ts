@@ -41,7 +41,7 @@ export async function GET() {
         d.created_at,
         rl.vessel_name                        AS lead_vessel_name,
         rl.event_type                         AS lead_event_type,
-        rl.vessel_type                        AS lead_vessel_type,
+        v.type                                AS lead_vessel_type,
         vp.photo_thumb                        AS lead_photo_thumb,
         vp.photo_url                          AS lead_photo_url,
         COUNT(CASE WHEN re.event_type IN ('arrest','bank_seizure') THEN 1 END)::int AS arrests,
@@ -51,6 +51,7 @@ export async function GET() {
         COUNT(CASE WHEN re.event_type = 'scrap_sale'              THEN 1 END)::int AS scrap_sales
       FROM weekly_digests d
       LEFT JOIN radar_events rl ON rl.id = d.lead_story_id
+      LEFT JOIN vessels v ON v.mmsi = rl.matched_vessel_id
       LEFT JOIN LATERAL (
         SELECT photo_thumb, photo_url
         FROM vessel_photos
@@ -62,7 +63,7 @@ export async function GET() {
         ON COALESCE(re.event_date, re.created_at::date) BETWEEN d.week_start AND d.week_end
         AND (re.event_type != 'sanction' OR re.event_date IS NOT NULL)
       WHERE d.published = true
-      GROUP BY d.id, rl.vessel_name, rl.event_type, rl.vessel_type, vp.photo_thumb, vp.photo_url
+      GROUP BY d.id, rl.vessel_name, rl.event_type, v.type, vp.photo_thumb, vp.photo_url
       ORDER BY d.week_start DESC
     `);
 

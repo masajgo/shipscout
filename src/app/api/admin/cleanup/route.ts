@@ -201,6 +201,23 @@ export async function GET(req: Request) {
   }
 
   // ── Delete baseline OFAC sanctions ─────────────────────────────────────────
+  // ── Delete digests with zero real events ──────────────────────────────────
+  if (action === "delete-empty-digests") {
+    const { rows } = await pool.query(`
+      SELECT d.id, d.week_start::text
+      FROM weekly_digests d
+      WHERE NOT EXISTS (
+        SELECT 1 FROM radar_events re
+        WHERE COALESCE(re.event_date, re.created_at::date) BETWEEN d.week_start AND d.week_end
+          AND (re.event_type != 'sanction' OR re.event_date IS NOT NULL)
+      )
+    `);
+    for (const r of rows) {
+      await pool.query(`DELETE FROM weekly_digests WHERE id=$1`, [r.id]);
+    }
+    return NextResponse.json({ deleted_empty_digests: rows.length, weeks: rows.map(r => r.week_start) });
+  }
+
   if (action === "delete-sanctions") {
     const { rows: cnt } = await pool.query(
       `SELECT count(*)::int AS n FROM radar_events WHERE event_type = 'sanction'`

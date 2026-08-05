@@ -241,9 +241,10 @@ export async function GET(req: Request) {
     }
 
     if (isRegen) {
-      if (leadId) {
-        await pool.query(`UPDATE weekly_digests SET lead_story_id=$1 WHERE week_start=$2::date`, [leadId, ws]);
-      }
+      await pool.query(
+        `UPDATE weekly_digests SET lead_story_id=$1, event_count=$2 WHERE week_start=$3::date`,
+        [leadId, events.length, ws]
+      );
       processed.push(`REGEN ${weekLabel} — ${events.length} events, lead=${leadId}`);
       weeksCount++;
       continue;

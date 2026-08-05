@@ -205,6 +205,13 @@ export async function GET(req: Request) {
     const { rows: cnt } = await pool.query(
       `SELECT count(*)::int AS n FROM radar_events WHERE event_type = 'sanction'`
     );
+    // Clear FK references before deleting
+    await pool.query(
+      `UPDATE weekly_digests SET lead_story_id = NULL
+       WHERE lead_story_id IN (
+         SELECT id FROM radar_events WHERE event_type = 'sanction'
+       )`
+    );
     await pool.query(`DELETE FROM radar_events WHERE event_type = 'sanction'`);
     return NextResponse.json({ deleted_sanctions: cnt[0].n });
   }

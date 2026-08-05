@@ -16,6 +16,11 @@ const RSS_SOURCES = [
   { name: "gCaptain",           url: "https://gcaptain.com/feed/" },
   { name: "Splash247",          url: "https://splash247.com/feed/" },
   { name: "Maritime Executive", url: "https://maritime-executive.com/feed" },
+  // porttechnology.org: robots.txt open (no AI-bot restrictions), feed HTTP 200
+  { name: "Port Technology",    url: "https://www.porttechnology.org/feed/" },
+  // Marine Insight / Seatrade / Hellenic explicitly block ClaudeBot → excluded
+  // TradeWinds / Lloyd's List → paywalled or no public feed
+  // Tokyo MOU: APCIS captcha-gated → no automated access; covered by THETIS (EU side)
 ];
 
 const OFAC_SDN_URL = "https://www.treasury.gov/ofac/downloads/sdn.xml";
@@ -107,22 +112,35 @@ async function classifyBatch(items: RSSItem[]): Promise<ClassifiedEvent[]> {
   const body = {
     model: HAIKU_MODEL, max_tokens: 2048,
     system: [
-      "You are a maritime intelligence classifier.",
-      "For each news headline+summary, determine if it describes a maritime event involving a SPECIFIC vessel or shipowner.",
+      "You are a maritime intelligence classifier for a distressed-vessel intelligence platform.",
+      "For each news headline+summary, determine if it describes an actionable maritime event involving a SPECIFIC vessel, fleet, or shipowner.",
       "",
-      "Event types:",
-      "  arrest        — vessel seized by port authority or law enforcement",
-      "  detention     — PSC detention for safety or compliance deficiencies",
-      "  bank_seizure  — vessel repossessed by mortgagee/lender",
-      "  judicial_auction — court-ordered sale of vessel",
-      "  bankruptcy    — shipowner/operator insolvency; extract company_name",
-      "  sanction      — vessel or owner on government sanctions list",
-      "  scrap_sale    — vessel sold for demolition",
+      "Event types and their trigger phrases:",
+      "  arrest        — vessel physically seized by port/coast guard/law enforcement",
+      "                  triggers: 'ship arrested', 'vessel seized by authorities', 'coast guard detained', 'port authority seized', 'cargo vessel seized'",
+      "  bank_seizure  — vessel repossessed or arrested by lender/mortgagee",
+      "                  triggers: 'mortgagee arrest', 'lender repossession', 'bank arrest', 'arrested by mortgagee', 'fleet seized by lender', 'ship repossessed'",
+      "  judicial_auction — court-ordered public sale of vessel",
+      "                  triggers: 'vessel auctioned by court', 'admiralty sale', 'judicial sale', 'court-ordered auction', 'admiralty court', 'forced sale'",
+      "  bankruptcy    — shipowner/operator enters insolvency, administration, or receivership; extract company_name even if no vessel named",
+      "                  triggers: 'owner files for insolvency', 'shipping company bankrupt', 'enters administration', 'receivership', 'Chapter 11', 'winding up', 'creditor protection', 'fleet sold in bankruptcy'",
+      "  sanction      — vessel or owner placed on government sanctions list",
+      "                  triggers: 'sanctioned', 'blacklisted', 'OFAC', 'EU sanctions', 'SDN list'",
+      "  scrap_sale    — vessel sold for demolition/scrapping",
+      "                  triggers: 'sold for scrap', 'sent to breakers', 'demolition sale', 'recycled', 'beached for scrapping'",
+      "  detention     — PSC inspection detention for safety/compliance deficiencies",
+      "                  triggers: 'detained by PSC', 'port state control detention', 'substandard vessel detained'",
       "",
-      "Return a JSON array with exactly one object per input item (same order).",
+      "Rules:",
+      "  - For bankruptcy: if no vessel name present, set vessel_name=null and extract company_name — the platform will link it to the company's fleet.",
+      "  - If multiple vessels are named in one article, output one entry per vessel (same index, different vessel_name).",
+      "  - event_date must be YYYY-MM-DD format only; if uncertain or only 'Monday'/'yesterday', set null.",
+      "  - imo must be a 7-digit number starting with 7, 8, or 9; otherwise null.",
+      "  - Set relevant=false for general market news, accidents, weather, port congestion, commodity prices, or analysis pieces without a specific actionable event.",
+      "",
+      "Return a JSON array with exactly one object per input item (same order, using original index).",
       "Each object: { index, relevant, event_type, vessel_name, company_name, imo, location, event_date, summary }",
-      "If not relevant, set relevant=false.",
-      "Return ONLY the JSON array. No prose, no markdown.",
+      "Return ONLY the JSON array. No prose, no markdown fences.",
     ].join("\n"),
     messages: [{ role: "user", content: `Classify these ${items.length} items:\n\n${inputLines}` }],
   };
@@ -423,6 +441,8 @@ export async function GET(req: Request) {
   let inserted = 0;
   let skipped  = 0;
   const details: string[] = [];
+  const byType: Record<string, number> = {};
+  const bySource: Record<string, number> = {};
 
   async function processEvent(ev: ClassifiedEvent, label: string, knownMmsi?: string | null) {
     if (!ev.event_type) { skipped++; return; }
@@ -433,6 +453,8 @@ export async function GET(req: Request) {
       await insertEvent({ ...ev, matched_vessel_id: matched_vessel_id ?? null });
       inserted++;
       details.push(`[${label}] ${ev.vessel_name || ev.imo} (${ev.event_type})`);
+      if (ev.event_type) byType[ev.event_type] = (byType[ev.event_type] ?? 0) + 1;
+      bySource[label] = (bySource[label] ?? 0) + 1;
     } catch (e: any) {
       skipped++;
       details.push(`[ERROR:${label}] ${e.message}`);
@@ -495,5 +517,11 @@ export async function GET(req: Request) {
     for (const ev of layups) await processEvent(ev, "LAYUP");
   }
 
-  return NextResponse.json({ rss_items: rssItems.length, inserted, skipped, details });
+  return NextResponse.json({
+    rss_items: rssItems.length,
+    inserted, skipped,
+    by_type: byType,
+    by_source: bySource,
+    details,
+  });
 }

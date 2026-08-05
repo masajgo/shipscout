@@ -215,3 +215,9 @@ Kalan blokajlar:
 - [ ] Photo scan ~%20 kaldı (DB-friendly batch mode hazır, caffeinate ile çalıştır)
 - [ ] Datalastic kredisi tükendi — weeklyRefresh.js kredi bekliyor, yeni kredi eklenmeli
 - [ ] Contact enrichment devam edebilir: node scripts/enrichOpportunityContacts.js --limit=200
+- [ ] Tokyo MOU detention data — KALICI KAPALI
+  - /inspections_detentions.php → 404 (eski CMS öldü)
+  - WordPress'e taşındı: /inspections-detentions/detention-list/ (200)
+  - Ama veri APCIS'te (apcis.tmou.org/public/) — CAPTCHA zorunlu
+  - Paris MOU EU tarafını THETIS API ile zaten çekiyoruz (kapsamı yeterli)
+  - Eylem: Tokyo MOU için ek kaynak gerekmez, günlük THETIS yeterli

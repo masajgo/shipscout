@@ -19,10 +19,11 @@ export interface WeeklyDigestSummary {
   lead_photo_thumb: string | null;
   lead_photo_url:   string | null;
   created_at:       string;
-  arrests:          number;
-  detentions:       number;
   auctions:         number;
+  arrests:          number;
+  bankruptcies:     number;
   sanctions:        number;
+  detentions:       number;
   scrap_sales:      number;
 }
 
@@ -44,11 +45,12 @@ export async function GET() {
         v.type                                AS lead_vessel_type,
         vp.photo_thumb                        AS lead_photo_thumb,
         vp.photo_url                          AS lead_photo_url,
-        COUNT(CASE WHEN re.event_type IN ('arrest','bank_seizure') THEN 1 END)::int AS arrests,
-        COUNT(CASE WHEN re.event_type = 'detention'               THEN 1 END)::int AS detentions,
-        COUNT(CASE WHEN re.event_type = 'auction'                 THEN 1 END)::int AS auctions,
+        COUNT(CASE WHEN re.event_type IN ('auction','bank_seizure') THEN 1 END)::int AS auctions,
+        COUNT(CASE WHEN re.event_type = 'arrest'                   THEN 1 END)::int AS arrests,
+        COUNT(CASE WHEN re.event_type = 'bankruptcy'               THEN 1 END)::int AS bankruptcies,
         COUNT(CASE WHEN re.event_type = 'sanction' AND re.event_date IS NOT NULL THEN 1 END)::int AS sanctions,
-        COUNT(CASE WHEN re.event_type = 'scrap_sale'              THEN 1 END)::int AS scrap_sales
+        COUNT(CASE WHEN re.event_type = 'detention'                THEN 1 END)::int AS detentions,
+        COUNT(CASE WHEN re.event_type = 'scrap_sale'               THEN 1 END)::int AS scrap_sales
       FROM weekly_digests d
       LEFT JOIN radar_events rl ON rl.id = d.lead_story_id
       LEFT JOIN vessels v ON v.mmsi = rl.matched_vessel_id

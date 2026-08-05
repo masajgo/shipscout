@@ -44,11 +44,12 @@ function toStr(d: Date): string { return d.toISOString().slice(0, 10); }
 // ── Category mapping ──────────────────────────────────────────────────────────
 
 const CATEGORIES = [
-  { key: "arrest_seizure", label: "Arrests & Seizures",  types: ["arrest", "bank_seizure"] },
-  { key: "auction",        label: "Judicial Auctions",   types: ["auction"] },
-  { key: "detention",      label: "PSC Detentions",      types: ["detention"] },
-  { key: "sanction",       label: "Sanctions",           types: ["sanction"] },
-  { key: "scrap_sale",     label: "Scrap Candidates",    types: ["scrap_sale"] },
+  { key: "auction",        label: "Judicial Auctions & Bank Seizures", types: ["auction", "bank_seizure"] },
+  { key: "arrest_seizure", label: "Arrests",                           types: ["arrest"] },
+  { key: "bankruptcy",     label: "Bankruptcies",                      types: ["bankruptcy"] },
+  { key: "sanction",       label: "Sanctions",                         types: ["sanction"] },
+  { key: "detention",      label: "PSC Detentions",                    types: ["detention"] },
+  { key: "scrap_sale",     label: "Scrap Candidates",                  types: ["scrap_sale"] },
 ];
 
 function groupByCategory(events: any[]): Record<string, { label: string; events: any[] }> {
@@ -60,7 +61,7 @@ function groupByCategory(events: any[]): Record<string, { label: string; events:
   return g;
 }
 
-const EVENT_PRIORITY: Record<string, number> = { arrest: 1, bank_seizure: 2, auction: 3, sanction: 4, detention: 5 };
+const EVENT_PRIORITY: Record<string, number> = { auction: 1, bank_seizure: 2, arrest: 3, bankruptcy: 4, sanction: 5, detention: 6, scrap_sale: 7 };
 
 function selectLead(events: any[]): any | null {
   if (!events.length) return null;

@@ -229,6 +229,57 @@ async function fetchOFAC(): Promise<{ events: ClassifiedEvent[]; publishDate: st
   return { events, publishDate };
 }
 
+// ── Paris MOU / THETIS current detentions ────────────────────────────────────
+
+const THETIS_URL = "https://portal.emsa.europa.eu/o/portlet-public/rest/detention/getCurrentDetentions.json";
+const THETIS_REFERER = "https://portal.emsa.europa.eu/widget/web/thetis/current-detentions/-/publicSiteDetention_WAR_portletpublic";
+
+function parseThetisDate(s: string | null): string | null {
+  if (!s) return null;
+  const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : null;
+}
+
+async function fetchThetisDetentions(): Promise<ClassifiedEvent[]> {
+  try {
+    const res = await fetch(THETIS_URL, {
+      headers: {
+        "User-Agent": "ShipScout-RadarBot/1.0 (shipscout.io; mailto:ardavcioglu@gmail.com)",
+        "Referer": THETIS_REFERER,
+        "Accept": "application/json",
+      },
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const detentions: any[] = data.results ?? [];
+    return detentions.map(d => {
+      const imo      = d.imoNumber || null;
+      const name     = d.shipName  || null;
+      const port     = d.detentionPort?.name || null;
+      const country  = d.detentionReportingAuthority?.description || null;
+      const flag     = d.flag?.description || null;
+      const shipType = d.shipType?.description || null;
+      const location = [port, country].filter(Boolean).join(", ") || null;
+      const eventDate = parseThetisDate(d.detentionDate);
+      return {
+        imo, vessel_name: name, company_name: null,
+        event_type: "detention",
+        event_date: eventDate,
+        location,
+        source_name: "Paris MOU (THETIS)",
+        summary: [
+          `${name || "Vessel"} (IMO ${imo || "?"}) detained by Port State Control`,
+          location ? `at ${location}` : null,
+          flag ? `Flag: ${flag}.` : null,
+          shipType ? `Type: ${shipType}.` : null,
+        ].filter(Boolean).join(" ") + ".",
+        raw_headline: `Paris MOU detention — ${name} (IMO ${imo}) — ${location || "?"} — ${d.detentionDate || "?"}`,
+      };
+    });
+  } catch { return []; }
+}
+
 // ── Judicial auctions (UK Admiralty Marshal) ──────────────────────────────────
 
 async function fetchAuctions(): Promise<ClassifiedEvent[]> {
@@ -279,9 +330,24 @@ async function fetchLayups(): Promise<ClassifiedEvent[]> {
 
 // ── DB helpers ────────────────────────────────────────────────────────────────
 
-async function isDuplicate(imo: string | null, vessel_name: string | null, event_type: string): Promise<boolean> {
-  // Sanctions use permanent dedup (no time window) — the full OFAC list is static
+async function isDuplicate(
+  imo: string | null, vessel_name: string | null,
+  event_type: string, event_date?: string | null
+): Promise<boolean> {
   const isPermanent = event_type === "sanction";
+  // Detentions: dedup by imo + event_date (±DEDUP_DAYS) to prevent daily re-import
+  const isDetention = event_type === "detention" && imo && event_date;
+  if (isDetention) {
+    const { rows } = await pool.query(
+      `SELECT 1 FROM radar_events
+       WHERE imo=$1 AND event_type='detention'
+         AND event_date BETWEEN ($2::date - interval '${DEDUP_DAYS} days')
+                            AND ($2::date + interval '${DEDUP_DAYS} days')
+       LIMIT 1`,
+      [imo, event_date]
+    );
+    return rows.length > 0;
+  }
   if (imo) {
     const q = isPermanent
       ? `SELECT 1 FROM radar_events WHERE imo=$1 AND event_type=$2 LIMIT 1`
@@ -349,9 +415,10 @@ export async function GET(req: Request) {
   }
 
   const skip = url.searchParams.get("skip") ?? "";
-  const skipOfac    = skip.includes("ofac");
-  const skipLayup   = skip.includes("layup");
-  const skipAuction = skip.includes("auction");
+  const skipOfac      = skip.includes("ofac");
+  const skipLayup     = skip.includes("layup");
+  const skipAuction   = skip.includes("auction");
+  const skipThetis    = skip.includes("thetis");
 
   let inserted = 0;
   let skipped  = 0;
@@ -360,7 +427,7 @@ export async function GET(req: Request) {
   async function processEvent(ev: ClassifiedEvent, label: string, knownMmsi?: string | null) {
     if (!ev.event_type) { skipped++; return; }
     try {
-      const dup = await isDuplicate(ev.imo, ev.vessel_name, ev.event_type);
+      const dup = await isDuplicate(ev.imo, ev.vessel_name, ev.event_type, ev.event_date);
       if (dup) { skipped++; return; }
       const matched_vessel_id = knownMmsi ?? await findMatchedVesselId(ev.imo, ev.vessel_name);
       await insertEvent({ ...ev, matched_vessel_id: matched_vessel_id ?? null });
@@ -415,7 +482,14 @@ export async function GET(req: Request) {
     for (const ev of auctions) await processEvent(ev, "AUCTION");
   }
 
-  // 4. Layup
+  // 4. Paris MOU / THETIS detentions (daily diff — only new detentions inserted)
+  if (!skipThetis) {
+    const thetisEvs = await fetchThetisDetentions();
+    for (const ev of thetisEvs) await processEvent(ev, "THETIS");
+    details.push(`THETIS: ${thetisEvs.length} current detentions fetched`);
+  }
+
+  // 5. Layup
   if (!skipLayup) {
     const layups = await fetchLayups();
     for (const ev of layups) await processEvent(ev, "LAYUP");

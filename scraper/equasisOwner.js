@@ -458,4 +458,34 @@ if (require.main === module) {
   });
 }
 
-module.exports = { parseShipPage, login, getOwner };
+/**
+ * Parses the Equasis ShipHistory tab HTML to extract all historical ship names.
+ * Returns an array of unique names (may include the current name as the first entry).
+ */
+function parseShipNamesFromHistory(html) {
+  const $ = cheerio.load(html);
+  const names = [];
+
+  $('table').each((_, table) => {
+    // Build column-index map from data-field or header text
+    const colMap = {};
+    $(table).find('thead th').each((i, th) => {
+      const field = ($(th).attr('data-field') || $(th).text().trim()).toLowerCase().replace(/\s+/g, ' ');
+      colMap[field] = i;
+    });
+
+    const nameKey = Object.keys(colMap).find(k => k.includes('ship name') || k === 'name');
+    if (nameKey === undefined) return;
+
+    const nameIdx = colMap[nameKey];
+    $(table).find('tbody tr').each((_, tr) => {
+      const cells = $(tr).find('td').map((_, td) => $(td).text().trim().replace(/\s+/g, ' ')).get();
+      const name = cells[nameIdx]?.trim();
+      if (name && name.length > 1) names.push(name);
+    });
+  });
+
+  return [...new Set(names)];
+}
+
+module.exports = { parseShipPage, parseShipNamesFromHistory, login, getOwner };

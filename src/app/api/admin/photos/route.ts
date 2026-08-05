@@ -1,6 +1,66 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
+const COMMONS_API = "https://commons.wikimedia.org/w/api.php";
+const CC_LICENSES = ["cc-by", "cc-by-sa", "cc0", "pd", "public domain"];
+
+function isCC(lic: string) {
+  return CC_LICENSES.some(cc => lic.toLowerCase().includes(cc));
+}
+function stripHtml(s: string) {
+  return s.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&quot;/g, '"').trim();
+}
+
+/** Resolve a Wikimedia Commons file URL or page title to its metadata. */
+async function resolveCommonsFile(input: string): Promise<{
+  url: string; thumb: string; artist: string; license: string;
+  licenseUrl: string; attribution: string; pageUrl: string;
+} | null> {
+  // Accept full upload.wikimedia.org URLs or "File:Name.jpg" titles
+  let title = input;
+  if (input.includes("upload.wikimedia.org")) {
+    // Extract filename from URL: .../commons/a/ab/Filename.jpg
+    const m = input.match(/\/commons\/[a-f0-9]\/[a-f0-9]{2}\/(.+?)(?:\?|$)/);
+    if (!m) return null;
+    title = `File:${decodeURIComponent(m[1])}`;
+  } else if (!input.startsWith("File:") && !input.startsWith("file:")) {
+    title = `File:${input}`;
+  }
+
+  const params = new URLSearchParams({
+    action: "query", titles: title,
+    prop: "imageinfo", iiprop: "url|extmetadata|mime",
+    iiurlwidth: "960", format: "json", origin: "*",
+  });
+  const res = await fetch(`${COMMONS_API}?${params}`, {
+    headers: { "User-Agent": "ShipScout-PhotoBot/1.0 (shipscout.io; mailto:ardavcioglu@gmail.com)" },
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!res.ok) throw new Error(`Commons API ${res.status}`);
+  const data = await res.json();
+  const page  = Object.values(data?.query?.pages ?? {})[0] as any;
+  if (!page || page.missing !== undefined) return null;
+
+  const ii     = page.imageinfo?.[0];
+  if (!ii) return null;
+  if (ii.mime && !ii.mime.startsWith("image/")) throw new Error("Not an image file");
+
+  const meta    = ii.extmetadata ?? {};
+  const license = meta.LicenseShortName?.value ?? meta.License?.value ?? "";
+  if (!isCC(license)) throw new Error(`License not CC/PD: "${license}"`);
+
+  const artist = stripHtml(meta.Artist?.value ?? "");
+  return {
+    url:         ii.url,
+    thumb:       ii.thumburl ?? ii.url,
+    artist,
+    license,
+    licenseUrl:  meta.LicenseUrl?.value ?? "",
+    attribution: artist ? `© ${artist} / ${license}` : license,
+    pageUrl:     `https://commons.wikimedia.org/wiki/${encodeURIComponent(page.title ?? "")}`,
+  };
+}
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -82,4 +142,75 @@ export async function GET(req: NextRequest) {
   } catch (e: unknown) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
+}
+
+// POST /api/admin/photos
+// Body: { key, imo, file_url, is_primary? }
+// Resolves the Commons file, checks CC license, saves to vessel_photos.
+export async function POST(req: NextRequest) {
+  if (!checkAuth(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let body: Record<string, any>;
+  try { body = await req.json(); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
+
+  // Auth from body too (for CLI scripts that pass key in body)
+  if (body.key && body.key !== process.env.ADMIN_SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { imo, file_url, is_primary = true } = body;
+  if (!imo)      return NextResponse.json({ error: "imo required" },      { status: 400 });
+  if (!file_url) return NextResponse.json({ error: "file_url required" }, { status: 400 });
+
+  // Validate IMO format
+  if (!/^[789][0-9]{6}$/.test(String(imo))) {
+    return NextResponse.json({ error: "imo must be a 7-digit IMO number starting with 7,8 or 9" }, { status: 400 });
+  }
+
+  let fileInfo: Awaited<ReturnType<typeof resolveCommonsFile>>;
+  try {
+    fileInfo = await resolveCommonsFile(file_url);
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 400 });
+  }
+  if (!fileInfo) {
+    return NextResponse.json({ error: "File not found on Wikimedia Commons" }, { status: 404 });
+  }
+
+  // If setting as primary, demote any existing primary
+  if (is_primary) {
+    await pool.query(
+      `UPDATE vessel_photos SET is_primary = false WHERE imo = $1::bigint AND is_primary = true`,
+      [imo]
+    );
+  }
+
+  // Remove sentinel if present
+  await pool.query(`DELETE FROM vessel_photos WHERE imo = $1::bigint AND photo_url = 'none'`, [imo]);
+
+  const { rows } = await pool.query(`
+    INSERT INTO vessel_photos
+      (imo, photo_url, photo_thumb, artist, license, license_url,
+       source, page_url, attribution, is_primary, match_confidence)
+    VALUES ($1,$2,$3,$4,$5,$6,'Wikimedia Commons',$7,$8,$9,'manual')
+    ON CONFLICT DO NOTHING
+    RETURNING id
+  `, [BigInt(imo), fileInfo.url, fileInfo.thumb, fileInfo.artist, fileInfo.license,
+      fileInfo.licenseUrl, fileInfo.pageUrl, fileInfo.attribution, is_primary]);
+
+  if (!rows.length) {
+    return NextResponse.json({ skipped: true, reason: "Duplicate URL already in vessel_photos" });
+  }
+
+  return NextResponse.json({
+    inserted: true,
+    id:       rows[0].id,
+    imo,
+    license:  fileInfo.license,
+    artist:   fileInfo.artist,
+    url:      fileInfo.url,
+    thumb:    fileInfo.thumb,
+  });
 }

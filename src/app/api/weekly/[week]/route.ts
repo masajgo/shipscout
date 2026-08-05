@@ -38,6 +38,20 @@ export interface WeeklyDigestEvent {
   owner_name:        string | null;
   manager_name:      string | null;
   has_contact:       boolean;
+  status:            string;
+}
+
+export interface OngoingCase {
+  id:          number;
+  imo:         string | null;
+  vessel_name: string | null;
+  event_type:  string;
+  event_date:  string;
+  location:    string | null;
+  vessel_type: string | null;
+  vessel_dwt:  number | null;
+  vessel_flag: string | null;
+  days_open:   number;
 }
 
 export interface WeeklyDigestDetail {
@@ -51,6 +65,7 @@ export interface WeeklyDigestDetail {
   lead_story_id: number | null;
   created_at:    string;
   events:        WeeklyDigestEvent[];
+  ongoing_cases: OngoingCase[];
 }
 
 export async function GET(
@@ -101,7 +116,8 @@ export async function GET(
         vp.license_url          AS photo_license_url,
         o.owner_name,
         o.manager_name,
-        (o.emails IS NOT NULL AND array_length(o.emails, 1) > 0) AS has_contact
+        (o.emails IS NOT NULL AND array_length(o.emails, 1) > 0) AS has_contact,
+        re.status
       FROM radar_events re
       LEFT JOIN vessels v ON v.mmsi = re.matched_vessel_id
       LEFT JOIN LATERAL (
@@ -119,6 +135,30 @@ export async function GET(
       ORDER BY re.event_date ASC NULLS LAST, re.created_at ASC
     `, [digest.week_start, digest.week_end]);
 
+    // Ongoing cases: active high-severity events that started before this week
+    const ongoingRes = await pool.query<OngoingCase>(`
+      SELECT
+        re.id,
+        re.imo,
+        re.vessel_name,
+        re.event_type,
+        re.event_date::text,
+        re.location,
+        v.type  AS vessel_type,
+        v.deadweight AS vessel_dwt,
+        v.flag  AS vessel_flag,
+        ($1::date - re.event_date)::int AS days_open
+      FROM radar_events re
+      LEFT JOIN vessels v ON v.mmsi = re.matched_vessel_id
+      WHERE re.event_type IN ('arrest','bank_seizure','auction','bankruptcy')
+        AND re.status = 'active'
+        AND re.event_date IS NOT NULL
+        AND re.event_date < $1::date
+        AND re.event_date >= ($1::date - interval '730 days')
+      ORDER BY re.event_date ASC
+      LIMIT 50
+    `, [digest.week_start]);
+
     const cleanDigest = {
       ...digest,
       intro_text: stripMd(digest.intro_text),
@@ -127,6 +167,7 @@ export async function GET(
         editorial_summary: stripMd(ev.editorial_summary),
         summary: stripMd(ev.summary) ?? ev.summary,
       })),
+      ongoing_cases: ongoingRes.rows,
     };
 
     return NextResponse.json(

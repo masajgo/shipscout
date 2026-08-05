@@ -181,6 +181,18 @@ export async function GET(req: Request) {
            ALTER TABLE radar_events DROP CONSTRAINT IF EXISTS radar_events_event_type_check;
          END IF;
        END $$`,
+      // Status column for tracking resolution state
+      `ALTER TABLE radar_events ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active'`,
+      `DO $$ BEGIN
+         IF NOT EXISTS (
+           SELECT 1 FROM information_schema.table_constraints
+           WHERE table_name='radar_events' AND constraint_name='radar_events_status_check'
+         ) THEN
+           ALTER TABLE radar_events ADD CONSTRAINT radar_events_status_check
+             CHECK (status IN ('active','resolved','sold','scrapped'));
+         END IF;
+       END $$`,
+      `CREATE INDEX IF NOT EXISTS radar_events_status_idx ON radar_events(status) WHERE status != 'active'`,
     ];
     const done: string[] = [];
     for (const sql of migrations) {

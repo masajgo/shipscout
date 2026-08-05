@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { use } from "react";
 import VesselTypeSVG from "@/components/VesselTypeSVG";
-import type { WeeklyDigestDetail, WeeklyDigestEvent } from "@/app/api/weekly/[week]/route";
+import type { WeeklyDigestDetail, WeeklyDigestEvent, OngoingCase } from "@/app/api/weekly/[week]/route";
 
 // ─── Tokens ────────────────────────────────────────────────────────────────────
 const NAVY  = "#101828";
@@ -313,6 +313,104 @@ function CategorySection({
   );
 }
 
+// ─── Ongoing Cases ───────────────────────────────────────────────────────────────
+function OngoingCases({ cases, weekSlug }: { cases: OngoingCase[]; weekSlug: string }) {
+  if (cases.length === 0) return null;
+
+  return (
+    <section style={{ marginBottom: 64 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 24,
+        paddingBottom: 14, borderBottom: `2px solid #DC2626` }}>
+        <h2 style={{ fontSize: 11, fontWeight: 900, color: NAVY, margin: 0,
+          textTransform: "uppercase", letterSpacing: "0.16em", fontFamily: "Inter, sans-serif" }}>
+          Ongoing Cases
+        </h2>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", fontFamily: "Inter, sans-serif" }}>
+          {cases.length}
+        </span>
+        <div style={{ flex: 1, height: 1, background: "#DC2626", opacity: 0.2 }} />
+        <span style={{ fontSize: 10, color: "#9CA3AF", fontFamily: "Inter, sans-serif",
+          fontStyle: "italic", whiteSpace: "nowrap" }}>
+          Active cases from prior weeks
+        </span>
+      </div>
+
+      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" as any }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 520 }}>
+          <thead>
+            <tr>
+              {["Event", "Vessel", "Type / DWT", "Location", "Since", "Days Open"].map(h => (
+                <th key={h} style={{ padding: "0 16px 12px 0", textAlign: "left",
+                  fontSize: 10, fontWeight: 700, color: "#9CA3AF",
+                  textTransform: "uppercase", letterSpacing: "0.1em",
+                  fontFamily: "Inter, sans-serif", whiteSpace: "nowrap",
+                  borderBottom: "1px solid #E5E7EB" }}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {cases.map(c => {
+              const c2 = cfg(c.event_type);
+              const name = c.vessel_name || (c.imo ? `IMO ${c.imo}` : "—");
+              const dwt  = c.vessel_dwt ? `${Number(c.vessel_dwt).toLocaleString()} DWT` : null;
+              const typeSpec = [c.vessel_type, dwt].filter(Boolean).join(" · ") || "—";
+              const urgency = c.days_open >= 180
+                ? { color: "#DC2626", weight: 800 }
+                : c.days_open >= 90
+                ? { color: "#D97706", weight: 700 }
+                : { color: "#6B7280", weight: 600 };
+
+              return (
+                <tr key={c.id} style={{ borderBottom: "1px solid #F3F4F6" }}>
+                  <td style={{ padding: "0 16px 0 0", height: 52, verticalAlign: "middle", whiteSpace: "nowrap" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ width: 3, height: 14, background: c2.bar, borderRadius: 2, flexShrink: 0, display: "inline-block" }} />
+                      <span style={{ fontSize: 10, fontWeight: 700, color: c2.color,
+                        textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: "Inter, sans-serif" }}>
+                        {c2.label}
+                      </span>
+                    </span>
+                  </td>
+                  <td style={{ padding: "0 16px 0 0", verticalAlign: "middle" }}>
+                    <div style={{ fontWeight: 700, color: NAVY, fontFamily: "var(--font-serif, Georgia, serif)", fontSize: 14 }}>
+                      {name}
+                    </div>
+                    {c.imo && (
+                      <div style={{ fontSize: 10, color: "#9CA3AF", fontFamily: "monospace", marginTop: 1 }}>
+                        IMO {c.imo}
+                      </div>
+                    )}
+                  </td>
+                  <td style={{ padding: "0 16px 0 0", fontSize: 12, color: "#6B7280",
+                    fontFamily: "Inter, sans-serif", verticalAlign: "middle", whiteSpace: "nowrap" }}>
+                    {typeSpec}
+                  </td>
+                  <td style={{ padding: "0 16px 0 0", fontSize: 12, color: "#6B7280",
+                    fontFamily: "Inter, sans-serif", verticalAlign: "middle", maxWidth: 140 }}>
+                    {c.location || "—"}
+                  </td>
+                  <td style={{ padding: "0 16px 0 0", fontSize: 12, color: "#9CA3AF",
+                    fontFamily: "Inter, sans-serif", whiteSpace: "nowrap", verticalAlign: "middle" }}>
+                    {formatDateShort(c.event_date)}
+                  </td>
+                  <td style={{ padding: "0", verticalAlign: "middle" }}>
+                    <span style={{ fontSize: 13, fontWeight: urgency.weight, color: urgency.color,
+                      fontFamily: "Inter, sans-serif" }}>
+                      {c.days_open}d
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 // ─── Distressed Fleet Watch ───────────────────────────────────────────────────────
 function DistressedFleetWatch({ events, weekSlug }: { events: WeeklyDigestEvent[]; weekSlug: string }) {
   const [expanded, setExpanded] = useState(false);
@@ -552,6 +650,9 @@ export default function WeeklyDigestPage({ params }: { params: Promise<{ week: s
 
           {/* ── Lead Story ── */}
           {leadEvent && <LeadStory ev={leadEvent} weekSlug={week} />}
+
+          {/* ── Ongoing Cases ── */}
+          <OngoingCases cases={digest.ongoing_cases ?? []} weekSlug={week} />
 
           {/* ── Distressed Fleet Watch ── */}
           <DistressedFleetWatch events={digest.events} weekSlug={week} />

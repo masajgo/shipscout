@@ -11,6 +11,7 @@ interface Props {
   height?:     number | string;
   className?:  string;
   theme?:      "dark" | "light";
+  size?:       "cover" | "card";
 }
 
 function normalise(t?: string | null): string {
@@ -150,7 +151,7 @@ function DefaultSVG({ stroke }: { stroke: string }) {
 }
 
 export default function VesselTypeSVG({
-  vesselType, imo, width = "100%", height = "100%", className, theme = "dark",
+  vesselType, imo, width = "100%", height = "100%", className, theme = "dark", size = "card",
 }: Props) {
   const type      = normalise(vesselType);
   const typeLabel = vesselType ?? "Vessel";
@@ -184,19 +185,25 @@ export default function VesselTypeSVG({
       style={{ background: bg, display: "block" }}
       aria-label={`${typeLabel} silhouette`}
     >
-      <line x1="0" y1="170" x2="400" y2="170" stroke={accent} strokeWidth="1.5" opacity="0.35" />
+      <line x1="0" y1="170" x2="400" y2="170" stroke={accent}
+        strokeWidth={size === "cover" ? "2.5" : "1.5"}
+        opacity={size === "cover" ? "0.7" : "0.35"} />
+
+      {size === "cover" && (
+        <line x1="0" y1="6" x2="400" y2="6" stroke={accent} strokeWidth="2.5" opacity="0.7" />
+      )}
 
       {shapes[type] ?? shapes.default}
 
       <text x="200" y="168" textAnchor="middle"
-        fill={textFill} fontSize="9" fontFamily="Inter, sans-serif"
-        letterSpacing="2" opacity="0.65">
+        fill={textFill} fontSize={size === "cover" ? "13" : "9"} fontFamily="Inter, sans-serif"
+        letterSpacing="2" opacity="0.8" fontWeight={size === "cover" ? "600" : "400"}>
         {typeLabel.toUpperCase()}
       </text>
 
       {imo && (
-        <text x="200" y="30" textAnchor="middle"
-          fill={imoFill} fontSize="10" fontFamily="monospace" opacity="0.5">
+        <text x="200" y="28" textAnchor="middle"
+          fill={imoFill} fontSize={size === "cover" ? "12" : "10"} fontFamily="monospace" opacity="0.6">
           IMO {imo}
         </text>
       )}

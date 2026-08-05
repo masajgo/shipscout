@@ -204,6 +204,7 @@ export async function GET(
        FROM radar_events re ${EVENT_JOINS}
        WHERE re.id != $1
          AND COALESCE(re.event_date, re.created_at::date) BETWEEN $2::date AND $3::date
+         AND (re.event_type != 'sanction' OR re.event_date IS NOT NULL)
        ORDER BY re.event_date ASC NULLS LAST, re.created_at ASC
        LIMIT 4`,
       [id, digest.week_start, digest.week_end]

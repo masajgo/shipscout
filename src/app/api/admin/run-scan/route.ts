@@ -175,16 +175,20 @@ async function classifyAll(items: RSSItem[]): Promise<ClassifiedEvent[]> {
 
 // ── OFAC SDN ──────────────────────────────────────────────────────────────────
 
-async function fetchOFAC(): Promise<ClassifiedEvent[]> {
+async function fetchOFAC(): Promise<{ events: ClassifiedEvent[]; publishDate: string | null }> {
   let xml: string;
   try {
     const res = await fetch(OFAC_SDN_URL, {
       headers: { "User-Agent": "ShipScout-RadarBot/1.0" },
       signal: AbortSignal.timeout(120_000),
     });
-    if (!res.ok) return [];
+    if (!res.ok) return { events: [], publishDate: null };
     xml = await res.text();
-  } catch { return []; }
+  } catch { return { events: [], publishDate: null }; }
+
+  // Extract publication date (MM/DD/YYYY → YYYY-MM-DD)
+  const pubM = xml.match(/<Publish_Date>(\d{2})\/(\d{2})\/(\d{4})<\/Publish_Date>/i);
+  const publishDate = pubM ? `${pubM[3]}-${pubM[1]}-${pubM[2]}` : null;
 
   const events: ClassifiedEvent[] = [];
   const entryRe = /<sdnEntry>([\s\S]*?)<\/sdnEntry>/gi;
@@ -195,6 +199,7 @@ async function fetchOFAC(): Promise<ClassifiedEvent[]> {
     if (!sdnType || sdnType.toLowerCase() !== "vessel") continue;
     const vesselName = extractFirst(entry, "lastName");
     if (!vesselName) continue;
+    const uid = extractFirst(entry, "uid") ?? "";
 
     let imo: string | null = null;
     const idListM = entry.match(/<idList>([\s\S]*?)<\/idList>/i);
@@ -218,10 +223,10 @@ async function fetchOFAC(): Promise<ClassifiedEvent[]> {
       event_type: "sanction", event_date: null, location: null,
       source_name: "OFAC SDN",
       summary: `Vessel sanctioned under OFAC program(s): ${programs}.`,
-      raw_headline: `OFAC SDN: ${vesselName} (IMO ${imo}) — ${programs}`,
+      raw_headline: `OFAC SDN uid:${uid} — ${vesselName} (IMO ${imo}) — ${programs}`,
     });
   }
-  return events;
+  return { events, publishDate };
 }
 
 // ── Judicial auctions (UK Admiralty Marshal) ──────────────────────────────────
@@ -275,20 +280,20 @@ async function fetchLayups(): Promise<ClassifiedEvent[]> {
 // ── DB helpers ────────────────────────────────────────────────────────────────
 
 async function isDuplicate(imo: string | null, vessel_name: string | null, event_type: string): Promise<boolean> {
+  // Sanctions use permanent dedup (no time window) — the full OFAC list is static
+  const isPermanent = event_type === "sanction";
   if (imo) {
-    const { rows } = await pool.query(
-      `SELECT 1 FROM radar_events WHERE imo=$1 AND event_type=$2
-       AND created_at > now() - interval '${DEDUP_DAYS} days' LIMIT 1`,
-      [imo, event_type]
-    );
+    const q = isPermanent
+      ? `SELECT 1 FROM radar_events WHERE imo=$1 AND event_type=$2 LIMIT 1`
+      : `SELECT 1 FROM radar_events WHERE imo=$1 AND event_type=$2 AND created_at > now() - interval '${DEDUP_DAYS} days' LIMIT 1`;
+    const { rows } = await pool.query(q, [imo, event_type]);
     return rows.length > 0;
   }
   if (vessel_name) {
-    const { rows } = await pool.query(
-      `SELECT 1 FROM radar_events WHERE UPPER(vessel_name)=UPPER($1) AND event_type=$2
-       AND created_at > now() - interval '${DEDUP_DAYS} days' LIMIT 1`,
-      [vessel_name, event_type]
-    );
+    const q = isPermanent
+      ? `SELECT 1 FROM radar_events WHERE UPPER(vessel_name)=UPPER($1) AND event_type=$2 LIMIT 1`
+      : `SELECT 1 FROM radar_events WHERE UPPER(vessel_name)=UPPER($1) AND event_type=$2 AND created_at > now() - interval '${DEDUP_DAYS} days' LIMIT 1`;
+    const { rows } = await pool.query(q, [vessel_name, event_type]);
     return rows.length > 0;
   }
   return false;
@@ -388,8 +393,15 @@ export async function GET(req: Request) {
 
   // 2. OFAC
   if (!skipOfac) {
-    const ofacEvents = await fetchOFAC();
-    for (const ev of ofacEvents) await processEvent(ev, "OFAC");
+    const ofacMode = url.searchParams.get("ofac_mode") ?? "delta";
+    const { events: ofacEvents, publishDate } = await fetchOFAC();
+    for (const ev of ofacEvents) {
+      const eventWithDate = ofacMode === "baseline"
+        ? { ...ev, event_date: null }           // baseline: no date, excluded from digests
+        : { ...ev, event_date: publishDate };   // delta: use list publish date
+      await processEvent(eventWithDate, "OFAC");
+    }
+    details.push(`OFAC: ${ofacEvents.length} vessel entries, mode=${ofacMode}, publishDate=${publishDate}`);
   }
 
   // 3. Judicial auctions

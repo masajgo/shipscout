@@ -15,6 +15,7 @@ export interface WeeklyDigestSummary {
   lead_story_id:    number | null;
   lead_vessel_name: string | null;
   lead_event_type:  string | null;
+  lead_vessel_type: string | null;
   lead_photo_thumb: string | null;
   lead_photo_url:   string | null;
   created_at:       string;
@@ -40,26 +41,28 @@ export async function GET() {
         d.created_at,
         rl.vessel_name                        AS lead_vessel_name,
         rl.event_type                         AS lead_event_type,
+        rl.vessel_type                        AS lead_vessel_type,
         vp.photo_thumb                        AS lead_photo_thumb,
         vp.photo_url                          AS lead_photo_url,
         COUNT(CASE WHEN re.event_type IN ('arrest','bank_seizure') THEN 1 END)::int AS arrests,
         COUNT(CASE WHEN re.event_type = 'detention'               THEN 1 END)::int AS detentions,
         COUNT(CASE WHEN re.event_type = 'auction'                 THEN 1 END)::int AS auctions,
-        COUNT(CASE WHEN re.event_type = 'sanction'                THEN 1 END)::int AS sanctions,
+        COUNT(CASE WHEN re.event_type = 'sanction' AND re.event_date IS NOT NULL THEN 1 END)::int AS sanctions,
         COUNT(CASE WHEN re.event_type = 'scrap_sale'              THEN 1 END)::int AS scrap_sales
       FROM weekly_digests d
       LEFT JOIN radar_events rl ON rl.id = d.lead_story_id
       LEFT JOIN LATERAL (
         SELECT photo_thumb, photo_url
         FROM vessel_photos
-        WHERE imo::text = rl.imo AND photo_url IS NOT NULL
+        WHERE imo::text = rl.imo AND photo_url IS NOT NULL AND photo_url <> 'none'
         ORDER BY is_primary DESC NULLS LAST, id ASC
         LIMIT 1
       ) vp ON true
       LEFT JOIN radar_events re
         ON COALESCE(re.event_date, re.created_at::date) BETWEEN d.week_start AND d.week_end
+        AND (re.event_type != 'sanction' OR re.event_date IS NOT NULL)
       WHERE d.published = true
-      GROUP BY d.id, rl.vessel_name, rl.event_type, vp.photo_thumb, vp.photo_url
+      GROUP BY d.id, rl.vessel_name, rl.event_type, rl.vessel_type, vp.photo_thumb, vp.photo_url
       ORDER BY d.week_start DESC
     `);
 

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { WeeklyDigestSummary } from "@/app/api/weekly/route";
+import VesselTypeSVG from "@/components/VesselTypeSVG";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
@@ -37,7 +38,8 @@ function CategoryPill({ label, count, style }: {
 
 function IssueCard({ d, isCurrent }: { d: WeeklyDigestSummary; isCurrent?: boolean }) {
   const [hover, setHover] = useState(false);
-  const hasPhoto = !!d.lead_photo_thumb || !!d.lead_photo_url;
+  const [imgErr, setImgErr] = useState(false);
+  const hasPhoto = !imgErr && (!!d.lead_photo_thumb || !!d.lead_photo_url);
 
   return (
     <Link href={`/weekly/${d.week_start}`} style={{ textDecoration: "none", display: "block" }}>
@@ -59,24 +61,20 @@ function IssueCard({ d, isCurrent }: { d: WeeklyDigestSummary; isCurrent?: boole
             <img
               src={d.lead_photo_thumb || d.lead_photo_url!}
               alt={d.lead_vessel_name ?? d.week_label}
+              onError={() => setImgErr(true)}
               style={{ position: "absolute", inset: 0, width: "100%", height: "100%",
                 objectFit: "cover" }}
               loading="lazy"
             />
           ) : (
-            <div style={{ position: "absolute", inset: 0, display: "flex",
-              flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
-              <svg width="36" height="36" viewBox="0 0 44 44" fill="none"
-                xmlns="http://www.w3.org/2000/svg" opacity={0.4}>
-                <path d="M4 28 L8 18 L36 18 L40 28 Z" stroke={GREEN} strokeWidth="1.8"
-                  fill="none" strokeLinejoin="round"/>
-                <line x1="22" y1="10" x2="22" y2="18" stroke={GREEN} strokeWidth="1.8"
-                  strokeLinecap="round"/>
-                <path d="M14 10 L22 10 L30 14 L14 14 Z" stroke={GREEN} strokeWidth="1.5"
-                  fill="none" strokeLinejoin="round"/>
-                <line x1="4" y1="28" x2="40" y2="28" stroke={GREEN} strokeWidth="1.8"
-                  strokeLinecap="round"/>
-              </svg>
+            <div style={{ position: "absolute", inset: 0 }}>
+              <VesselTypeSVG
+                vesselType={d.lead_vessel_type}
+                imo={null}
+                width="100%"
+                height="100%"
+                theme="dark"
+              />
             </div>
           )}
           {/* THIS WEEK badge */}

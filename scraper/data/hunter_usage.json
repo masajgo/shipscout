@@ -1,0 +1,204 @@
+{
+  "2026-07-16": {
+    "count": 10,
+    "calls": [
+      {
+        "domain": "sdsmarine.com",
+        "at": "2026-07-16T13:04:38.093Z"
+      },
+      {
+        "domain": "aegeanshipping.com",
+        "at": "2026-07-16T13:05:56.873Z"
+      },
+      {
+        "domain": "aegeanshipping.com",
+        "at": "2026-07-16T13:07:11.356Z"
+      },
+      {
+        "domain": "aggregateindustries.com",
+        "at": "2026-07-16T13:08:11.543Z"
+      },
+      {
+        "domain": "medlog.com",
+        "at": "2026-07-16T13:09:24.206Z"
+      },
+      {
+        "domain": "svitzer.com",
+        "at": "2026-07-16T13:13:52.895Z"
+      },
+      {
+        "domain": "rhenus.group",
+        "at": "2026-07-16T13:15:57.242Z"
+      },
+      {
+        "domain": "walleniuswilhelmsen.com",
+        "at": "2026-07-16T13:16:06.340Z"
+      },
+      {
+        "domain": "hollandamerica.com",
+        "at": "2026-07-16T13:17:01.629Z"
+      },
+      {
+        "domain": "globalshipping.com",
+        "at": "2026-07-16T13:19:28.738Z"
+      }
+    ]
+  },
+  "2026-07-17": {
+    "count": 38,
+    "calls": [
+      {
+        "domain": "stena.com",
+        "at": "2026-07-17T07:14:21.749Z"
+      },
+      {
+        "domain": "advantagemarine.com",
+        "at": "2026-07-17T08:28:48.549Z"
+      },
+      {
+        "domain": "morashipping.com",
+        "at": "2026-07-17T09:25:59.759Z"
+      },
+      {
+        "domain": "mediterranean.com",
+        "at": "2026-07-17T09:53:50.326Z"
+      },
+      {
+        "domain": "easternmarine.com",
+        "at": "2026-07-17T09:59:36.616Z"
+      },
+      {
+        "domain": "seashipping.com",
+        "at": "2026-07-17T10:04:51.490Z"
+      },
+      {
+        "domain": "dfds.com",
+        "at": "2026-07-17T10:17:44.056Z"
+      },
+      {
+        "domain": "capeshipping.com",
+        "at": "2026-07-17T10:18:53.823Z"
+      },
+      {
+        "domain": "magicalshipping.com",
+        "at": "2026-07-17T10:20:38.445Z"
+      },
+      {
+        "domain": "stena.com",
+        "at": "2026-07-17T10:21:42.651Z"
+      },
+      {
+        "domain": "utkilen.no",
+        "at": "2026-07-17T10:22:25.283Z"
+      },
+      {
+        "domain": "stena.com",
+        "at": "2026-07-17T10:23:57.786Z"
+      },
+      {
+        "domain": "uae-shipping.net",
+        "at": "2026-07-17T10:24:22.938Z"
+      },
+      {
+        "domain": "hollandamerica.com",
+        "at": "2026-07-17T10:26:12.325Z"
+      },
+      {
+        "domain": "hollandamerica.com",
+        "at": "2026-07-17T10:26:31.370Z"
+      },
+      {
+        "domain": "medlog.com",
+        "at": "2026-07-17T10:26:38.833Z"
+      },
+      {
+        "domain": "mediterranean.com",
+        "at": "2026-07-17T10:27:26.207Z"
+      },
+      {
+        "domain": "mediterranean.com",
+        "at": "2026-07-17T10:27:33.326Z"
+      },
+      {
+        "domain": "mediterranean.com",
+        "at": "2026-07-17T10:27:41.855Z"
+      },
+      {
+        "domain": "mt-shipping.com",
+        "at": "2026-07-17T10:29:16.594Z"
+      },
+      {
+        "domain": "utkilen.no",
+        "at": "2026-07-17T10:30:34.590Z"
+      },
+      {
+        "domain": "zhmarine.com",
+        "at": "2026-07-17T10:31:16.500Z"
+      },
+      {
+        "domain": "dfds.com",
+        "at": "2026-07-17T10:31:28.965Z"
+      },
+      {
+        "domain": "bluewater.com",
+        "at": "2026-07-17T10:32:00.970Z"
+      },
+      {
+        "domain": "polartankers.conocophillips.com",
+        "at": "2026-07-17T10:32:46.608Z"
+      },
+      {
+        "domain": "bmshipping.com",
+        "at": "2026-07-17T10:33:11.646Z"
+      },
+      {
+        "domain": "kleshipping.com",
+        "at": "2026-07-17T10:33:24.930Z"
+      },
+      {
+        "domain": "transtalshipping.com",
+        "at": "2026-07-17T10:33:30.386Z"
+      },
+      {
+        "domain": "eukor.com",
+        "at": "2026-07-17T10:34:48.081Z"
+      },
+      {
+        "domain": "seiwa.com",
+        "at": "2026-07-17T10:35:48.568Z"
+      },
+      {
+        "domain": "maritimeships.com",
+        "at": "2026-07-17T10:35:58.323Z"
+      },
+      {
+        "domain": "wilhelmsen.com",
+        "at": "2026-07-17T10:37:37.662Z"
+      },
+      {
+        "domain": "cldn.com",
+        "at": "2026-07-17T10:38:43.954Z"
+      },
+      {
+        "domain": "svitzer.com",
+        "at": "2026-07-17T10:41:10.056Z"
+      },
+      {
+        "domain": "optrashipping.net",
+        "at": "2026-07-17T10:41:55.119Z"
+      },
+      {
+        "domain": "annualreport.vanoord.com",
+        "at": "2026-07-17T10:42:51.335Z"
+      },
+      {
+        "domain": "christianiashipping.com",
+        "at": "2026-07-17T10:43:06.388Z"
+      },
+      {
+        "domain": "condor.com",
+        "at": "2026-07-17T10:59:58.433Z"
+      }
+    ]
+  }
+}

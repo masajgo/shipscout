@@ -200,5 +200,13 @@ export async function GET(req: Request) {
     return NextResponse.json({ published: rowCount });
   }
 
-  return NextResponse.json({ error: "Unknown action. Use: status, fix-markdown, fix-photos, delete-old-data, migrate, publish-all" });
+  // ── Delete baseline OFAC sanctions ─────────────────────────────────────────
+  if (action === "delete-sanctions") {
+    const { rowCount } = await pool.query(
+      `DELETE FROM radar_events WHERE event_type = 'sanction'`
+    );
+    return NextResponse.json({ deleted_sanctions: rowCount });
+  }
+
+  return NextResponse.json({ error: "Unknown action. Use: status, fix-markdown, fix-photos, delete-old-data, migrate, publish-all, delete-sanctions" });
 }

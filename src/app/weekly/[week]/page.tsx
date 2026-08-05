@@ -71,13 +71,15 @@ function vesselSpecs(ev: WeeklyDigestEvent) {
 
 // ─── Photo helpers ──────────────────────────────────────────────────────────────
 function CardPhoto({ ev, heightPct = 75 }: { ev: WeeklyDigestEvent; heightPct?: number }) {
+  const [imgErr, setImgErr] = useState(false);
   return (
     <div style={{ position: "relative", width: "100%", paddingTop: `${heightPct}%`, overflow: "hidden", flexShrink: 0 }}>
-      {ev.photo_url ? (
+      {(ev.photo_url && !imgErr) ? (
         <>
           <img
             src={ev.photo_thumb || ev.photo_url}
             alt={ev.vessel_name ?? ""}
+            onError={() => setImgErr(true)}
             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
             loading="lazy"
           />

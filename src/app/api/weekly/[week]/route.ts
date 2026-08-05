@@ -115,6 +115,7 @@ export async function GET(
       WHERE COALESCE(re.event_date, re.created_at::date)
             BETWEEN $1::date AND $2::date
         AND (re.event_type != 'sanction' OR re.event_date IS NOT NULL)
+        AND re.event_type NOT IN ('layup', 'judicial_auction')
       ORDER BY re.event_date ASC NULLS LAST, re.created_at ASC
     `, [digest.week_start, digest.week_end]);
 

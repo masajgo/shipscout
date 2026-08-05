@@ -62,6 +62,7 @@ export async function GET() {
       LEFT JOIN radar_events re
         ON COALESCE(re.event_date, re.created_at::date) BETWEEN d.week_start AND d.week_end
         AND (re.event_type != 'sanction' OR re.event_date IS NOT NULL)
+        AND re.event_type NOT IN ('layup', 'judicial_auction')
       WHERE d.published = true
       GROUP BY d.id, rl.vessel_name, rl.event_type, v.type, vp.photo_thumb, vp.photo_url
       ORDER BY d.week_start DESC

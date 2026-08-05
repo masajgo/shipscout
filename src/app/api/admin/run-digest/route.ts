@@ -138,6 +138,7 @@ async function fetchEventsForWeek(weekStart: string, weekEnd: string) {
     LEFT JOIN owners  o ON o.imo  = v.imo
     WHERE COALESCE(re.event_date, re.created_at::date) BETWEEN $1 AND $2
     AND (re.event_type != 'sanction' OR re.event_date IS NOT NULL)
+    AND re.event_type NOT IN ('layup', 'judicial_auction')
     ORDER BY re.event_date ASC NULLS LAST, re.created_at ASC
   `, [weekStart, weekEnd]);
   return rows;

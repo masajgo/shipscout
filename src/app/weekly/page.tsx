@@ -70,6 +70,7 @@ function IssueCard({ d, isCurrent }: { d: WeeklyDigestSummary; isCurrent?: boole
             <div style={{ position: "absolute", inset: 0 }}>
               <VesselTypeSVG
                 vesselType={d.lead_vessel_type}
+                vesselName={d.lead_vessel_name}
                 imo={null}
                 width="100%"
                 height="100%"

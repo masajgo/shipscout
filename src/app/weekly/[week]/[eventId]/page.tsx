@@ -62,7 +62,7 @@ function HeroImage({ ev }: { ev: ArticleEvent }) {
   return (
     <div style={{ width: "100%", paddingTop: "52%", position: "relative", overflow: "hidden", borderRadius: 4 }}>
       <div style={{ position: "absolute", inset: 0 }}>
-        <VesselTypeSVG vesselType={ev.vessel_type} imo={ev.imo} width="100%" height="100%" theme="light" />
+        <VesselTypeSVG vesselType={ev.vessel_type} vesselName={ev.vessel_name} imo={ev.imo} width="100%" height="100%" theme="light" size="cover" />
       </div>
     </div>
   );
@@ -88,7 +88,7 @@ function RelatedCard({ ev, weekSlug }: { ev: ArticleEvent; weekSlug: string }) {
               style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
           ) : (
             <div style={{ position: "absolute", inset: 0 }}>
-              <VesselTypeSVG vesselType={ev.vessel_type} imo={ev.imo} width="100%" height="100%" theme="light" />
+              <VesselTypeSVG vesselType={ev.vessel_type} vesselName={ev.vessel_name} imo={ev.imo} width="100%" height="100%" theme="light" />
             </div>
           )}
         </div>

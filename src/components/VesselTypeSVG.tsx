@@ -5,13 +5,14 @@ const GREEN = "#1D9E75";
 const GOLD  = "#C9A84C";
 
 interface Props {
-  vesselType?: string | null;
-  imo?:        string | null;
-  width?:      number | string;
-  height?:     number | string;
-  className?:  string;
-  theme?:      "dark" | "light";
-  size?:       "cover" | "card";
+  vesselType?:  string | null;
+  vesselName?:  string | null;
+  imo?:         string | null;
+  width?:       number | string;
+  height?:      number | string;
+  className?:   string;
+  theme?:       "dark" | "light";
+  size?:        "cover" | "card";
 }
 
 function normalise(t?: string | null): string {
@@ -157,7 +158,7 @@ function DefaultSVG({ fill, struct, stroke }: { fill: string; struct: string; st
 }
 
 export default function VesselTypeSVG({
-  vesselType, imo, width = "100%", height = "100%", className, theme = "dark", size = "card",
+  vesselType, vesselName, imo, width = "100%", height = "100%", className, theme = "dark", size = "card",
 }: Props) {
   const type      = normalise(vesselType);
   const typeLabel = vesselType ?? "Vessel";
@@ -209,27 +210,29 @@ export default function VesselTypeSVG({
 
       {shapes[type] ?? shapes.default}
 
-      {/* Type label */}
-      <text x="200" y="168" textAnchor="middle"
-        fill={textFill}
-        fontSize={isCover ? "13" : "9"}
-        fontFamily="Inter, sans-serif"
-        letterSpacing="2"
-        opacity="0.85"
-        fontWeight={isCover ? "700" : "400"}>
-        {typeLabel.toUpperCase()}
-      </text>
-
-      {/* IMO watermark */}
-      {imo && (
-        <text x="200" y="28" textAnchor="middle"
-          fill={imoFill}
-          fontSize={isCover ? "12" : "10"}
-          fontFamily="monospace"
-          opacity="0.55">
-          IMO {imo}
+      {/* Vessel name — large serif, centred over hull */}
+      {vesselName && (
+        <text x="200" y={isCover ? "118" : "122"} textAnchor="middle"
+          fill={textFill}
+          fontSize={isCover ? "28" : "18"}
+          fontFamily="Georgia, 'Times New Roman', serif"
+          fontWeight="700"
+          letterSpacing="1"
+          opacity="0.92">
+          {vesselName.toUpperCase()}
         </text>
       )}
+
+      {/* Type · IMO subtitle */}
+      <text x="200" y="164" textAnchor="middle"
+        fill={textFill}
+        fontSize={isCover ? "10" : "8"}
+        fontFamily="Inter, sans-serif"
+        letterSpacing="2"
+        opacity="0.6"
+        fontWeight="400">
+        {[typeLabel.toUpperCase(), imo ? `IMO ${imo}` : null].filter(Boolean).join(" · ")}
+      </text>
     </svg>
   );
 }

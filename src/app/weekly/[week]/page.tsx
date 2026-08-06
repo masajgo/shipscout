@@ -93,7 +93,7 @@ function CardPhoto({ ev, heightPct = 75 }: { ev: WeeklyDigestEvent; heightPct?: 
         </>
       ) : (
         <div style={{ position: "absolute", inset: 0 }}>
-          <VesselTypeSVG vesselType={ev.vessel_type} imo={ev.imo} width="100%" height="100%" theme="light" size="cover" />
+          <VesselTypeSVG vesselType={ev.vessel_type} vesselName={ev.vessel_name} imo={ev.imo} width="100%" height="100%" theme="light" size="cover" />
         </div>
       )}
     </div>
@@ -151,7 +151,7 @@ function LeadStory({ ev, weekSlug }: { ev: WeeklyDigestEvent; weekSlug: string }
             />
           ) : (
             <div style={{ position: "absolute", inset: 0 }}>
-              <VesselTypeSVG vesselType={ev.vessel_type} imo={ev.imo} width="100%" height="100%" theme="light" size="cover" />
+              <VesselTypeSVG vesselType={ev.vessel_type} vesselName={ev.vessel_name} imo={ev.imo} width="100%" height="100%" theme="light" size="cover" />
             </div>
           )}
 

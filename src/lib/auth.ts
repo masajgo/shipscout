@@ -1,9 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { jwtSecret } from "./jwtSecret";
 
-const SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET ?? process.env.ADMIN_SECRET ?? "fallback-dev-secret-change-in-prod"
-);
 const COOKIE = "broker_session";
 const TTL    = 60 * 60 * 24 * 14; // 14 days
 
@@ -19,7 +17,7 @@ export async function signSession(payload: BrokerSession): Promise<string> {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${TTL}s`)
-    .sign(SECRET);
+    .sign(jwtSecret());
 }
 
 export async function getSession(): Promise<BrokerSession | null> {
@@ -27,7 +25,7 @@ export async function getSession(): Promise<BrokerSession | null> {
     const jar   = await cookies();
     const token = jar.get(COOKIE)?.value;
     if (!token) return null;
-    const { payload } = await jwtVerify(token, SECRET);
+    const { payload } = await jwtVerify(token, jwtSecret());
     return payload as unknown as BrokerSession;
   } catch {
     return null;

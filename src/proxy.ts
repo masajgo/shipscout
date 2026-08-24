@@ -1,9 +1,6 @@
 import { jwtVerify } from "jose";
 import { NextResponse, type NextRequest } from "next/server";
-
-const SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET ?? process.env.ADMIN_SECRET ?? "fallback-dev-secret-change-in-prod"
-);
+import { jwtSecret } from "./lib/jwtSecret";
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -13,7 +10,7 @@ export async function proxy(request: NextRequest) {
   let valid   = false;
 
   if (token) {
-    try { await jwtVerify(token, SECRET); valid = true; } catch {}
+    try { await jwtVerify(token, jwtSecret()); valid = true; } catch {}
   }
 
   if (!valid) {

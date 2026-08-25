@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { computeSignals, opportunityScore, type VesselSignal } from "@/lib/signals";
+import { priceCategory, type PriceCategory, type YardPrices } from "@/lib/scrapValue";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,6 +40,7 @@ export interface OpportunityVessel {
   signals: VesselSignal[];
   signal_count: number;
   opportunity_score: number;
+  price_category: PriceCategory;
 }
 
 export async function GET(req: NextRequest) {
@@ -121,6 +123,7 @@ export async function GET(req: NextRequest) {
       signals,
       signal_count:      signals.length,
       opportunity_score: opportunityScore(signals, row.scrap_score),
+      price_category:    priceCategory(row.type, row.type_specific),
     });
   }
 
@@ -139,9 +142,20 @@ export async function GET(req: NextRequest) {
     return b.opportunity_score - a.opportunity_score;
   });
 
+  // Shipped with the vessels so switching yard in the UI is pure arithmetic, no refetch.
+  const yards: YardPrices = {};
+  const priceRows = await pool.query<{ yard: string; country: string; vessel_type: string; price_usd_ldt: number }>(
+    `SELECT yard, country, vessel_type, price_usd_ldt FROM scrap_prices`
+  );
+  for (const p of priceRows.rows) {
+    yards[p.yard] ??= { country: p.country, prices: {} };
+    yards[p.yard].prices[p.vessel_type] = Number(p.price_usd_ldt);
+  }
+
   return NextResponse.json({
     total:             results.length,
     contactable_total: results.filter(hasContact).length,
     vessels:           results.slice(0, limit),
+    yards,
   });
 }

@@ -3,17 +3,16 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
+// Ordered by the cash buyer's workflow: see the signal, search the fleet, price it,
+// compare candidates. /snp, /alerts and /crm are still routable but unlinked.
 const NAV = [
-  { href: "/",         label: "Dashboard" },
-  { href: "/vessels",  label: "Vessels"   },
-  { href: "/markets",  label: "Markets"   },
-  { href: "/snp",           label: "S&P"       },
+  { href: "/",              label: "Dashboard" },
   { href: "/opportunities", label: "Radar"     },
-  { href: "/weekly",        label: "Weekly"    },
+  { href: "/vessels",       label: "Vessels"   },
+  { href: "/markets",       label: "Markets"   },
   { href: "/compare",       label: "Compare"   },
-  { href: "/alerts",   label: "Alerts"    },
-  { href: "/crm",      label: "Deal CRM"  },
-  { href: "/map",      label: "Map"       },
+  { href: "/map",           label: "Map"       },
+  { href: "/weekly",        label: "Weekly"    },
 ];
 
 // Static deltas (directional arrows) — updated weekly alongside seed data

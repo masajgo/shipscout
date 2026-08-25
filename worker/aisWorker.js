@@ -209,8 +209,12 @@ const UPSERT_CONFLICT = `
     speed             = EXCLUDED.speed,
     course            = EXCLUDED.course,
     nav_status        = EXCLUDED.nav_status,
-    scrap_score       = EXCLUDED.scrap_score,
-    scrap_category    = EXCLUDED.scrap_category,
+    -- AIS carries no build year, so a vessel the worker has not enriched this run
+    -- would score as if it were new and wipe a score derived from a known age.
+    scrap_score       = CASE WHEN EXCLUDED.built_year IS NOT NULL
+                             THEN EXCLUDED.scrap_score    ELSE vessels.scrap_score    END,
+    scrap_category    = CASE WHEN EXCLUDED.built_year IS NOT NULL
+                             THEN EXCLUDED.scrap_category ELSE vessels.scrap_category END,
     last_pos_update   = EXCLUDED.last_pos_update,
     last_static_update = COALESCE(EXCLUDED.last_static_update,   vessels.last_static_update),
     updated_at        = NOW()

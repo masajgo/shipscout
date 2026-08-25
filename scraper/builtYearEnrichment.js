@@ -36,9 +36,7 @@ const SCRAP_PRICE_LDT = parseInt(process.env.SCRAP_PRICE_PER_LDT || "450");
 const DATA_DIR   = path.join(__dirname, "data");
 const CACHE_FILE = path.join(DATA_DIR, "vessel_age_cache.json");
 
-// ─── Risk flags ───────────────────────────────────────────────────────────────
-
-const RISK_FLAGS = new Set(["KM","TG","PW","KH","BZ","SL","MN","TZ","VU","CK"]);
+const { RISK_FLAGS, computeScrapScore, scrapCategory } = require("./scrapScore");
 
 // ─── LDT/DWT katsayıları (tip bazlı tahmini — gerçek LDT için Class survey gerekir) ──
 //
@@ -231,47 +229,6 @@ async function getVesselInfo(imo) {
     log(`Fetch error for IMO ${imo}: ${err.message}`);
     return null;
   }
-}
-
-// ─── computeScrapScore ────────────────────────────────────────────────────────
-
-function computeScrapScore(v) {
-  let score = 0;
-  const reasons = [];
-
-  const age = v.builtYear ? (new Date().getFullYear() - v.builtYear) : null;
-  if (age != null) {
-    if      (age >= 50) { score += 40; reasons.push(`age ${age}y`); }
-    else if (age >= 40) { score += 35; reasons.push(`age ${age}y`); }
-    else if (age >= 30) { score += 28; reasons.push(`age ${age}y`); }
-    else if (age >= 25) { score += 20; reasons.push(`age ${age}y`); }
-    else if (age >= 20) { score += 12; reasons.push(`age ${age}y`); }
-  }
-
-  const ns = parseInt(v.navStatus) || 0;
-  if (ns === 1 || ns === 5) {
-    score += 15;
-    reasons.push(ns === 1 ? "anchored" : "moored");
-  }
-
-  if (v.flag && RISK_FLAGS.has(v.flag)) {
-    score += 12;
-    reasons.push(`risk flag (${v.flag})`);
-  }
-
-  const speed = parseFloat(v.speed) || 0;
-  if (speed === 0) { score += 5; reasons.push("stationary"); }
-
-  return { score: Math.min(100, score), reasons };
-}
-
-// ─── scrapCategory ────────────────────────────────────────────────────────────
-
-function scrapCategory(score) {
-  if (score > 35) return "critical";
-  if (score >= 25) return "high";
-  if (score >= 15) return "medium";
-  return "low";
 }
 
 // ─── enrichCandidates ────────────────────────────────────────────────────────

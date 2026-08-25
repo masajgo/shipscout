@@ -32,7 +32,19 @@ const DELAY_MAX_MS = 8000;
 
 const DATA_DIR   = path.join(__dirname, "data");
 const USAGE_FILE = path.join(DATA_DIR, "equasis_usage.json");
-const LOG_FILE   = path.join(DATA_DIR, "daily_scan.log");
+
+// Outside the repo on purpose. macOS attributes provenance to whichever process
+// created a file under ~/Desktop, and launchd is then refused when it opens that
+// file as StandardOutPath — the job dies with exit 78 before the script starts.
+const LOG_DIR    = path.join(process.env.HOME, "Library/Logs/shipscout");
+const LOG_FILE   = path.join(LOG_DIR, "daily_scan.log");
+
+// Hunter is the last resort inside enrichWithDb: it only fires when the company
+// website is known but no email could be scraped from it. Passing the key here is
+// what enrichOpportunityContacts.js already did and this daily pipeline never did.
+const ENRICH_OPTS = process.env.HUNTER_API_KEY
+  ? { hunterApiKey: process.env.HUNTER_API_KEY }
+  : {};
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
@@ -49,7 +61,7 @@ function log(msg) {
   const line = `[${new Date().toISOString()}] ${msg}`;
   console.log(line);
   try {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.mkdirSync(LOG_DIR, { recursive: true });
     fs.appendFileSync(LOG_FILE, line + "\n");
   } catch { /* non-fatal */ }
 }
@@ -81,21 +93,38 @@ function detectBlock(html) {
 
 // ─── DB: hedef gemi seçimi ────────────────────────────────────────────────────
 
+// A cash buyer buys merchant hulls by the ton. Tugs, yachts, fishing boats, ferries
+// and naval vessels score just as high on age but are never the cheque, and Equasis
+// is capped at 800 lookups a day — without this filter the quota is spent on them.
+// The repdigit exclusion drops AIS placeholders like 9999999 and 8888888, which
+// pass the range check but are not ships.
+const MERCHANT_HULL_SQL = `
+      AND v.imo BETWEEN 8000000 AND 9999999
+      AND v.imo::text !~ '^(\\d)\\1{6}$'
+      AND v.type_specific ~* 'cargo|tanker|container|bulk|reefer|ro-ro|vehicles|cement|heavy lift'
+      AND COALESCE(v.ldt, v.deadweight * 0.2, 0) >= 1000`;
+
 // Equasis TTL: 90 gün — owner/manager verisi eskimiş veya hiç alınmamış gemiler
 async function selectTargetVessels(limit) {
+  // DISTINCT ON: 203 IMOs appear under more than one MMSI, and Equasis is looked up
+  // per IMO, so without it the same hull burns quota twice.
   const { rows } = await pool.query(`
-    SELECT v.imo::text AS imo, v.name, v.scrap_score, v.scrap_category
-    FROM vessels v
-    LEFT JOIN owners o ON o.imo = v.imo::bigint
-    WHERE v.scrap_category IN ('critical', 'high')
-      AND v.imo >= 8000000
-      AND v.imo IS NOT NULL
-      AND (
-        o.imo IS NULL
-        OR o.equasis_fetched_at IS NULL
-        OR o.equasis_fetched_at < now() - interval '90 days'
-      )
-    ORDER BY v.scrap_score DESC NULLS LAST
+    SELECT imo::text AS imo, name, scrap_score, scrap_category
+    FROM (
+      SELECT DISTINCT ON (v.imo) v.imo, v.name, v.scrap_score, v.scrap_category
+      FROM vessels v
+      LEFT JOIN owners o ON o.imo = v.imo::bigint
+      WHERE v.scrap_category IN ('critical', 'high')
+        AND v.imo IS NOT NULL
+        ${MERCHANT_HULL_SQL}
+        AND (
+          o.imo IS NULL
+          OR o.equasis_fetched_at IS NULL
+          OR o.equasis_fetched_at < now() - interval '90 days'
+        )
+      ORDER BY v.imo, v.scrap_score DESC NULLS LAST
+    ) d
+    ORDER BY scrap_score DESC NULLS LAST
     LIMIT $1
   `, [limit]);
   return rows;
@@ -104,17 +133,22 @@ async function selectTargetVessels(limit) {
 // Web-contact TTL: 30 gün — equasis'ten alınmış ama web contact verisi eski/hiç yok
 async function selectWebStaleVessels(limit) {
   const { rows } = await pool.query(`
-    SELECT v.imo::text AS imo, v.name, o.manager_name, o.owner_name
-    FROM vessels v
-    JOIN owners o ON o.imo = v.imo::bigint
-    WHERE v.scrap_category IN ('critical', 'high')
-      AND v.imo IS NOT NULL
-      AND o.equasis_fetched_at IS NOT NULL
-      AND (
-        o.web_fetched_at IS NULL
-        OR o.web_fetched_at < now() - interval '30 days'
-      )
-    ORDER BY v.scrap_score DESC NULLS LAST
+    SELECT imo::text AS imo, name, manager_name, owner_name
+    FROM (
+      SELECT DISTINCT ON (v.imo) v.imo, v.name, v.scrap_score, o.manager_name, o.owner_name
+      FROM vessels v
+      JOIN owners o ON o.imo = v.imo::bigint
+      WHERE v.scrap_category IN ('critical', 'high')
+        AND v.imo IS NOT NULL
+        ${MERCHANT_HULL_SQL}
+        AND o.equasis_fetched_at IS NOT NULL
+        AND (
+          o.web_fetched_at IS NULL
+          OR o.web_fetched_at < now() - interval '30 days'
+        )
+      ORDER BY v.imo, v.scrap_score DESC NULLS LAST
+    ) d
+    ORDER BY scrap_score DESC NULLS LAST
     LIMIT $1
   `, [limit]);
   return rows;
@@ -205,7 +239,7 @@ async function main() {
 
   // 2. Hedef gemi seçimi
   const vessels = await selectTargetVessels(toFetch);
-  log(`Hedef gemi sayısı: ${vessels.length} (scrap_category: critical/high, IMO >= 8000000)`);
+  log(`Hedef gemi sayısı: ${vessels.length} (critical/high, ticari tekne, >=1000 LDT)`);
 
   if (vessels.length === 0) {
     log("İşlenecek yeni gemi yok. Çıkılıyor.");
@@ -280,7 +314,7 @@ async function main() {
         let contact = null;
         if (companyForEnrich) {
           try {
-            contact = await enrichWithDb(companyForEnrich, vessel.imo, pool, ownerData.managerName);
+            contact = await enrichWithDb(companyForEnrich, vessel.imo, pool, ownerData.managerName, ENRICH_OPTS);
           } catch (e) {
             log(`  Contact enrichment hatası (${companyForEnrich}): ${e.message}`);
           }
@@ -345,7 +379,7 @@ async function main() {
       const company = vessel.manager_name || vessel.owner_name;
       if (!company) continue;
       try {
-        await enrichWithDb(company, vessel.imo, pool, vessel.manager_name);
+        await enrichWithDb(company, vessel.imo, pool, vessel.manager_name, ENRICH_OPTS);
         webUpdated++;
         log(`[web ${i + 1}/${webStale.length}] ✓ IMO ${vessel.imo} — ${company}`);
       } catch (e) {

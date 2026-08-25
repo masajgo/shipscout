@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
+import { authorized } from "@/lib/adminAuth";
 
 export const runtime  = "nodejs";
 export const dynamic  = "force-dynamic";
@@ -191,9 +192,8 @@ async function saveEditorial(eventId: number, summary: string) {
 // ── Route ─────────────────────────────────────────────────────────────────────
 
 export async function GET(req: Request) {
-  const url    = new URL(req.url);
-  const secret = url.searchParams.get("secret");
-  if (secret !== process.env.ADMIN_SECRET) {
+  const url = new URL(req.url);
+  if (!authorized(req, url)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

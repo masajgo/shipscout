@@ -15,7 +15,11 @@ ALTER TABLE radar_events
     'sanction',
     'bankruptcy',
     'scrap_sale',
-    'layup'
+    'layup',
+    -- Legacy types still present in radar_events from earlier scanner versions
+    'incident',
+    'attack',
+    'casualty'
   ));
 
 -- Index for the new types so the Distressed Fleet Watch query is fast

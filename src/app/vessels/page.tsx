@@ -5,26 +5,26 @@ import { useState, useRef } from "react";
 
 type Vessel = {
   imo: string; mmsi: string; name: string; type: string; flag: string;
-  age: number | null; built_year: number | null;
+  age: number | null; builtYear: number | null;
   deadweight: number | null; ldt: number | null;
-  scrap_score: number | null; scrap_category: string | null;
-  detention_count: number;
+  scrapScore: number | null; scrapCategory: string | null;
+  detentionCount: number;
   best_email: string | null; owner_email: string | null;
   emails: string[] | null; phones: string[] | null;
   website: string | null; linkedin_company_url: string | null;
   owner_name: string | null; contact_manager: string | null; vessel_manager: string | null;
-  photo_thumb: string | null;
+  photoThumb: string | null;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const SCORE_COLOR = (s: number | null) =>
+const SCORE_COLOR = (s: number | null | undefined) =>
   !s ? "#94A3B8" : s >= 70 ? "#DC2626" : s >= 50 ? "#D97706" : s >= 25 ? "#2563EB" : "#94A3B8";
 
-const SCORE_LABEL = (s: number | null) =>
+const SCORE_LABEL = (s: number | null | undefined) =>
   !s ? "low" : s >= 70 ? "critical" : s >= 50 ? "high" : s >= 25 ? "medium" : "low";
 
-function ScrapBadge({ score }: { score: number | null }) {
+function ScrapBadge({ score }: { score: number | null | undefined }) {
   const color = SCORE_COLOR(score);
   const label = SCORE_LABEL(score);
   return (
@@ -113,7 +113,7 @@ export default function VesselsPage() {
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "Search failed"); return; }
 
-      setResults(data.vessels ?? []);
+      setResults(data.results ?? data.vessels ?? []);
       setTotal(data.total ?? null);
       setSearched(true);
     } catch {
@@ -278,8 +278,8 @@ export default function VesselsPage() {
                 <div style={{ display: "flex", gap: 16, padding: "16px 20px", alignItems: "flex-start" }}>
 
                   {/* Photo */}
-                  {v.photo_thumb ? (
-                    <img src={v.photo_thumb} alt={v.name}
+                  {v.photoThumb ? (
+                    <img src={v.photoThumb} alt={v.name}
                       style={{ width: 80, height: 52, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
                   ) : (
                     <div style={{ width: 80, height: 52, background: "#F1F5F9", borderRadius: 6, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -295,15 +295,15 @@ export default function VesselsPage() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
                       <span style={{ fontSize: 16, fontWeight: 700, color: "#0F172A" }}>M/V {v.name}</span>
-                      <ScrapBadge score={v.scrap_score} />
-                      {v.detention_count > 0 && (
+                      <ScrapBadge score={v.scrapScore} />
+                      {v.detentionCount > 0 && (
                         <span style={{ fontSize: 11, padding: "2px 6px", background: "#FEF2F2", color: "#DC2626", border: "1px solid #FECACA", borderRadius: 4, fontWeight: 600 }}>
-                          {v.detention_count} detention{v.detention_count > 1 ? "s" : ""}
+                          {v.detentionCount} detention{v.detentionCount > 1 ? "s" : ""}
                         </span>
                       )}
                     </div>
                     <div style={{ fontSize: 13, color: "#64748B", marginBottom: 6 }}>
-                      {v.type ?? "—"}{v.flag ? ` · ${v.flag}` : ""}{v.built_year ? ` · Built ${v.built_year}` : ""}
+                      {v.type ?? "—"}{v.flag ? ` · ${v.flag}` : ""}{v.builtYear ? ` · Built ${v.builtYear}` : ""}
                       {v.age ? ` (${v.age}y)` : ""}{v.deadweight ? ` · ${Number(v.deadweight).toLocaleString()} DWT` : ""}
                       {v.ldt ? ` · ${Number(v.ldt).toLocaleString()} LDT` : ""}
                     </div>

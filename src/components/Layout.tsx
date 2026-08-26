@@ -34,17 +34,21 @@ const FALLBACK_TICKER: TickerItem[] = [
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const path = usePathname();
+  const isPublic = path.startsWith("/vessel/");
+
   const [aisCount, setAisCount] = useState<number | null>(null);
   const [ticker, setTicker] = useState<TickerItem[]>(FALLBACK_TICKER);
 
   useEffect(() => {
+    if (isPublic) return;
     fetch("/api/ais").then(r => r.json()).then(d => {
       const n = d.total ?? (Array.isArray(d.vessels) ? d.vessels.length : null);
       if (n !== null) setAisCount(n);
     }).catch(() => {});
-  }, []);
+  }, [isPublic]);
 
   useEffect(() => {
+    if (isPublic) return;
     fetch("/api/scrap-prices")
       .then(r => r.json())
       .then(d => {
@@ -60,7 +64,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         if (items.length) setTicker(items);
       })
       .catch(() => {});
-  }, []);
+  }, [isPublic]);
+
+  // Public vessel landing page — no app chrome, owner arrives from email link
+  if (isPublic) return <>{children}</>;
 
   return (
     <div style={{ minHeight: "100vh", background: "#F9FAFB" }}>

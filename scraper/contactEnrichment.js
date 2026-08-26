@@ -548,13 +548,13 @@ function _hunterIncrement(domain) {
   return count;
 }
 
-// Calls Hunter domain-search and picks the best personal email (confidence ≥ 70%).
-// Returns { email, firstName, lastName, confidence, type } or null.
+// Calls Hunter domain-search and returns ALL contacts with full person details.
+// Returns array of { email, firstName, lastName, title, linkedin, confidence, type }
 async function hunterDomainSearch(domain, apiKey) {
   const budget = hunterBudget();
   if (!budget.ok) {
     console.log(`[contactEnrichment] Hunter günlük limit doldu (${budget.count}/${HUNTER_DAILY_LIMIT}), skipping`);
-    return null;
+    return [];
   }
 
   try {
@@ -564,28 +564,84 @@ async function hunterDomainSearch(domain, apiKey) {
 
     if (!res.ok) {
       console.log(`[contactEnrichment] Hunter ${res.status} for ${domain}`);
-      return null;
+      return [];
     }
 
-    const json = await res.json();
+    const json   = await res.json();
     const emails = json?.data?.emails || [];
-    if (!emails.length) return null;
+    if (!emails.length) return [];
 
-    // Personal first → generic, within each group highest confidence, min 70%
-    const eligible = emails.filter(e => e.confidence >= 70 && e.value);
-    const personal = eligible.filter(e => e.type === "personal");
-    const generic  = eligible.filter(e => e.type !== "personal");
+    // Return all contacts with confidence >= 50%, sorted personal first then by confidence
+    const eligible = emails
+      .filter(e => e.confidence >= 50 && e.value)
+      .sort((a, b) => {
+        if (a.type === "personal" && b.type !== "personal") return -1;
+        if (a.type !== "personal" && b.type === "personal") return 1;
+        return b.confidence - a.confidence;
+      });
 
-    const pool = personal.length ? personal : generic;
-    if (!pool.length) return null;
-
-    pool.sort((a, b) => b.confidence - a.confidence);
-    return pool[0]; // { value, first_name, last_name, confidence, type, ... }
+    return eligible.map(e => ({
+      email:     e.value.toLowerCase(),
+      firstName: e.first_name || null,
+      lastName:  e.last_name  || null,
+      name:      [e.first_name, e.last_name].filter(Boolean).join(" ") || null,
+      title:     e.position   || null,
+      linkedin:  e.linkedin   || null,
+      confidence: e.confidence,
+      type:      e.type,
+      source:    "hunter",
+    }));
 
   } catch (e) {
     console.log(`[contactEnrichment] Hunter error for ${domain}: ${e.message}`);
-    return null;
+    return [];
   }
+}
+
+// Scrapes /team, /management, /leadership pages for individual contact cards.
+// Returns array of { name, title, email, source: "team_page" }
+async function scrapeTeamPages(baseUrl) {
+  const TEAM_PATHS = ["/team", "/management", "/leadership", "/about/team",
+                      "/people", "/our-team", "/staff", "/about-us/team", "/en/team"];
+  const people = [];
+  const seen   = new Set();
+
+  for (const tpath of TEAM_PATHS) {
+    try {
+      const res = await fetch(`${baseUrl}${tpath}`, {
+        signal: AbortSignal.timeout(8_000),
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; ShipScout/1.0)" },
+      });
+      if (!res.ok) continue;
+      const html = await res.text();
+      if (html.length < 500) continue;
+
+      // Extract emails from team pages
+      const pageEmails = extractEmails(html);
+      pageEmails.forEach(e => {
+        if (!seen.has(e)) { seen.add(e); people.push({ email: e, source: "team_page" }); }
+      });
+
+      // Try to extract name + title pairs (common patterns)
+      const nameMatches = html.matchAll(
+        /<(?:h[234]|p|div|span)[^>]*>\s*([A-Z][a-z]+ (?:[A-Z][a-z]+ )?[A-Z][a-z]+)\s*<\/(?:h[234]|p|div|span)>/g
+      );
+      for (const m of nameMatches) {
+        const name = m[1].trim();
+        if (name.split(" ").length >= 2 && !seen.has(name)) {
+          seen.add(name);
+          people.push({ name, source: "team_page" });
+        }
+      }
+
+      if (people.length > 0) {
+        console.log(`[contactEnrichment]   Team page ${tpath}: ${people.length} contacts found`);
+        break; // stop after first successful team page
+      }
+    } catch { /* page not found or timeout */ }
+  }
+
+  return people;
 }
 
 // ── ZeroBounce monthly credit counter ────────────────────────────────────────
@@ -788,6 +844,7 @@ async function enrichCompanyContact(companyName, managerName, opts = {}) {
     guessedEmails:      [],
     emailValidations:   {},   // { email: { status, isRole, source, checkedAt } }
     bestEmail:          null,
+    contacts:           [],   // [{ name, title, email, linkedin, confidence, source }]
     linkedinCompanyUrl,
     linkedinPeopleUrl,
     linkedinSearchUrl:  linkedinCompanyUrl,
@@ -806,23 +863,24 @@ async function enrichCompanyContact(companyName, managerName, opts = {}) {
 
   const found = await fetchContactHtml(baseUrl);
   if (!found) {
-    console.log(`[contactEnrichment]   No contact page found`);
-    return result;
+    console.log(`[contactEnrichment]   No contact page found — falling through to Hunter + team pages`);
   }
 
-  result.contactPath = found.path;
-  console.log(`[contactEnrichment]   Contact page: ${baseUrl}${found.path}`);
+  if (found) {
+    result.contactPath = found.path;
+    console.log(`[contactEnrichment]   Contact page: ${baseUrl}${found.path}`);
 
-  result.emails       = extractEmails(found.html);
-  result.emailsByType = categorizeEmails(result.emails);
-  result.phones       = extractPhones(found.html);
-  result.address      = extractAddress(found.html);
-  result.emailFormat  = guessEmailFormat(result.emails, result.website)
-    || await detectEmailFormat(result.website);
+    result.emails       = extractEmails(found.html);
+    result.emailsByType = categorizeEmails(result.emails);
+    result.phones       = extractPhones(found.html);
+    result.address      = extractAddress(found.html);
+    result.emailFormat  = guessEmailFormat(result.emails, result.website)
+      || await detectEmailFormat(result.website);
 
-  const guessDomain = extractDomainFromEmails(result.emails);
-  if (managerName && guessDomain) {
-    result.guessedEmails = guessAllFormats(managerName, guessDomain);
+    const guessDomain = extractDomainFromEmails(result.emails);
+    if (managerName && guessDomain) {
+      result.guessedEmails = guessAllFormats(managerName, guessDomain);
+    }
   }
 
   // ── Local validation only (syntax + MX) — no ZeroBounce credits spent ───────
@@ -854,30 +912,51 @@ async function enrichCompanyContact(companyName, managerName, opts = {}) {
     result.bestEmail = pickBestEmail(validationsMap, result.emailsByType);
   }
 
-  // ── Hunter fallback: if web scrape found no email but we have a domain ────────
-  if (!result.bestEmail && result.emails.length === 0 && result.website && opts.hunterApiKey) {
+  // ── Hunter: run for all domains (primary people finder, not just fallback) ───
+  if (result.website && opts.hunterApiKey) {
     const hunterDomain = result.website.replace(/^https?:\/\/(www\.)?/, "").split("/")[0];
-    console.log(`[contactEnrichment]   No email found — trying Hunter for ${hunterDomain}`);
-    const hit = await hunterDomainSearch(hunterDomain, opts.hunterApiKey);
-    if (hit?.value) {
-      const email = hit.value.toLowerCase();
-      console.log(`[contactEnrichment]   Hunter hit: ${email} (${hit.type}, ${hit.confidence}% confidence)`);
-      result.emails.push(email);
-      const hunterCat = categorizeEmails([email]);
-      for (const bucket of ["department", "generic", "other"]) {
-        result.emailsByType[bucket].push(...hunterCat[bucket]);
+    console.log(`[contactEnrichment]   Hunter people search for ${hunterDomain}…`);
+    const hunterContacts = await hunterDomainSearch(hunterDomain, opts.hunterApiKey);
+
+    if (hunterContacts.length) {
+      console.log(`[contactEnrichment]   Hunter: ${hunterContacts.length} contact(s) found`);
+      result.contacts = result.contacts || [];
+      for (const c of hunterContacts) {
+        result.contacts.push(c);
+        if (!result.emails.includes(c.email)) {
+          result.emails.push(c.email);
+          result.emailValidations[c.email] = {
+            status: "unchecked", isRole: false, protected: false,
+            source: "hunter", confidence: c.confidence,
+            checkedAt: new Date().toISOString(),
+          };
+        }
       }
-      result.bestEmail = email;
-      result.emailValidations[email] = {
-        status: "unchecked",
-        isRole: ROLE_LOCALS.has(email.split("@")[0]) || GENERIC_LOCALS.has(email.split("@")[0]),
-        protected: false,
-        source: "hunter",
-        confidence: hit.confidence,
-        checkedAt: new Date().toISOString(),
-      };
+      // Best email: personal contact with highest confidence
+      const personal = hunterContacts.filter(c => c.type === "personal");
+      if (!result.bestEmail && personal.length) result.bestEmail = personal[0].email;
+      else if (!result.bestEmail && hunterContacts.length) result.bestEmail = hunterContacts[0].email;
+
+      const hunterCat = categorizeEmails(hunterContacts.map(c => c.email));
+      for (const bucket of ["department", "generic", "other"]) {
+        result.emailsByType[bucket].push(...hunterCat[bucket].filter(e => !result.emailsByType[bucket].includes(e)));
+      }
     } else {
-      console.log(`[contactEnrichment]   Hunter: no result for ${hunterDomain}`);
+      console.log(`[contactEnrichment]   Hunter: no contacts found`);
+    }
+  }
+
+  // ── Team page scraping: find named contacts ───────────────────────────────────
+  if (result.website && baseUrl) {
+    const teamContacts = await scrapeTeamPages(baseUrl);
+    if (teamContacts.length) {
+      result.contacts = result.contacts || [];
+      for (const c of teamContacts) {
+        result.contacts.push(c);
+        if (c.email && !result.emails.includes(c.email)) {
+          result.emails.push(c.email);
+        }
+      }
     }
   }
 
@@ -960,6 +1039,9 @@ async function enrichWithDb(companyName, imo, pool, managerName, opts = {}) {
   // 3. Persist to DB
   if (pool && imo) {
     try {
+      // Add contacts column if it doesn't exist yet
+      await pool.query(`ALTER TABLE owners ADD COLUMN IF NOT EXISTS contacts JSONB DEFAULT '[]'::jsonb`).catch(() => {});
+
       await pool.query(`
         UPDATE owners SET
           website              = COALESCE($2, website),
@@ -974,6 +1056,7 @@ async function enrichWithDb(companyName, imo, pool, managerName, opts = {}) {
           linkedin_people_url  = $11,
           email_validations    = COALESCE($12::jsonb, email_validations),
           best_email           = COALESCE($13, best_email),
+          contacts             = COALESCE($14::jsonb, contacts),
           contact_source       = 'web',
           web_fetched_at       = now()
         WHERE imo = $1::bigint
@@ -993,6 +1076,7 @@ async function enrichWithDb(companyName, imo, pool, managerName, opts = {}) {
           ? JSON.stringify(result.emailValidations)
           : null,
         result.bestEmail || null,
+        result.contacts?.length ? JSON.stringify(result.contacts) : null,
       ]);
       console.log(`[contactEnrichment] DB updated: IMO ${imo}`);
     } catch (e) {

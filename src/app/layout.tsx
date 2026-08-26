@@ -13,8 +13,8 @@ const newsreader = Newsreader({
 });
 
 export const metadata: Metadata = {
-  title: "ShipScout — Vessel Intelligence",
-  description: "Find scrap-eligible vessels before anyone else does.",
+  title: "ShipScout — Direct Vessel Opportunities. Verified Buyers. Secure Transactions.",
+  description: "ShipScout connects shipowners directly with verified recycling yards and cash buyers for confidential vessel sales and recycling transactions.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

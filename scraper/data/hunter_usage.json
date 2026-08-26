@@ -200,5 +200,50 @@
         "at": "2026-07-17T10:59:58.433Z"
       }
     ]
+  },
+  "2026-08-26": {
+    "count": 10,
+    "calls": [
+      {
+        "domain": "medships.com",
+        "at": "2026-08-26T09:58:35.841Z"
+      },
+      {
+        "domain": "seashipping.com",
+        "at": "2026-08-26T09:59:50.683Z"
+      },
+      {
+        "domain": "armada.org",
+        "at": "2026-08-26T10:01:25.893Z"
+      },
+      {
+        "domain": "mccl.gr",
+        "at": "2026-08-26T10:01:44.705Z"
+      },
+      {
+        "domain": "nc.com",
+        "at": "2026-08-26T10:11:05.376Z"
+      },
+      {
+        "domain": "seashipping.com",
+        "at": "2026-08-26T10:11:41.990Z"
+      },
+      {
+        "domain": "seashipping.com",
+        "at": "2026-08-26T10:13:41.895Z"
+      },
+      {
+        "domain": "kuruoglushipping.com",
+        "at": "2026-08-26T10:14:37.194Z"
+      },
+      {
+        "domain": "es-shipmanagement.com",
+        "at": "2026-08-26T10:17:24.238Z"
+      },
+      {
+        "domain": "tcmarine.com",
+        "at": "2026-08-26T10:24:49.145Z"
+      }
+    ]
   }
 }

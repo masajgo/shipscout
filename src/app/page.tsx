@@ -1,346 +1,272 @@
 "use client";
-import { useState, useEffect } from "react";
-import VesselPanel from "@/components/VesselPanel";
+import Link from "next/link";
 
-const SHIP_TYPES = ["All", "Bulk Carrier", "Tanker", "Container", "General Cargo", "Cruise", "Offshore"];
-const SIGNALS    = ["All Signals", "Detained", "AIS Dark", "Lay-up", "P&I Withdrawn", "Survey Due"];
+const STATS = [
+  { value: "4,300+", label: "Vessels monitored" },
+  { value: "$420", label: "Aliağa $/LDT today" },
+  { value: "24h", label: "Offer turnaround" },
+  { value: "100%", label: "Confidential" },
+];
 
-const STATUS_COLORS: Record<string, { color: string; bg: string; border: string }> = {
-  r: { color: "#F04438", bg: "#FEF3F2", border: "#FECDCA" },
-  a: { color: "#DC6803", bg: "#FFFAEB", border: "#FEF0C7" },
-  b: { color: "#2563EB", bg: "#EFF8FF", border: "#B2DDFF" },
-  g: { color: "#1D9E75", bg: "#ECFDF3", border: "#A9EFC5" },
-};
+const HOW_OWNER = [
+  { n: "01", title: "Enter your IMO", body: "Get an instant indicative recycling or second-hand value estimate — free and with no obligation." },
+  { n: "02", title: "Submit confidentially", body: "Your vessel details are shared only with verified buyers after your explicit approval. No public listing." },
+  { n: "03", title: "Receive verified offers", body: "Within 24 hours we return indicative offers from qualified recycling yards and cash buyers." },
+  { n: "04", title: "Close securely", body: "Legal review, KYC/AML and secure closing coordinated by ShipScout with Congar legal support." },
+];
 
-const SHIP_TYPE_ICONS: Record<string, string> = {
-  "Bulk Carrier":  "BC",
-  "Tanker":        "TK",
-  "Container":     "CT",
-  "General Cargo": "GC",
-  "Cruise":        "CR",
-  "Offshore":      "OS",
-};
+const HOW_BUYER = [
+  { n: "01", title: "Apply for access", body: "Submit your acquisition criteria, company details and certifications. We verify every buyer." },
+  { n: "02", title: "See qualified opportunities", body: "Access anonymous vessel opportunities matched to your criteria — before they reach the open market." },
+  { n: "03", title: "Express interest", body: "Shortlist vessels. Owner approves disclosure. NDA executed. Full details released." },
+  { n: "04", title: "Submit offers & close", body: "Structured offer process, deal room, document access and secure closing support." },
+];
 
+const TRUST = [
+  { icon: "🔒", title: "Fully confidential", body: "Owner identity and vessel details are never shared without explicit consent. Calculator use creates no listing." },
+  { icon: "✓", title: "Verified buyers only", body: "Every recycling yard and cash buyer is screened for KYC, sanctions, financial capacity and certifications." },
+  { icon: "⚖", title: "Legal & compliance", body: "Congar provides independent legal review, KYC/AML, sanctions screening and secure closing coordination." },
+  { icon: "📊", title: "Real market data", body: "Live AIS monitoring, real-time scrap benchmarks and independent LDT valuation — not brokerage estimates." },
+];
 
-type Stats = {
-  totalVessels: number;
-  critical: number;
-  highRisk: number;
-  withImo: number;
-  ownersFound: number;
-};
-
-export default function Home() {
-  const [vessels, setVessels]       = useState<any[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [fetchError, setFetchError] = useState(false);
-  const [typeFilter, setTypeFilter] = useState("All");
-  const [signalFilter, setSignalFilter] = useState("All Signals");
-  const [selectedIMO, setSelectedIMO]  = useState<string | null>(null);
-  const [sortBy, setSortBy]             = useState<"score"|"age">("score");
-  const [stats, setStats]               = useState<Stats | null>(null);
-
-  useEffect(() => {
-    fetch("/api/vessels?list=1")
-      .then(r => r.json())
-      .then(d => { setVessels(d.vessels || []); setLoading(false); })
-      .catch(() => { setFetchError(true); setLoading(false); });
-  }, []);
-
-  useEffect(() => {
-    fetch("/api/stats")
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d && !d.error) setStats(d); })
-      .catch(() => {});
-  }, []);
-
-  const currentYear = new Date().getFullYear();
-  const filtered = vessels
-    .filter(v => {
-      if (typeFilter !== "All" && !(v.type || "").toLowerCase().includes(typeFilter.toLowerCase())) return false;
-      return true;
-    })
-    .sort((a, b) => {
-      if (sortBy === "age") return (a.age ?? 0) < (b.age ?? 0) ? 1 : -1;
-      return (b.score ?? 0) - (a.score ?? 0);
-    });
-
+export default function HomePage() {
   return (
-    <div style={{ background: "#F9FAFB", minHeight: "100vh" }}>
+    <div style={{ fontFamily: "system-ui, -apple-system, sans-serif", color: "#0F172A" }}>
 
-      {/* HERO */}
-      <div style={{ background: "#F8F9FA", padding: "72px 48px 60px", position: "relative", overflow: "hidden", borderBottom: "1px solid #E2E8F0" }}>
-        {/* Dot grid */}
-        <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle, rgba(11,30,61,0.05) 1px, transparent 1px)", backgroundSize: "28px 28px", pointerEvents: "none" }} />
-        {/* Navy glow bottom-left */}
-        <div style={{ position: "absolute", bottom: -100, left: -100, width: 500, height: 500, background: "radial-gradient(ellipse, rgba(11,30,61,0.07), transparent 65%)", pointerEvents: "none" }} />
+      {/* ── HERO ─────────────────────────────── */}
+      <section style={{
+        background: "linear-gradient(135deg, #07122E 0%, #0d1f4a 100%)",
+        padding: "88px 24px 100px",
+        textAlign: "center",
+      }}>
+        <p style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.12em", color: "#C9A84C", textTransform: "uppercase", marginBottom: 20 }}>
+          Vessel Transaction Platform
+        </p>
+        <h1 style={{ fontSize: "clamp(28px, 5vw, 52px)", fontWeight: 800, color: "#fff", lineHeight: 1.15, margin: "0 auto 20px", maxWidth: 720, letterSpacing: -1 }}>
+          Direct vessel opportunities.<br />
+          <span style={{ color: "#C9A84C" }}>Verified buyers.</span> Secure transactions.
+        </h1>
+        <p style={{ fontSize: 18, color: "rgba(255,255,255,0.7)", maxWidth: 540, margin: "0 auto 44px", lineHeight: 1.65 }}>
+          ShipScout connects shipowners directly with verified recycling yards
+          and cash buyers for confidential vessel sales and recycling transactions.
+        </p>
+        <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
+          <Link href="/shipowners" style={{
+            background: "#C9A84C", color: "#07122E", padding: "15px 32px",
+            borderRadius: 8, fontWeight: 700, fontSize: 16, textDecoration: "none",
+          }}>
+            Submit a Vessel →
+          </Link>
+          <Link href="/buyers" style={{
+            background: "rgba(255,255,255,0.1)", color: "#fff",
+            border: "1px solid rgba(255,255,255,0.25)",
+            padding: "15px 32px", borderRadius: 8, fontWeight: 600,
+            fontSize: 16, textDecoration: "none",
+          }}>
+            Buyer Access
+          </Link>
+        </div>
+        <p style={{ marginTop: 20, fontSize: 13, color: "rgba(255,255,255,0.35)" }}>
+          Free · Confidential · No obligation
+        </p>
+      </section>
 
-        <div style={{ position: "relative", zIndex: 2, maxWidth: 1200, margin: "0 auto", display: "flex", gap: 64, alignItems: "center" }}>
+      {/* ── STATS ─────────────────────────────── */}
+      <section style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", padding: "28px 24px" }}>
+        <div style={{ maxWidth: 800, margin: "0 auto", display: "flex", justifyContent: "space-around", flexWrap: "wrap", gap: 20 }}>
+          {STATS.map(s => (
+            <div key={s.label} style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 28, fontWeight: 800, color: "#07122E" }}>{s.value}</div>
+              <div style={{ fontSize: 13, color: "#64748B", marginTop: 2 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
 
-          {/* LEFT */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {/* Live badge */}
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1px solid rgba(29,158,117,0.35)", borderRadius: 100, padding: "5px 14px", marginBottom: 28, background: "rgba(29,158,117,0.06)" }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#1D9E75", display: "inline-block" }} />
-              <span style={{ fontSize: 11, fontWeight: 600, color: "#0B1E3D", letterSpacing: "0.06em", textTransform: "uppercase" as const }}>Live AIS · {stats ? stats.totalVessels.toLocaleString() : "—"} vessels tracked</span>
+      {/* ── HOW IT WORKS ──────────────────────── */}
+      <section style={{ padding: "80px 24px", background: "#fff" }}>
+        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+          <p style={{ textAlign: "center", fontSize: 12, fontWeight: 600, letterSpacing: "0.1em", color: "#C9A84C", textTransform: "uppercase", marginBottom: 12 }}>
+            How It Works
+          </p>
+          <h2 style={{ textAlign: "center", fontSize: 30, fontWeight: 700, color: "#07122E", margin: "0 0 56px" }}>
+            Two sides. One secure platform.
+          </h2>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
+
+            <div style={{ paddingRight: 48 }}>
+              <div style={{ background: "#07122E", color: "#C9A84C", padding: "6px 14px", borderRadius: 6, fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", display: "inline-block", marginBottom: 28, textTransform: "uppercase" }}>
+                For Shipowners
+              </div>
+              {HOW_OWNER.map(s => (
+                <div key={s.n} style={{ display: "flex", gap: 16, marginBottom: 28 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#C9A84C", minWidth: 28, paddingTop: 1 }}>{s.n}</div>
+                  <div>
+                    <div style={{ fontWeight: 600, color: "#0F172A", marginBottom: 4 }}>{s.title}</div>
+                    <div style={{ fontSize: 14, color: "#64748B", lineHeight: 1.6 }}>{s.body}</div>
+                  </div>
+                </div>
+              ))}
+              <Link href="/shipowners" style={{
+                display: "inline-block", marginTop: 4,
+                background: "#07122E", color: "#fff",
+                padding: "11px 22px", borderRadius: 7,
+                fontSize: 14, fontWeight: 600, textDecoration: "none",
+              }}>
+                Estimate my vessel →
+              </Link>
             </div>
 
-            <h1 style={{ fontSize: 56, fontWeight: 800, color: "#0B1E3D", letterSpacing: "-2.5px", lineHeight: 1.0, margin: "0 0 24px" }}>
-              Find it. Scout it.<br />
-              <span style={{ color: "#1D9E75" }}>Close it.</span>
-            </h1>
+            <div style={{ borderLeft: "1px solid #E2E8F0", paddingLeft: 48 }}>
+              <div style={{ background: "#F0F9F6", color: "#0D6E54", padding: "6px 14px", borderRadius: 6, fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", display: "inline-block", marginBottom: 28, textTransform: "uppercase" }}>
+                For Recycling Yards & Cash Buyers
+              </div>
+              {HOW_BUYER.map(s => (
+                <div key={s.n} style={{ display: "flex", gap: 16, marginBottom: 28 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0D6E54", minWidth: 28, paddingTop: 1 }}>{s.n}</div>
+                  <div>
+                    <div style={{ fontWeight: 600, color: "#0F172A", marginBottom: 4 }}>{s.title}</div>
+                    <div style={{ fontSize: 14, color: "#64748B", lineHeight: 1.6 }}>{s.body}</div>
+                  </div>
+                </div>
+              ))}
+              <Link href="/buyers" style={{
+                display: "inline-block", marginTop: 4,
+                background: "#0D6E54", color: "#fff",
+                padding: "11px 22px", borderRadius: 7,
+                fontSize: 14, fontWeight: 600, textDecoration: "none",
+              }}>
+                Apply for buyer access →
+              </Link>
+            </div>
 
-            <p style={{ fontSize: 17, color: "#4A5568", lineHeight: 1.65, margin: "0 0 36px", fontWeight: 400, maxWidth: 520 }}>
-              Scrap-eligible and second-hand vessels, their owners&apos; contacts,
-              and S&amp;P intelligence — surfaced before the market moves.
-            </p>
+          </div>
+        </div>
+      </section>
 
-            {/* Value props */}
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, marginBottom: 40 }}>
-              {["Scrap radar", "Owner contacts", "S&P intelligence"].map(v => (
-                <span key={v} style={{ fontSize: 12, fontWeight: 600, color: "#0B1E3D", border: "1px solid #D1D9E0", borderRadius: 6, padding: "6px 14px", background: "#fff", letterSpacing: "0.01em" }}>{v}</span>
+      {/* ── EXAMPLE OPPORTUNITY ───────────────── */}
+      <section style={{ background: "#F8FAFC", padding: "72px 24px", borderTop: "1px solid #E2E8F0" }}>
+        <div style={{ maxWidth: 680, margin: "0 auto", textAlign: "center" }}>
+          <p style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.1em", color: "#64748B", textTransform: "uppercase", marginBottom: 12 }}>
+            Example Opportunity
+          </p>
+          <h2 style={{ fontSize: 26, fontWeight: 700, color: "#07122E", margin: "0 0 8px" }}>
+            What verified buyers see
+          </h2>
+          <p style={{ fontSize: 15, color: "#64748B", margin: "0 0 32px", lineHeight: 1.6 }}>
+            Owner identity and vessel name remain confidential until explicit disclosure approval.
+          </p>
+
+          <div style={{
+            background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12,
+            padding: "28px 28px", textAlign: "left",
+            boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "#0F172A" }}>
+                28-year-old Bulk Carrier
+              </div>
+              <span style={{ background: "#FEF9EE", border: "1px solid #F5D87A", borderRadius: 6, padding: "5px 12px", fontSize: 11, fontWeight: 700, color: "#92400E" }}>
+                REVIEWING OFFERS
+              </span>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
+              {[
+                ["LDT", "12,400 t"],
+                ["Delivery", "Mediterranean"],
+                ["Availability", "Q4 2026"],
+                ["Est. value", "$4.8M – $5.2M"],
+              ].map(([label, val]) => (
+                <div key={label} style={{ background: "#F8FAFC", padding: "10px 12px", borderRadius: 8 }}>
+                  <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", marginTop: 3 }}>{val}</div>
+                </div>
               ))}
             </div>
 
-            {/* CTAs */}
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" as const }}>
-              <a href="/vessels" style={{ padding: "14px 28px", background: "#0B1E3D", color: "#fff", fontSize: 14, fontWeight: 600, border: "none", borderRadius: 8, cursor: "pointer", letterSpacing: "0.02em", textDecoration: "none", display: "inline-block" }}>
-                Explore vessels
-              </a>
-              <a href="/map" style={{ padding: "14px 28px", background: "#fff", color: "#0B1E3D", fontSize: 14, fontWeight: 600, border: "1px solid #D1D9E0", borderRadius: 8, cursor: "pointer", letterSpacing: "0.02em", textDecoration: "none", display: "inline-block" }}>
-                View map
-              </a>
-              <a href="mailto:contact@shipscout.io?subject=Demo request" style={{ padding: "14px 28px", background: "#fff", color: "#1D9E75", fontSize: 14, fontWeight: 600, border: "1px solid rgba(29,158,117,0.35)", borderRadius: 8, cursor: "pointer", letterSpacing: "0.02em", textDecoration: "none", display: "inline-block" }}>
-                Request demo
-              </a>
+            <div style={{ background: "#F1F5F9", borderRadius: 8, padding: "11px 14px", fontSize: 13, color: "#475569" }}>
+              🔒 Owner identity, vessel name, exact position and documents available after NDA and owner approval.
             </div>
           </div>
-
-          {/* RIGHT — featured vessel card */}
-          <div className="hero-right" style={{ width: 380, flexShrink: 0 }}>
-            {(() => {
-              const featured = vessels[0];
-              if (!featured) return (
-                <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2E8F0", padding: 40, textAlign: "center", color: "#8896A5" }}>
-                  <div style={{ fontSize: 36, marginBottom: 12 }}>⚓</div>
-                  <div style={{ fontSize: 13 }}>{loading ? "Loading..." : "No data"}</div>
-                </div>
-              );
-              const catColors: Record<string, { bg: string; color: string }> = {
-                critical: { bg: "#7F1D1D", color: "#FCA5A5" },
-                high:     { bg: "#78350F", color: "#FCD34D" },
-                medium:   { bg: "#1C3D5A", color: "#93C5FD" },
-                low:      { bg: "#1A2E1A", color: "#86EFAC" },
-              };
-              const cat = catColors[featured.scrap_category] ?? catColors.low;
-              return (
-                <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2E8F0", padding: 24, boxShadow: "0 8px 32px rgba(11,30,61,0.10)" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#C9A84C", letterSpacing: "0.1em", textTransform: "uppercase" as const, marginBottom: 16 }}>
-                    Featured Vessel
-                  </div>
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: "#0B1E3D", lineHeight: 1.2 }}>
-                      {featured.name || `IMO ${featured.imo}`}
-                    </div>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 100, background: cat.bg, color: cat.color, flexShrink: 0 }}>
-                      {(featured.scrap_category || "").toUpperCase()}
-                    </span>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 16px", marginBottom: 20 }}>
-                    {[
-                      { label: "IMO",   value: featured.imo },
-                      { label: "Type",  value: featured.type || "—" },
-                      { label: "Built", value: featured.built_year ? `${featured.built_year} · ${featured.age}y` : "—" },
-                      { label: "Flag",  value: featured.flag || "—" },
-                    ].map(r => (
-                      <div key={r.label}>
-                        <div style={{ fontSize: 10, color: "#8896A5", textTransform: "uppercase" as const, letterSpacing: "0.04em", marginBottom: 2 }}>{r.label}</div>
-                        <div style={{ fontSize: 13, color: "#0B1E3D", fontWeight: 500 }}>{r.value}</div>
-                      </div>
-                    ))}
-                  </div>
-                  <button
-                    onClick={() => setSelectedIMO(featured.imo)}
-                    style={{ width: "100%", padding: "11px 20px", background: "#C9A84C", color: "#0B1E3D", fontSize: 13, fontWeight: 700, border: "none", borderRadius: 8, cursor: "pointer", marginBottom: 12 }}
-                  >
-                    View Details →
-                  </button>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <span style={{ fontSize: 10, fontWeight: 600, color: "#1D9E75", border: "1px solid rgba(29,158,117,0.3)", borderRadius: 100, padding: "3px 10px" }}>● LIVE AIS</span>
-                    <span style={{ fontSize: 10, fontWeight: 600, color: "#0B1E3D", border: "1px solid #E2E8F0", borderRadius: 100, padding: "3px 10px" }}>✓ VERIFIED</span>
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-
         </div>
-      </div>
+      </section>
 
-      {/* GREEN IMPACT */}
-      <div style={{ background: "#0C1F17", padding: "28px 32px", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(29,158,117,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(29,158,117,0.04) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
-        <div style={{ position: "relative", zIndex: 2, maxWidth: 1100, margin: "0 auto" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-            <div style={{ width: 24, height: 2, background: "#1D9E75" }} />
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#34D399", letterSpacing: "0.16em", textTransform: "uppercase" as const }}>Sustainable Recycling Impact</div>
+      {/* ── TRUST ─────────────────────────────── */}
+      <section style={{ background: "#07122E", padding: "72px 24px" }}>
+        <div style={{ maxWidth: 860, margin: "0 auto" }}>
+          <p style={{ textAlign: "center", fontSize: 12, fontWeight: 600, letterSpacing: "0.1em", color: "#C9A84C", textTransform: "uppercase", marginBottom: 12 }}>
+            Why ShipScout
+          </p>
+          <h2 style={{ textAlign: "center", fontSize: 26, fontWeight: 700, color: "#fff", margin: "0 0 44px" }}>
+            Built for high-value, confidential transactions
+          </h2>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+            {TRUST.map(t => (
+              <div key={t.title} style={{
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.09)",
+                borderRadius: 12, padding: "22px",
+              }}>
+                <div style={{ fontSize: 22, marginBottom: 10 }}>{t.icon}</div>
+                <div style={{ fontWeight: 600, color: "#fff", marginBottom: 6 }}>{t.title}</div>
+                <div style={{ fontSize: 14, color: "rgba(255,255,255,0.55)", lineHeight: 1.65 }}>{t.body}</div>
+              </div>
+            ))}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+        </div>
+      </section>
+
+      {/* ── FINAL CTA ─────────────────────────── */}
+      <section style={{ background: "#F8FAFC", padding: "72px 24px", textAlign: "center", borderTop: "1px solid #E2E8F0" }}>
+        <h2 style={{ fontSize: 26, fontWeight: 700, color: "#07122E", margin: "0 0 10px" }}>
+          Ready to get started?
+        </h2>
+        <p style={{ fontSize: 15, color: "#64748B", margin: "0 0 28px" }}>
+          Shipowners estimate for free. Buyers apply for verified access.
+        </p>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+          <Link href="/shipowners" style={{
+            background: "#07122E", color: "#fff",
+            padding: "13px 28px", borderRadius: 8,
+            fontWeight: 700, fontSize: 15, textDecoration: "none",
+          }}>
+            Submit a Vessel
+          </Link>
+          <Link href="/buyers" style={{
+            background: "#fff", color: "#07122E",
+            border: "1px solid #CBD5E1",
+            padding: "13px 28px", borderRadius: 8,
+            fontWeight: 600, fontSize: 15, textDecoration: "none",
+          }}>
+            Buyer Access
+          </Link>
+        </div>
+      </section>
+
+      {/* ── FOOTER ────────────────────────────── */}
+      <footer style={{ background: "#07122E", borderTop: "1px solid rgba(255,255,255,0.08)", padding: "28px 24px" }}>
+        <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+          <span style={{ fontSize: 16, fontWeight: 700, color: "#fff", letterSpacing: -0.3 }}>
+            Ship<span style={{ color: "#C9A84C" }}>Scout</span>
+          </span>
+          <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
             {[
-              { n: "90", u: "%", l: "of each vessel recovered — steel, machinery, equipment reused", w: "90%" },
-              { n: "412K", u: " t", l: "steel recycled back into construction supply chains", w: "72%" },
-              { n: "68", u: "%", l: "of tracked yards now HKC-certified or in certification", w: "68%" },
-              { n: "100", u: "%", l: "of deals routed to compliant, audited recycling facilities", w: "100%" },
-            ].map(c => (
-              <div key={c.l}>
-                <div style={{ fontSize: 30, fontWeight: 800, color: "#fff", letterSpacing: "-1px", lineHeight: 1 }}>{c.n}<span style={{ fontSize: 16, color: "#34D399" }}>{c.u}</span></div>
-                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 6, lineHeight: 1.4 }}>{c.l}</div>
-                <div style={{ height: 3, background: "rgba(255,255,255,0.08)", borderRadius: 2, marginTop: 12, overflow: "hidden" }}>
-                  <div style={{ height: "100%", background: "#1D9E75", borderRadius: 2, width: c.w }} />
-                </div>
-              </div>
+              ["How It Works", "/how-it-works"],
+              ["Shipowners", "/shipowners"],
+              ["Buyers", "/buyers"],
+              ["Contact", "mailto:hello@shipscout.io"],
+            ].map(([label, href]) => (
+              <Link key={label} href={href} style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", textDecoration: "none" }}>
+                {label}
+              </Link>
             ))}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 24, marginTop: 24, paddingTop: 20, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", lineHeight: 1.5, flex: 1 }}>
-              <strong style={{ color: "#fff", fontWeight: 600 }}>Every vessel we surface is matched only to responsible yards.</strong> ShipScout cross-checks recycling facilities against Hong Kong Convention and EU SRR certification before any introduction is made.
-            </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              {["HKC Compliant", "EU SRR", "IHM Verified"].map(b => (
-                <div key={b} style={{ fontSize: 10, fontWeight: 600, color: "#34D399", border: "1px solid rgba(52,211,153,0.3)", background: "rgba(52,211,153,0.08)", padding: "6px 12px", borderRadius: 6, letterSpacing: "0.04em" }}>{b}</div>
-              ))}
-            </div>
-          </div>
+          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)" }}>© 2026 ShipScout</span>
         </div>
-      </div>
+      </footer>
 
-      {/* FILTER BAR */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #EAECF0", padding: "10px 28px", display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" as const }}>
-        <span style={{ fontSize: 10, fontWeight: 600, color: "#98A2B3", letterSpacing: "0.1em", textTransform: "uppercase" as const, marginRight: 4 }}>Type</span>
-        {SHIP_TYPES.map(t => (
-          <button key={t} onClick={() => setTypeFilter(t)} style={{
-            fontSize: 12, padding: "5px 12px", borderRadius: 6,
-            border: `1px solid ${typeFilter === t ? "#101828" : "#EAECF0"}`,
-            background: typeFilter === t ? "#101828" : "#fff",
-            color: typeFilter === t ? "#fff" : "#667085",
-            cursor: "pointer", fontFamily: "Inter, sans-serif", transition: "all 0.15s",
-          }}>{t}</button>
-        ))}
-        <div style={{ width: 1, height: 20, background: "#EAECF0", margin: "0 4px" }} />
-        <span style={{ fontSize: 10, fontWeight: 600, color: "#98A2B3", letterSpacing: "0.1em", textTransform: "uppercase" as const, marginRight: 4 }}>Signal</span>
-        {SIGNALS.map(s => (
-          <button key={s} onClick={() => setSignalFilter(s)} style={{
-            fontSize: 12, padding: "5px 12px", borderRadius: 6,
-            border: `1px solid ${signalFilter === s ? "#1D9E75" : "#EAECF0"}`,
-            background: signalFilter === s ? "#ECFDF3" : "#fff",
-            color: signalFilter === s ? "#1D9E75" : "#667085",
-            cursor: "pointer", fontFamily: "Inter, sans-serif", transition: "all 0.15s",
-          }}>{s}</button>
-        ))}
-      </div>
-
-      {/* VESSEL LIST */}
-      <div id="vessels" style={{ padding: "20px 28px 40px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 14 }}>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#101828" }}>
-              {loading ? "Loading vessels..." : `${filtered.length} vessels found`}
-            </div>
-            <div style={{ fontSize: 12, color: "#98A2B3", marginTop: 2 }}>
-              {sortBy === "score" ? "Sorted by scrap score — highest opportunity first" : "Sorted by age — oldest first"}
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 4 }}>
-            {(["score","age"] as const).map(s => (
-              <button key={s} onClick={() => setSortBy(s)} style={{ fontSize: 12, color: sortBy===s ? "#101828" : "#667085", border: `1px solid ${sortBy===s ? "#101828" : "#EAECF0"}`, padding: "6px 14px", borderRadius: 7, background: sortBy===s ? "#F2F4F7" : "#fff", cursor: "pointer", fontFamily: "Inter, sans-serif", textTransform: "capitalize" }}>
-                {s === "score" ? "Score ▾" : "Age ▾"}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {loading && (
-          <div style={{ textAlign: "center", padding: "48px", color: "#98A2B3", fontSize: 13 }}>
-            Loading live vessel data from Datalastic...
-          </div>
-        )}
-        {fetchError && (
-          <div style={{ textAlign: "center", padding: "48px", color: "#F87171", fontSize: 13 }}>
-            Failed to load vessel data. Please refresh the page.
-          </div>
-        )}
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {!loading && filtered.length === 0 && vessels.length > 0 && (
-            <div style={{ textAlign: "center", padding: "48px 20px", color: "#98A2B3" }}>
-              <div style={{ fontSize: 13, marginBottom: 10 }}>No vessels match your current filters.</div>
-              <button onClick={() => { setTypeFilter("All"); setSignalFilter("All Signals"); }} style={{ fontSize: 12, fontWeight: 600, color: "#1D9E75", border: "1px solid #A9EFC5", background: "#ECFDF3", padding: "7px 16px", borderRadius: 7, cursor: "pointer" }}>
-                Clear filters
-              </button>
-            </div>
-          )}
-          {filtered.map(v => {
-            const age      = currentYear - v.built;
-            const sc       = STATUS_COLORS[v.statusType] ?? STATUS_COLORS.g;
-            const typeCode = SHIP_TYPE_ICONS[v.type] || "VS";
-            return (
-              <div key={v.imo}
-                className="vessel-card"
-                onClick={() => setSelectedIMO(v.imo)}
-                style={{
-                  background: "#fff",
-                  border: "1px solid #EAECF0",
-                  borderLeft: v.statusType === "r" ? "3px solid #F04438" : v.statusType === "a" ? "3px solid #DC6803" : "1px solid #EAECF0",
-                  borderRadius: v.statusType === "r" || v.statusType === "a" ? "0 10px 10px 0" : 10,
-                  padding: "16px 20px",
-                  display: "flex", alignItems: "center", gap: 16,
-                  cursor: "pointer",
-                  boxShadow: "0 1px 2px rgba(16,24,40,0.04)",
-                }}
-              >
-                <div style={{ width: 44, height: 44, borderRadius: 10, background: "#F9FAFB", border: "1px solid #EAECF0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: "#344054", letterSpacing: 0.5 }}>{typeCode}</div>
-                </div>
-
-                <div style={{ width: 48, textAlign: "center", flexShrink: 0 }}>
-                  <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: -1, lineHeight: 1, color: v.statusType === "r" ? "#F04438" : v.statusType === "a" ? "#DC6803" : "#1D9E75" }}>{v.score}</div>
-                  <div style={{ fontSize: 8, fontWeight: 600, letterSpacing: "0.1em", color: "#98A2B3", textTransform: "uppercase" as const, marginTop: 2 }}>Score</div>
-                </div>
-
-                <div style={{ width: 1, height: 36, background: "#EAECF0", flexShrink: 0 }} />
-
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ marginBottom: 6 }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: "#101828" }}>{v.name}</span>
-                    <span style={{ fontSize: 11, color: "#C8CDD6", fontFamily: "monospace", marginLeft: 10 }}>IMO {v.imo}</span>
-                  </div>
-                  <div style={{ display: "flex", gap: 20, flexWrap: "wrap" as const }}>
-                    {[
-                      v.type ? { label: "Type",  val: v.type } : null,
-                      v.built_year ? { label: "Built", val: `${v.built_year} · ${v.age ?? currentYear - v.built_year}y` } : null,
-                      v.dwt  ? { label: "DWT", val: `${(v.dwt).toLocaleString()} t` } : null,
-                      v.ldt  ? { label: "LDT", val: `${(v.ldt).toLocaleString()} t${v.ldt_estimated ? " ~" : ""}` } : null,
-                      v.flag ? { label: "Flag", val: v.flag } : null,
-                    ].filter(Boolean).map(s => s && (
-                      <div key={s.label}>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: "#344054" }}>{s.val}</div>
-                        <div style={{ fontSize: 9, fontWeight: 500, color: "#98A2B3", textTransform: "uppercase" as const, letterSpacing: "0.08em", marginTop: 1 }}>{s.label}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-
-                <div style={{ color: "#C8CDD6", fontSize: 18, flexShrink: 0 }}>→</div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {selectedIMO && (
-        <VesselPanel imo={selectedIMO} onClose={() => setSelectedIMO(null)} />
-      )}
     </div>
   );
 }

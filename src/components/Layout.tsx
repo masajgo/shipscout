@@ -3,16 +3,10 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
-// Ordered by the cash buyer's workflow: see the signal, search the fleet, price it,
-// compare candidates. /snp, /alerts and /crm are still routable but unlinked.
+// App nav — shown only to authenticated users inside the product
 const NAV = [
-  { href: "/",              label: "Dashboard" },
-  { href: "/opportunities", label: "Radar"     },
-  { href: "/vessels",       label: "Vessels"   },
-  { href: "/markets",       label: "Markets"   },
-  { href: "/compare",       label: "Compare"   },
-  { href: "/map",           label: "Map"       },
-  { href: "/weekly",        label: "Weekly"    },
+  { href: "/opportunities", label: "Radar"   },
+  { href: "/vessels",       label: "Vessels" },
 ];
 
 // Static deltas (directional arrows) — updated weekly alongside seed data
@@ -34,13 +28,16 @@ const FALLBACK_TICKER: TickerItem[] = [
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const path = usePathname();
-  const isPublic = path.startsWith("/vessel/");
+  const PUBLIC_MARKETING = ["/", "/shipowners", "/buyers", "/how-it-works"];
+  const isVesselPage = path.startsWith("/vessel/");
+  const isMarketingPage = PUBLIC_MARKETING.includes(path) || isVesselPage;
+  const isPublic = isVesselPage; // vessel pages have no nav at all
 
   const [aisCount, setAisCount] = useState<number | null>(null);
   const [ticker, setTicker] = useState<TickerItem[]>(FALLBACK_TICKER);
 
   useEffect(() => {
-    if (isPublic) return;
+    if (isMarketingPage) return;
     fetch("/api/ais").then(r => r.json()).then(d => {
       const n = d.total ?? (Array.isArray(d.vessels) ? d.vessels.length : null);
       if (n !== null) setAisCount(n);
@@ -48,7 +45,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   }, [isPublic]);
 
   useEffect(() => {
-    if (isPublic) return;
+    if (isMarketingPage) return;
     fetch("/api/scrap-prices")
       .then(r => r.json())
       .then(d => {
@@ -66,8 +63,52 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       .catch(() => {});
   }, [isPublic]);
 
-  // Public vessel landing page — no app chrome, owner arrives from email link
+  // Vessel public page — no nav at all
   if (isPublic) return <>{children}</>;
+
+  // Marketing pages — minimal public nav, no app chrome
+  if (isMarketingPage) return (
+    <div style={{ minHeight: "100vh", background: "#fff" }}>
+      <nav style={{
+        height: 60, display: "flex", alignItems: "center",
+        padding: "0 32px", justifyContent: "space-between",
+        background: "#07122E", position: "sticky", top: 0, zIndex: 100,
+      }}>
+        <Link href="/" style={{ textDecoration: "none" }}>
+          <span style={{ fontSize: 17, fontWeight: 700, color: "#fff", letterSpacing: -0.5 }}>
+            Ship<span style={{ color: "#C9A84C" }}>Scout</span>
+          </span>
+        </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {[
+            { href: "/how-it-works", label: "How It Works" },
+            { href: "/buyers",       label: "Buyers" },
+          ].map(({ href, label }) => (
+            <Link key={href} href={href} style={{
+              fontSize: 13, color: "rgba(255,255,255,0.7)", textDecoration: "none",
+              padding: "6px 12px", borderRadius: 6,
+            }}>
+              {label}
+            </Link>
+          ))}
+          <Link href="/opportunities" style={{
+            fontSize: 13, color: "rgba(255,255,255,0.7)", textDecoration: "none",
+            padding: "6px 12px", borderRadius: 6,
+          }}>
+            Sign In
+          </Link>
+          <Link href="/shipowners" style={{
+            background: "#C9A84C", color: "#07122E", fontSize: 13,
+            fontWeight: 700, padding: "8px 16px", borderRadius: 6,
+            textDecoration: "none", marginLeft: 4,
+          }}>
+            Submit a Vessel
+          </Link>
+        </div>
+      </nav>
+      {children}
+    </div>
+  );
 
   return (
     <div style={{ minHeight: "100vh", background: "#F9FAFB" }}>

@@ -9,11 +9,9 @@ type Vessel = {
   deadweight: number | null; ldt: number | null;
   scrapScore: number | null; scrapCategory: string | null;
   detentionCount: number;
-  best_email: string | null; owner_email: string | null;
-  emails: string[] | null; phones: string[] | null;
-  website: string | null; linkedin_company_url: string | null;
-  owner_name: string | null; contact_manager: string | null; vessel_manager: string | null;
-  photoThumb: string | null;
+  bestEmail: string | null; phone: string | null;
+  website: string | null; linkedinUrl: string | null;
+  ownerName: string | null; manager: string | null;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -127,12 +125,9 @@ export default function VesselsPage() {
     if (e.key === "Enter") search();
   }
 
-  const email = (v: Vessel) => {
-    const all = [v.best_email, v.owner_email, ...(v.emails ?? [])].filter(Boolean);
-    return all[0] ?? null;
-  };
-  const phone = (v: Vessel) => v.phones?.[0] ?? null;
-  const manager = (v: Vessel) => v.contact_manager || v.vessel_manager || null;
+  const email = (v: Vessel) => v.bestEmail ?? null;
+  const phone = (v: Vessel) => v.phone ?? null;
+  const manager = (v: Vessel) => v.manager ?? null;
 
   return (
     <div style={{ minHeight: "100vh", background: "#F8FAFC", fontFamily: "system-ui, -apple-system, sans-serif" }}>
@@ -267,7 +262,7 @@ export default function VesselsPage() {
             const em = email(v);
             const ph = phone(v);
             const mgr = manager(v);
-            const hasContact = !!(em || ph || v.website);
+            const hasContact = !!(em || ph || v.website || v.linkedinUrl);
 
             return (
               <div key={v.imo} style={{
@@ -315,9 +310,9 @@ export default function VesselsPage() {
                   <div style={{ minWidth: 160 }}>
                     <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Company</div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>
-                      {v.owner_name ?? mgr ?? "—"}
+                      {v.ownerName ?? mgr ?? "—"}
                     </div>
-                    {mgr && mgr !== v.owner_name && (
+                    {mgr && mgr !== v.ownerName && (
                       <div style={{ fontSize: 12, color: "#64748B" }}>Manager: {mgr}</div>
                     )}
                   </div>
@@ -330,8 +325,8 @@ export default function VesselsPage() {
                     )}
                     {em && <ContactRow icon="📧" value={em} href={`mailto:${em}`} />}
                     {ph && <ContactRow icon="📞" value={ph} href={`tel:${ph.replace(/\s/g, "")}`} />}
-                    {v.linkedin_company_url && (
-                      <ContactRow icon="in" value="LinkedIn" href={v.linkedin_company_url} />
+                    {v.linkedinUrl && (
+                      <ContactRow icon="in" value="LinkedIn" href={v.linkedinUrl} />
                     )}
                     {!hasContact && (
                       <span style={{ fontSize: 12, color: "#CBD5E1", fontStyle: "italic" }}>No contact data yet</span>

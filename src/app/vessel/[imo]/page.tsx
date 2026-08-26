@@ -216,7 +216,7 @@ export default async function VesselPublicPage(
                 );
               })}
             </div>
-            {v.signals.map(s => (
+            {v.signals.map((s: VesselSignal) => (
               <p key={s.type} style={{ fontSize: 13, color: "#475569", margin: "0 0 6px", lineHeight: 1.5 }}>
                 · {s.explanation}
               </p>

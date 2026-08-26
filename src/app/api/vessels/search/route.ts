@@ -205,9 +205,14 @@ export async function GET(req: NextRequest) {
   const offset = (page - 1) * limit;
 
   try {
+    // DISTINCT ON (v.imo) deduplicates vessels that appear under multiple MMSIs.
+    // Must be wrapped in a subquery because DISTINCT ON requires its own ORDER BY.
     const { rows } = await pool.query(
-      `SELECT ${SELECT} ${FROM} ${whereClause}
-       ORDER BY v.scrap_score DESC NULLS LAST
+      `SELECT * FROM (
+         SELECT DISTINCT ON (v.imo) ${SELECT} ${FROM} ${whereClause}
+         ORDER BY v.imo, v.scrap_score DESC NULLS LAST
+       ) deduped
+       ORDER BY scrap_score DESC NULLS LAST
        LIMIT ${limit} OFFSET ${offset}`,
       params,
     );

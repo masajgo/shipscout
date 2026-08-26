@@ -32,24 +32,6 @@ function pushParam(params: unknown[], val: unknown): string {
 export async function GET(req: NextRequest) {
   const p = req.nextUrl.searchParams;
 
-  // ── text search (IMO / vessel name / company name) ──────────────────────────
-  const q = p.get("q")?.trim() ?? "";
-  if (q) {
-    if (/^\d{7}$/.test(q)) {
-      // Exact IMO
-      where.push(`v.imo = ${pushParam(params, q)}::bigint`);
-    } else {
-      // Name or company — search vessels + owners tables
-      const like = pushParam(params, `%${q}%`);
-      where.push(`(
-        v.name         ILIKE ${like}
-        OR o.owner_name   ILIKE ${like}
-        OR o.manager_name ILIKE ${like}
-        OR o.ism_manager  ILIKE ${like}
-      )`);
-    }
-  }
-
   const hasContact      = p.get("hasContact") !== "false";
   const emailStatus     = p.get("emailStatus")?.split(",").filter(Boolean) ?? [];
   const scrapRisk       = p.get("scrapRisk")?.split(",").filter(Boolean) ?? [];
@@ -69,6 +51,22 @@ export async function GET(req: NextRequest) {
 
   const params: unknown[] = [];
   const where: string[]   = [];
+
+  // ── text search (IMO / vessel name / company name) ──────────────────────────
+  const q = p.get("q")?.trim() ?? "";
+  if (q) {
+    if (/^\d{7}$/.test(q)) {
+      where.push(`v.imo = ${pushParam(params, q)}::bigint`);
+    } else {
+      const like = pushParam(params, `%${q}%`);
+      where.push(`(
+        v.name            ILIKE ${like}
+        OR o.owner_name   ILIKE ${like}
+        OR o.manager_name ILIKE ${like}
+        OR o.ism_manager  ILIKE ${like}
+      )`);
+    }
+  }
 
   // ── contact filter ──────────────────────────────────────────────────────────
   if (hasContact) {

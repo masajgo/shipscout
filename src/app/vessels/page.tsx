@@ -277,20 +277,6 @@ export default function VesselsPage() {
                 {/* Vessel row */}
                 <div style={{ display: "flex", gap: 16, padding: "16px 20px", alignItems: "flex-start" }}>
 
-                  {/* Photo */}
-                  {v.photoThumb ? (
-                    <img src={v.photoThumb} alt={v.name}
-                      style={{ width: 80, height: 52, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
-                  ) : (
-                    <div style={{ width: 80, height: 52, background: "#F1F5F9", borderRadius: 6, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <svg width="32" height="20" viewBox="0 0 32 20" fill="none">
-                        <rect x="2" y="9" width="28" height="7" rx="2" fill="#CBD5E1"/>
-                        <rect x="7" y="4" width="12" height="6" rx="1" fill="#CBD5E1"/>
-                        <rect x="10" y="1" width="2" height="4" rx="0.5" fill="#E2E8F0"/>
-                      </svg>
-                    </div>
-                  )}
-
                   {/* Vessel info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>

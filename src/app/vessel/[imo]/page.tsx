@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import pool from "@/lib/db";
-import { computeSignals, SIGNAL_META } from "@/lib/signals";
+import { computeSignals, SIGNAL_META, type VesselSignal } from "@/lib/signals";
 import { priceCategory, estimateCheque, formatUsd, type YardPrices } from "@/lib/scrapValue";
 
 export const dynamic = "force-dynamic";

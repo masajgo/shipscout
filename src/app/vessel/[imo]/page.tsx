@@ -204,7 +204,7 @@ export default async function VesselPublicPage(
               Recycling Signals Detected
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-              {v.signals.map(s => {
+              {v.signals.map((s: VesselSignal) => {
                 const m = SIGNAL_META[s.type];
                 return (
                   <span key={s.type} style={{

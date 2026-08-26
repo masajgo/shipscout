@@ -127,24 +127,6 @@ export default async function VesselPublicPage(
 
       <main style={{ maxWidth: 700, margin: "0 auto", padding: "32px 16px 64px" }}>
 
-        {/* Photo */}
-        {v.photo_url ? (
-          <div style={{ width: "100%", height: 220, borderRadius: 12, overflow: "hidden", marginBottom: 24 }}>
-            <img src={v.photo_url} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          </div>
-        ) : (
-          <div style={{
-            width: "100%", height: 160, borderRadius: 12, marginBottom: 24,
-            background: "#E2E8F0", display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <svg width="72" height="40" viewBox="0 0 72 40" fill="none">
-              <rect x="4" y="18" width="64" height="14" rx="3" fill="#94A3B8"/>
-              <rect x="16" y="8" width="28" height="12" rx="2" fill="#94A3B8"/>
-              <rect x="22" y="2" width="4" height="8" rx="1" fill="#CBD5E1"/>
-            </svg>
-          </div>
-        )}
-
         {/* Vessel title */}
         <h1 style={{ fontSize: 28, fontWeight: 700, color: "#0F172A", margin: "0 0 6px" }}>
           M/V {v.name}

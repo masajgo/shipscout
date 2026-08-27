@@ -3,6 +3,11 @@ import { useState, useRef } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+type Contact = {
+  name: string | null; title: string | null; email: string | null;
+  linkedin: string | null; confidence: number | null; type: string | null; source: string;
+};
+
 type Vessel = {
   imo: string; mmsi: string; name: string; type: string; flag: string;
   age: number | null; builtYear: number | null;
@@ -12,6 +17,7 @@ type Vessel = {
   bestEmail: string | null; phone: string | null;
   website: string | null; linkedinUrl: string | null;
   ownerName: string | null; manager: string | null;
+  contacts: Contact[];
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -300,38 +306,62 @@ export default function VesselsPage() {
                   </a>
                 </div>
 
-                {/* Contact row */}
-                <div style={{
-                  borderTop: "1px solid #F1F5F9", padding: "12px 20px",
-                  background: hasContact ? "#FAFFFE" : "#FAFAFA",
-                  display: "flex", flexWrap: "wrap", gap: 16, alignItems: "flex-start",
-                }}>
-                  {/* Company */}
-                  <div style={{ minWidth: 160 }}>
-                    <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Company</div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>
-                      {v.ownerName ?? mgr ?? "—"}
+                {/* Contact section */}
+                <div style={{ borderTop: "1px solid #F1F5F9", background: hasContact ? "#FAFFFE" : "#FAFAFA" }}>
+
+                  {/* Company + general contact */}
+                  <div style={{ padding: "12px 20px", display: "flex", flexWrap: "wrap", gap: 16, alignItems: "flex-start" }}>
+                    <div style={{ minWidth: 160 }}>
+                      <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Company</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{v.ownerName ?? mgr ?? "—"}</div>
+                      {mgr && mgr !== v.ownerName && (
+                        <div style={{ fontSize: 12, color: "#64748B" }}>Manager: {mgr}</div>
+                      )}
                     </div>
-                    {mgr && mgr !== v.ownerName && (
-                      <div style={{ fontSize: 12, color: "#64748B" }}>Manager: {mgr}</div>
-                    )}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+                      {v.website && <ContactRow icon="🌐" value={v.website.replace(/^https?:\/\//, "")} href={v.website.startsWith("http") ? v.website : `https://${v.website}`} />}
+                      {em && <ContactRow icon="📧" value={em} href={`mailto:${em}`} />}
+                      {ph && <ContactRow icon="📞" value={ph} href={`tel:${ph.replace(/\s/g, "")}`} />}
+                      {v.linkedinUrl && <ContactRow icon="in" value="LinkedIn Company" href={v.linkedinUrl} />}
+                      {!hasContact && !v.contacts?.length && (
+                        <span style={{ fontSize: 12, color: "#CBD5E1", fontStyle: "italic" }}>No contact data yet</span>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Contact details */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
-                    {v.website && (
-                      <ContactRow icon="🌐" value={v.website.replace(/^https?:\/\//, "")}
-                        href={v.website.startsWith("http") ? v.website : `https://${v.website}`} />
-                    )}
-                    {em && <ContactRow icon="📧" value={em} href={`mailto:${em}`} />}
-                    {ph && <ContactRow icon="📞" value={ph} href={`tel:${ph.replace(/\s/g, "")}`} />}
-                    {v.linkedinUrl && (
-                      <ContactRow icon="in" value="LinkedIn" href={v.linkedinUrl} />
-                    )}
-                    {!hasContact && (
-                      <span style={{ fontSize: 12, color: "#CBD5E1", fontStyle: "italic" }}>No contact data yet</span>
-                    )}
-                  </div>
+                  {/* Named contacts from Hunter */}
+                  {v.contacts?.filter(c => c.name || c.email).length > 0 && (
+                    <div style={{ borderTop: "1px solid #E2E8F0", padding: "10px 20px 14px" }}>
+                      <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
+                        People · {v.contacts.filter(c => c.name || c.email).length} found
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 8 }}>
+                        {v.contacts.filter(c => c.name || c.email).slice(0, 6).map((c, i) => (
+                          <div key={i} style={{
+                            background: "#fff", border: "1px solid #E2E8F0", borderRadius: 8,
+                            padding: "10px 12px",
+                          }}>
+                            {c.name && <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", marginBottom: 2 }}>{c.name}</div>}
+                            {c.title && <div style={{ fontSize: 12, color: "#64748B", marginBottom: 6 }}>{c.title}</div>}
+                            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                              {c.email && (
+                                <a href={`mailto:${c.email}`} style={{ fontSize: 12, color: "#2563EB", textDecoration: "none" }}>
+                                  📧 {c.email}
+                                </a>
+                              )}
+                              {c.linkedin && (
+                                <a href={c.linkedin} target="_blank" rel="noopener noreferrer"
+                                  style={{ fontSize: 12, color: "#0A66C2", textDecoration: "none", fontWeight: 600 }}>
+                                  in LinkedIn
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                 </div>
               </div>
             );

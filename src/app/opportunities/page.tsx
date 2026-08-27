@@ -1,20 +1,156 @@
 "use client";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import type { OpportunityVessel } from "@/app/api/opportunities/route";
 import type { RadarEvent } from "@/app/api/radar-events/route";
 import { SIGNAL_META, type SignalType } from "@/lib/signals";
-import { type YardPrices } from "@/lib/scrapValue";
+import { type YardPrices, estimateCheque, formatUsd } from "@/lib/scrapValue";
 
 const SIGNAL_LABELS: Record<SignalType, string> = {
-  survey_pressure: "Survey Due",
-  detention_age:   "PSC Detained",
-  layup:           "Lay-up",
-  age_threshold:   "25+ Years",
+  survey_pressure:  "Survey Due",
+  detention_age:    "PSC Detained",
+  detention_trend:  "Chronic Detentions",
+  scrap_proximity:  "Near Scrap Yard",
+  layup:            "Lay-up",
+  age_threshold:    "25+ Years",
 };
 
-// Matched as a substring against type_specific, so "Tanker" covers Crude Oil /
-// Oil Products / Oil or Chemical Tanker in one option.
 const VESSEL_TYPES = ["Bulk Carrier", "General Cargo", "Container", "Tanker", "Ro-Ro", "Reefer", "Vehicles Carrier"];
+
+// ─── Draft Email Modal (AI-powered) ──────────────────────────────────────────
+
+function DraftEmailModal({ vessel, yards, yard, onClose }: {
+  vessel: OpportunityVessel;
+  yards: YardPrices;
+  yard: string;
+  onClose: () => void;
+}) {
+  const [subject, setSubject] = useState("");
+  const [body, setBody]       = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState<string | null>(null);
+  const [copied, setCopied]   = useState(false);
+
+  const cheque = vessel.ldt ? estimateCheque(vessel.ldt, vessel.price_category, yard, yards) : null;
+  const estimatedValue = cheque ? formatUsd(cheque) : null;
+  const recipientEmail = vessel.best_email ?? vessel.emails?.[0] ?? "";
+
+  useEffect(() => {
+    fetch("/api/vessels/draft-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        vesselName:     vessel.name,
+        imo:            vessel.imo,
+        age:            vessel.age,
+        type:           vessel.type ?? vessel.type_specific ?? null,
+        ldt:            vessel.ldt ?? null,
+        flag:           vessel.flag ?? null,
+        managerName:    vessel.manager_name ?? null,
+        ownerName:      vessel.owner_name ?? null,
+        signals:        vessel.signals.map(s => ({ label: s.label, explanation: s.explanation })),
+        estimatedValue,
+      }),
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (d.error) { setError(d.error); return; }
+        setSubject(d.subject);
+        setBody(d.body);
+      })
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  function copyBody() {
+    navigator.clipboard.writeText(body).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  const mailtoHref = `mailto:${recipientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center",
+    }} onClick={onClose}>
+      <div style={{
+        background: "#fff", borderRadius: 12, padding: "28px 32px", maxWidth: 640, width: "90%",
+        maxHeight: "85vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.25)",
+      }} onClick={e => e.stopPropagation()}>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#111827" }}>AI Outreach Email</h3>
+            {!loading && !error && (
+              <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>Written by Claude · edit before sending</div>
+            )}
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B7280", fontSize: 20 }}>✕</button>
+        </div>
+
+        {loading ? (
+          <div style={{ padding: "40px 0", textAlign: "center", color: "#9CA3AF", fontSize: 14 }}>
+            Writing email for {vessel.name}…
+          </div>
+        ) : error ? (
+          <div style={{ padding: "24px 0", color: "#DC2626", fontSize: 13 }}>Error: {error}</div>
+        ) : (
+          <>
+            <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 4, fontWeight: 600 }}>TO</div>
+            <div style={{ fontSize: 13, color: "#374151", marginBottom: 12, padding: "6px 10px", background: "#F9FAFB", borderRadius: 6, border: "1px solid #E5E7EB" }}>
+              {recipientEmail || "— no email yet —"}
+            </div>
+
+            <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 4, fontWeight: 600 }}>SUBJECT</div>
+            <div style={{ fontSize: 13, color: "#374151", marginBottom: 16, padding: "6px 10px", background: "#F9FAFB", borderRadius: 6, border: "1px solid #E5E7EB" }}>
+              {subject}
+            </div>
+
+            <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 4, fontWeight: 600 }}>BODY</div>
+            <pre style={{
+              fontSize: 13, color: "#374151", lineHeight: 1.7, margin: 0, marginBottom: 20,
+              padding: "12px 14px", background: "#F9FAFB", borderRadius: 8, border: "1px solid #E5E7EB",
+              whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "inherit",
+            }}>
+              {body}
+            </pre>
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button onClick={copyBody} style={{
+                fontSize: 13, fontWeight: 600, padding: "8px 18px", borderRadius: 6, cursor: "pointer",
+                background: copied ? "#F0FDF4" : "#EFF6FF",
+                border: `1px solid ${copied ? "#BBF7D0" : "#BFDBFE"}`,
+                color: copied ? "#15803D" : "#1D4ED8",
+              }}>
+                {copied ? "✓ Copied" : "Copy body"}
+              </button>
+
+              {recipientEmail && (
+                <a href={mailtoHref} style={{
+                  fontSize: 13, fontWeight: 600, padding: "8px 18px", borderRadius: 6,
+                  background: "#1D4ED8", color: "#fff", textDecoration: "none", display: "inline-block",
+                }}>
+                  Open in Mail
+                </a>
+              )}
+
+              <button onClick={onClose} style={{
+                fontSize: 13, padding: "8px 18px", borderRadius: 6, cursor: "pointer",
+                background: "#fff", border: "1px solid #E5E7EB", color: "#6B7280", marginLeft: "auto",
+              }}>
+                Close
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Contact cell ─────────────────────────────────────────────────────────────
 
 function ContactCell({ vessel }: { vessel: OpportunityVessel }) {
   const emails = [
@@ -23,7 +159,6 @@ function ContactCell({ vessel }: { vessel: OpportunityVessel }) {
   ];
   const phones = vessel.phones?.filter(Boolean) ?? [];
   const hasEmailOrPhone = emails.length > 0 || phones.length > 0;
-
   const ownerLabel = vessel.owner_name ?? vessel.manager_name;
 
   if (!hasEmailOrPhone) {
@@ -58,8 +193,7 @@ function ContactCell({ vessel }: { vessel: OpportunityVessel }) {
       )}
       <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
         {emails[0] && (
-          <a href={`mailto:${emails[0]}`} title={emails[0]}
-            onClick={e => e.stopPropagation()}
+          <a href={`mailto:${emails[0]}`} title={emails[0]} onClick={e => e.stopPropagation()}
             style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, padding: "3px 8px",
               borderRadius: 5, background: "#EFF6FF", border: "1px solid #BFDBFE", color: "#1D4ED8",
               textDecoration: "none", whiteSpace: "nowrap", fontWeight: 600 }}>
@@ -67,8 +201,7 @@ function ContactCell({ vessel }: { vessel: OpportunityVessel }) {
           </a>
         )}
         {phones[0] && (
-          <a href={`tel:${phones[0]}`} title={phones[0]}
-            onClick={e => e.stopPropagation()}
+          <a href={`tel:${phones[0]}`} title={phones[0]} onClick={e => e.stopPropagation()}
             style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, padding: "3px 8px",
               borderRadius: 5, background: "#F0FDF4", border: "1px solid #BBF7D0", color: "#15803D",
               textDecoration: "none", whiteSpace: "nowrap", fontWeight: 600 }}>
@@ -76,8 +209,7 @@ function ContactCell({ vessel }: { vessel: OpportunityVessel }) {
           </a>
         )}
         {vessel.linkedin_url && (
-          <a href={vessel.linkedin_url} target="_blank" rel="noopener noreferrer"
-            onClick={e => e.stopPropagation()}
+          <a href={vessel.linkedin_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
             style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, padding: "3px 8px",
               borderRadius: 5, background: "#F0F9FF", border: "1px solid #BAE6FD", color: "#0369A1",
               textDecoration: "none", whiteSpace: "nowrap" }}>
@@ -99,7 +231,14 @@ function SignalBadge({ type }: { type: SignalType }) {
   );
 }
 
-function ExpandedRow({ vessel }: { vessel: OpportunityVessel }) {
+// ─── Expanded row ─────────────────────────────────────────────────────────────
+
+function ExpandedRow({ vessel, yards, yard, onDraftEmail }: {
+  vessel: OpportunityVessel;
+  yards: YardPrices;
+  yard: string;
+  onDraftEmail: () => void;
+}) {
   const EMAIL_LIMIT = 8;
   const emails = [
     ...(vessel.best_email ? [vessel.best_email] : []),
@@ -109,6 +248,8 @@ function ExpandedRow({ vessel }: { vessel: OpportunityVessel }) {
   const people = vessel.contacts?.filter(c => c.name || c.email) ?? [];
   const [enriching, setEnriching] = React.useState(false);
   const [enrichDone, setEnrichDone] = React.useState(false);
+
+  const cheque = estimateCheque(vessel.ldt, vessel.price_category, yard, yards);
 
   async function handleEnrich() {
     setEnriching(true);
@@ -124,20 +265,39 @@ function ExpandedRow({ vessel }: { vessel: OpportunityVessel }) {
     }
   }
 
+  const hasContact = emails.length > 0 || phones.length > 0 || people.length > 0;
+
+  // Nearest yard info
+  const yardDistances: [string, number | null][] = [
+    ["Aliağa", vessel.dist_aliaga_nm],
+    ["Alang", vessel.dist_alang_nm],
+    ["Chittagong", vessel.dist_chittagong_nm],
+    ["Gadani", vessel.dist_gadani_nm],
+  ].filter(([, d]) => d !== null) as [string, number][];
+  yardDistances.sort((a, b) => (a[1] ?? Infinity) - (b[1] ?? Infinity));
+
   return (
     <tr>
       <td colSpan={8} style={{ padding: "0 16px 16px 48px", background: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
         <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
 
-          {/* LDT */}
-          <div style={{ flex: "0 0 120px" }}>
+          {/* LDT + Value */}
+          <div style={{ flex: "0 0 140px" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
-              LDT
+              LDT / Value
             </div>
             {vessel.ldt ? (
-              <div style={{ fontSize: 22, fontWeight: 800, color: "#111827" }}>
-                {vessel.ldt.toLocaleString()}
-                <span style={{ fontSize: 12, fontWeight: 500, color: "#6B7280", marginLeft: 4 }}>t</span>
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: "#111827" }}>
+                  {vessel.ldt.toLocaleString()}
+                  <span style={{ fontSize: 12, fontWeight: 500, color: "#6B7280", marginLeft: 4 }}>t</span>
+                </div>
+                {cheque && (
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#065F46", marginTop: 4 }}>
+                    {formatUsd(cheque)}
+                    <span style={{ fontSize: 11, fontWeight: 400, color: "#6B7280", marginLeft: 4 }}>at {yard}</span>
+                  </div>
+                )}
               </div>
             ) : (
               <a href={`/vessel/${vessel.imo}`}
@@ -148,7 +308,6 @@ function ExpandedRow({ vessel }: { vessel: OpportunityVessel }) {
               </a>
             )}
           </div>
-
 
           {/* Why this vessel */}
           <div style={{ flex: "1 1 360px" }}>
@@ -171,8 +330,8 @@ function ExpandedRow({ vessel }: { vessel: OpportunityVessel }) {
             </div>
           </div>
 
-          {/* Vessel specs */}
-          <div style={{ flex: "0 0 180px" }}>
+          {/* Vessel specs + yard distances */}
+          <div style={{ flex: "0 0 200px" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
               Vessel Details
             </div>
@@ -182,19 +341,51 @@ function ExpandedRow({ vessel }: { vessel: OpportunityVessel }) {
               {vessel.ldt           && <div><span style={{ color: "#9CA3AF" }}>LDT:</span> {vessel.ldt.toLocaleString()}</div>}
               {vessel.scrap_score > 0 && <div><span style={{ color: "#9CA3AF" }}>Scrap score:</span> {vessel.scrap_score}/100</div>}
               {vessel.deficiency_count > 0 && <div><span style={{ color: "#9CA3AF" }}>Deficiencies:</span> {vessel.deficiency_count}</div>}
-              {vessel.dist_aliaga_nm !== null && (
-                <div><span style={{ color: "#9CA3AF" }}>Dist. Aliağa:</span> {Math.round(vessel.dist_aliaga_nm).toLocaleString()} nm</div>
-              )}
               {vessel.special_survey_date && (
                 <div><span style={{ color: "#9CA3AF" }}>Survey date:</span> {new Date(vessel.special_survey_date).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}</div>
+              )}
+              {vessel.detention_count > 0 && (
+                <div style={{ color: vessel.detention_count >= 3 ? "#7C2D12" : "#92400E", fontWeight: 600 }}>
+                  <span style={{ color: "#9CA3AF", fontWeight: 400 }}>Detentions:</span> {vessel.detention_count}
+                  {vessel.detention_count >= 3 && " ⚠"}
+                </div>
+              )}
+
+              {/* Scrap yard distances */}
+              {yardDistances.length > 0 && (
+                <div style={{ marginTop: 6 }}>
+                  <div style={{ fontSize: 10, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
+                    Scrap yards
+                  </div>
+                  {yardDistances.map(([yardName, dist]) => (
+                    <div key={yardName} style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                      <span style={{ color: yardName === vessel.nearest_yard ? "#065F46" : "#9CA3AF", fontWeight: yardName === vessel.nearest_yard ? 600 : 400 }}>
+                        {yardName}
+                      </span>
+                      <span style={{ color: yardName === vessel.nearest_yard ? "#065F46" : "#6B7280" }}>
+                        {dist !== null ? `${Math.round(dist as number).toLocaleString()} nm` : "—"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
 
           {/* Full contact details */}
           <div style={{ flex: "1 1 280px" }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
-              Owner / Manager
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                Owner / Manager
+              </div>
+              {hasContact && (
+                <button onClick={onDraftEmail} style={{
+                  fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 5, cursor: "pointer",
+                  background: "#FFF7ED", border: "1px solid #FED7AA", color: "#92400E",
+                }}>
+                  ✉ Draft email
+                </button>
+              )}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12, color: "#374151" }}>
               {vessel.owner_name   && <div style={{ fontWeight: 700, fontSize: 13 }}>{vessel.owner_name}</div>}
@@ -214,7 +405,6 @@ function ExpandedRow({ vessel }: { vessel: OpportunityVessel }) {
                 </a>
               )}
 
-              {/* Emails */}
               {emails.length > 0 && (
                 <div style={{ marginTop: 4 }}>
                   <div style={{ fontSize: 10, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
@@ -237,7 +427,6 @@ function ExpandedRow({ vessel }: { vessel: OpportunityVessel }) {
                 </div>
               )}
 
-              {/* Phones */}
               {phones.length > 0 && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                   {phones.map(p => (
@@ -251,7 +440,6 @@ function ExpandedRow({ vessel }: { vessel: OpportunityVessel }) {
                 </div>
               )}
 
-              {/* People */}
               {people.length > 0 && (
                 <div style={{ marginTop: 4 }}>
                   <div style={{ fontSize: 10, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
@@ -270,7 +458,6 @@ function ExpandedRow({ vessel }: { vessel: OpportunityVessel }) {
                 </div>
               )}
 
-              {/* No contact — find button */}
               {!vessel.enriched && emails.length === 0 && people.length === 0 && (
                 <button onClick={handleEnrich} disabled={enriching || enrichDone}
                   style={{ fontSize: 11, fontWeight: 600, color: "#2563EB",
@@ -370,7 +557,6 @@ function NewsSignalsSection() {
               <div key={ev.id} style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 10,
                 padding: "14px 16px", display: "flex", gap: 14, flexWrap: "wrap", alignItems: "flex-start" }}>
 
-                {/* Badge + date */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0, minWidth: 90 }}>
                   <EventTypeBadge type={ev.event_type} />
                   <span style={{ fontSize: 11, color: "#9CA3AF" }}>
@@ -380,9 +566,7 @@ function NewsSignalsSection() {
                   </span>
                 </div>
 
-                {/* Main content */}
                 <div style={{ flex: "1 1 280px", minWidth: 200 }}>
-                  {/* Vessel link if matched */}
                   {ev.matched_vessel_id ? (
                     <a href={`/?mmsi=${ev.vessel_mmsi}`}
                       style={{ fontWeight: 700, color: "#1D4ED8", textDecoration: "none", fontSize: 14 }}>
@@ -399,17 +583,10 @@ function NewsSignalsSection() {
                   {ev.imo && (
                     <span style={{ fontSize: 11, color: "#9CA3AF", marginLeft: 8 }}>IMO {ev.imo}</span>
                   )}
-
-                  <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.55, marginTop: 6 }}>
-                    {ev.summary}
-                  </div>
-
-                  <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 6 }}>
-                    Source: {ev.source_name}
-                  </div>
+                  <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.55, marginTop: 6 }}>{ev.summary}</div>
+                  <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 6 }}>Source: {ev.source_name}</div>
                 </div>
 
-                {/* Owner / contact if matched */}
                 {ev.matched_vessel_id && (
                   <div style={{ flexShrink: 0, minWidth: 160, display: "flex", flexDirection: "column", gap: 4 }}>
                     {(ev.owner_name || ev.manager_name) && (
@@ -454,21 +631,23 @@ function NewsSignalsSection() {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function OpportunitiesPage() {
-  const [vessels, setVessels]           = useState<OpportunityVessel[]>([]);
-  const [total, setTotal]               = useState<number>(0);
+  const [vessels, setVessels]                 = useState<OpportunityVessel[]>([]);
+  const [total, setTotal]                     = useState<number>(0);
   const [contactableTotal, setContactableTotal] = useState<number>(0);
-  const [loading, setLoading]           = useState(true);
-  const [expanded, setExpanded]         = useState<Set<string>>(new Set());
+  const [loading, setLoading]                 = useState(true);
+  const [expanded, setExpanded]               = useState<Set<string>>(new Set());
+  const [draftVessel, setDraftVessel]         = useState<OpportunityVessel | null>(null);
+  const [pricesUpdatedAt, setPricesUpdatedAt] = useState<string | null>(null);
 
   const [signalFilter, setSignalFilter] = useState<string>("all");
   const [minAge, setMinAge]             = useState<number>(20);
   const [typeFilter, setTypeFilter]     = useState<string>("all");
   const [maxDist, setMaxDist]           = useState<string>("all");
-  const [contactOnly, setContactOnly]   = useState(true); // default ON for demo
+  const [maxYardDist, setMaxYardDist]   = useState<string>("all");
+  const [contactOnly, setContactOnly]   = useState(true);
 
-  const [yards, setYards]               = useState<YardPrices>({});
-  // Aliağa by default because the distance column is measured to it.
-  const [yard, setYard]                 = useState<string>("Aliaga");
+  const [yards, setYards] = useState<YardPrices>({});
+  const [yard, setYard]   = useState<string>("Aliaga");
 
   useEffect(() => {
     setLoading(true);
@@ -479,6 +658,7 @@ export default function OpportunitiesPage() {
         setTotal(d.total ?? 0);
         setContactableTotal(d.contactable_total ?? 0);
         setYards(d.yards ?? {});
+        setPricesUpdatedAt(d.prices_updated_at ?? null);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -494,10 +674,11 @@ export default function OpportunitiesPage() {
       if (v.age < minAge) return false;
       if (typeFilter !== "all" && !(v.type_specific ?? v.type ?? "").toLowerCase().includes(typeFilter.toLowerCase())) return false;
       if (maxDist !== "all" && v.dist_aliaga_nm !== null && v.dist_aliaga_nm > parseInt(maxDist)) return false;
+      if (maxYardDist !== "all" && v.min_dist_scrapyard_nm !== null && v.min_dist_scrapyard_nm > parseInt(maxYardDist)) return false;
       if (contactOnly && !vesselHasContact(v)) return false;
       return true;
     });
-  }, [vessels, signalFilter, minAge, typeFilter, maxDist, contactOnly]);
+  }, [vessels, signalFilter, minAge, typeFilter, maxDist, maxYardDist, contactOnly]);
 
   function toggleExpand(mmsi: string) {
     setExpanded(prev => {
@@ -506,6 +687,13 @@ export default function OpportunitiesPage() {
       return n;
     });
   }
+
+  const resetFilters = useCallback(() => {
+    setSignalFilter("all"); setMinAge(20); setTypeFilter("all");
+    setMaxDist("all"); setMaxYardDist("all"); setContactOnly(true);
+  }, []);
+
+  const isFiltered = signalFilter !== "all" || minAge !== 20 || typeFilter !== "all" || maxDist !== "all" || maxYardDist !== "all" || !contactOnly;
 
   const SELECT: React.CSSProperties = {
     fontSize: 12, padding: "6px 10px", borderRadius: 6,
@@ -520,6 +708,16 @@ export default function OpportunitiesPage() {
   return (
     <div style={{ padding: "32px 32px 64px", maxWidth: 1400, margin: "0 auto", fontFamily: "Inter, sans-serif" }}>
 
+      {/* Draft email modal */}
+      {draftVessel && (
+        <DraftEmailModal
+          vessel={draftVessel}
+          yards={yards}
+          yard={yard}
+          onClose={() => setDraftVessel(null)}
+        />
+      )}
+
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
@@ -531,14 +729,10 @@ export default function OpportunitiesPage() {
         {!loading && (
           <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 12, flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 20, fontWeight: 800, color: "#111827" }}>
-                {contactableTotal.toLocaleString()}
-              </span>
+              <span style={{ fontSize: 20, fontWeight: 800, color: "#111827" }}>{contactableTotal.toLocaleString()}</span>
               <span style={{ fontSize: 13, color: "#6B7280" }}>contactable</span>
               <span style={{ fontSize: 13, color: "#D1D5DB" }}>·</span>
-              <span style={{ fontSize: 13, color: "#9CA3AF" }}>
-                {total.toLocaleString()} total opportunities
-              </span>
+              <span style={{ fontSize: 13, color: "#9CA3AF" }}>{total.toLocaleString()} total opportunities</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <div style={{ width: 1, height: 16, background: "#E5E7EB" }} />
@@ -558,6 +752,8 @@ export default function OpportunitiesPage() {
             <option value="all">All signals</option>
             <option value="survey_pressure">Survey Due</option>
             <option value="detention_age">PSC Detained</option>
+            <option value="detention_trend">Chronic Detentions</option>
+            <option value="scrap_proximity">Near Scrap Yard</option>
             <option value="layup">Lay-up</option>
             <option value="age_threshold">25+ Years</option>
           </select>
@@ -588,6 +784,18 @@ export default function OpportunitiesPage() {
         <div style={{ width: 1, height: 20, background: "#E5E7EB" }} />
 
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Near yard</span>
+          <select value={maxYardDist} onChange={e => setMaxYardDist(e.target.value)} style={SELECT}>
+            <option value="all">Any distance</option>
+            <option value="200">≤ 200 nm (beaching)</option>
+            <option value="500">≤ 500 nm</option>
+            <option value="1000">≤ 1,000 nm</option>
+          </select>
+        </div>
+
+        <div style={{ width: 1, height: 20, background: "#E5E7EB" }} />
+
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Aliağa</span>
           <select value={maxDist} onChange={e => setMaxDist(e.target.value)} style={SELECT}>
             <option value="all">Any distance</option>
@@ -606,6 +814,11 @@ export default function OpportunitiesPage() {
               <option key={name} value={name}>{name} · {y.country}</option>
             ))}
           </select>
+          {pricesUpdatedAt && (
+            <span style={{ fontSize: 10, color: "#9CA3AF" }}>
+              {new Date(pricesUpdatedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
+            </span>
+          )}
         </div>
 
         <div style={{ width: 1, height: 20, background: "#E5E7EB" }} />
@@ -623,8 +836,8 @@ export default function OpportunitiesPage() {
           {contactOnly ? "With contact" : "Show all"}
         </button>
 
-        {(signalFilter !== "all" || minAge !== 20 || typeFilter !== "all" || maxDist !== "all" || !contactOnly) && (
-          <button onClick={() => { setSignalFilter("all"); setMinAge(20); setTypeFilter("all"); setMaxDist("all"); setContactOnly(true); }}
+        {isFiltered && (
+          <button onClick={resetFilters}
             style={{ fontSize: 11, color: "#6B7280", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
             Reset
           </button>
@@ -645,15 +858,16 @@ export default function OpportunitiesPage() {
                 <th style={TH}>Age / Type</th>
                 <th style={TH}>Signals</th>
                 <th style={TH}>Owner / Contact</th>
-                <th style={{ ...TH, textAlign: "right" }}>LDT</th>
+                <th style={{ ...TH, textAlign: "right" }}>LDT / Value</th>
                 <th style={{ ...TH, textAlign: "right" }}>Score</th>
-                <th style={{ ...TH, textAlign: "right" }}>Aliağa</th>
+                <th style={{ ...TH, textAlign: "right" }}>Nearest Yard</th>
                 <th style={{ width: 32 }} />
               </tr>
             </thead>
             <tbody>
               {filtered.map(v => {
                 const isOpen = expanded.has(v.mmsi);
+                const cheque = estimateCheque(v.ldt, v.price_category, yard, yards);
                 return (
                   <React.Fragment key={v.mmsi}>
                     <tr
@@ -661,7 +875,6 @@ export default function OpportunitiesPage() {
                       style={{ borderBottom: isOpen ? "none" : "1px solid #F3F4F6", cursor: "pointer",
                         background: isOpen ? "#F9FAFB" : "transparent" }}>
 
-                      {/* Vessel */}
                       <td style={{ padding: "12px 16px" }}>
                         <div style={{ fontWeight: 600, color: "#111827" }}>{v.name}</div>
                         <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 1 }}>
@@ -669,38 +882,38 @@ export default function OpportunitiesPage() {
                         </div>
                       </td>
 
-                      {/* Age / Type */}
                       <td style={{ padding: "12px 16px" }}>
                         <div style={{ fontWeight: 600, color: "#374151" }}>{v.age} yrs</div>
                         <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 1 }}>{v.type_specific ?? v.type}</div>
                       </td>
 
-                      {/* Signals */}
                       <td style={{ padding: "12px 16px" }}>
                         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                           {v.signals.map(s => <SignalBadge key={s.type} type={s.type} />)}
                         </div>
                       </td>
 
-                      {/* Owner + Contact */}
                       <td style={{ padding: "12px 16px" }}>
                         <ContactCell vessel={v} />
                       </td>
 
-                      {/* LDT */}
+                      {/* LDT + value */}
                       <td style={{ padding: "12px 16px", textAlign: "right" }}>
-                        {v.ldt
-                          ? <span style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>{v.ldt.toLocaleString()}</span>
-                          : <a href={`/vessel/${v.imo}`} onClick={e => e.stopPropagation()}
-                              style={{ fontSize: 12, color: "#2563EB", fontWeight: 600,
-                                textDecoration: "none", padding: "2px 8px", borderRadius: 4,
-                                background: "#EFF6FF", border: "1px solid #BFDBFE" }}>
-                              Contact →
-                            </a>
-                        }
+                        {v.ldt ? (
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>{v.ldt.toLocaleString()} t</div>
+                            {cheque && <div style={{ fontSize: 11, color: "#065F46", fontWeight: 600 }}>{formatUsd(cheque)}</div>}
+                          </div>
+                        ) : (
+                          <a href={`/vessel/${v.imo}`} onClick={e => e.stopPropagation()}
+                            style={{ fontSize: 12, color: "#2563EB", fontWeight: 600,
+                              textDecoration: "none", padding: "2px 8px", borderRadius: 4,
+                              background: "#EFF6FF", border: "1px solid #BFDBFE" }}>
+                            Contact →
+                          </a>
+                        )}
                       </td>
 
-                      {/* Opportunity score */}
                       <td style={{ padding: "12px 16px", textAlign: "right" }}>
                         <span style={{ fontSize: 13, fontWeight: 700,
                           color: v.opportunity_score >= 70 ? "#B91C1C" : v.opportunity_score >= 40 ? "#92400E" : "#374151" }}>
@@ -708,17 +921,30 @@ export default function OpportunitiesPage() {
                         </span>
                       </td>
 
-                      {/* Aliağa distance */}
-                      <td style={{ padding: "12px 16px", textAlign: "right", fontSize: 12, color: "#6B7280" }}>
-                        {v.dist_aliaga_nm !== null ? `${Math.round(v.dist_aliaga_nm).toLocaleString()} nm` : "—"}
+                      {/* Nearest yard */}
+                      <td style={{ padding: "12px 16px", textAlign: "right" }}>
+                        {v.min_dist_scrapyard_nm !== null ? (
+                          <div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: v.min_dist_scrapyard_nm <= 300 ? "#065F46" : "#6B7280" }}>
+                              {Math.round(v.min_dist_scrapyard_nm).toLocaleString()} nm
+                            </div>
+                            <div style={{ fontSize: 10, color: "#9CA3AF" }}>{v.nearest_yard}</div>
+                          </div>
+                        ) : "—"}
                       </td>
 
-                      {/* Expand */}
                       <td style={{ padding: "12px 8px", color: "#9CA3AF", fontSize: 11, userSelect: "none" }}>
                         {isOpen ? "▲" : "▼"}
                       </td>
                     </tr>
-                    {isOpen && <ExpandedRow vessel={v} />}
+                    {isOpen && (
+                      <ExpandedRow
+                        vessel={v}
+                        yards={yards}
+                        yard={yard}
+                        onDraftEmail={() => setDraftVessel(v)}
+                      />
+                    )}
                   </React.Fragment>
                 );
               })}
@@ -731,17 +957,20 @@ export default function OpportunitiesPage() {
       {!loading && filtered.length > 0 && (
         <div style={{ marginTop: 16, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ fontSize: 11, color: "#9CA3AF" }}>
-            LDT shown where known. "Contact →" = LDT not yet enriched, links to vessel page.
+            LDT shown where known. Values calculated at selected yard.
           </span>
           <span style={{ fontSize: 11, color: "#9CA3AF" }}>Score = signal weights × 10 + scrap score (0–100).</span>
-          {(["survey_pressure", "detention_age", "layup", "age_threshold"] as SignalType[]).map(t => (
+          {(["survey_pressure", "detention_trend", "detention_age", "scrap_proximity", "layup", "age_threshold"] as SignalType[]).map(t => (
             <span key={t} style={{ display: "flex", alignItems: "center", gap: 4 }}>
               <SignalBadge type={t} />
               <span style={{ fontSize: 11, color: "#9CA3AF" }}>
-                {t === "survey_pressure" ? "wt 4" : t === "age_threshold" ? "wt 1" : "wt 3"}
+                {t === "survey_pressure" ? "wt 4" : t === "detention_trend" ? "wt 5" : t === "detention_age" ? "wt 3" : t === "scrap_proximity" ? "wt 2" : t === "layup" ? "wt 3" : "wt 1"}
               </span>
             </span>
           ))}
+          <span style={{ fontSize: 11, color: "#9CA3AF" }}>
+            Price alert: <code style={{ fontSize: 10 }}>node scripts/updateScrapPrices.js --alert</code>
+          </span>
         </div>
       )}
 

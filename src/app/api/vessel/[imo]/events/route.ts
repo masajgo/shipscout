@@ -6,9 +6,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { imo: string } }
+  { params }: { params: Promise<{ imo: string }> }
 ) {
-  const imo = parseInt(params.imo);
+  const { imo: imoStr } = await params;
+  const imo = parseInt(imoStr);
   if (isNaN(imo)) return NextResponse.json({ error: "Invalid IMO" }, { status: 400 });
 
   try {

@@ -17,11 +17,21 @@
 
 const path   = require("path");
 const fs     = require("fs");
-const { Pool } = require("pg");
-const axios  = require("axios");
-const cheerio = require("cheerio");
+// axios and cheerio are lazy-loaded inside functions to avoid slow parse5/undici startup scan
+let _axios, _cheerio, _Pool, _pool;
+function getAxios()   { if (!_axios)   _axios   = require("axios");    return _axios; }
+function getCheerio() { if (!_cheerio) _cheerio = require("cheerio");  return _cheerio; }
 
-require("dotenv").config({ path: path.join(__dirname, "../.env.local") });
+// Load .env.local without the dotenv package (avoids vestauth.com hook in dotenv v17)
+try {
+  const envPath = path.join(__dirname, "../.env.local");
+  if (fs.existsSync(envPath)) {
+    fs.readFileSync(envPath, "utf8").split("\n").forEach(line => {
+      const m = line.match(/^([A-Z_][A-Z0-9_]*)=["']?(.+?)["']?\s*$/);
+      if (m && !process.env[m[1]]) process.env[m[1]] = m[2];
+    });
+  }
+} catch (_) { /* env vars may already be set by launchd */ }
 
 // Lazy-loaded to avoid blocking startup
 let _enrichWithDb;
@@ -44,11 +54,17 @@ const LOG_FILE = path.join(LOG_DIR, "intelligence_agent.log");
 const isDryRun = process.argv.includes("--dry-run");
 const isDaemon = process.argv.includes("--daemon");
 
-const ENRICH_OPTS = process.env.HUNTER_API_KEY
+const ENRICH_OPTS = () => process.env.HUNTER_API_KEY
   ? { hunterApiKey: process.env.HUNTER_API_KEY }
   : {};
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+function getPool() {
+  if (!_pool) {
+    const { Pool } = require("pg");
+    _pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  }
+  return _pool;
+}
 
 // ─── Logging ─────────────────────────────────────────────────────────────────
 
@@ -70,7 +86,7 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 // ─── DB bootstrap ────────────────────────────────────────────────────────────
 
 async function ensureSchema() {
-  await pool.query(`
+  await getPool().query(`
     CREATE TABLE IF NOT EXISTS vessel_events (
       id          BIGSERIAL PRIMARY KEY,
       imo         BIGINT NOT NULL,
@@ -83,10 +99,10 @@ async function ensureSchema() {
       created_at  TIMESTAMPTZ DEFAULT NOW()
     )
   `);
-  await pool.query(`
+  await getPool().query(`
     CREATE INDEX IF NOT EXISTS vessel_events_imo_idx ON vessel_events(imo)
   `);
-  await pool.query(`
+  await getPool().query(`
     CREATE INDEX IF NOT EXISTS vessel_events_created_idx ON vessel_events(created_at DESC)
   `);
 }
@@ -103,11 +119,11 @@ const RSS_FEEDS = [
 
 async function fetchFeed(feed) {
   try {
-    const { data } = await axios.get(feed.url, {
+    const { data } = await getAxios().get(feed.url, {
       headers: { "User-Agent": "ShipScout-Intelligence/1.0" },
       timeout: 12000,
     });
-    const $ = cheerio.load(data, { xmlMode: true });
+    const $ = getCheerio().load(data, { xmlMode: true });
     const items = [];
     $("item").each((_, el) => {
       const title   = $(el).find("title").text().trim();
@@ -138,12 +154,16 @@ async function fetchAllNews() {
 
 function articlesMatchVessel(articles, vessel) {
   const imoStr  = String(vessel.imo);
-  const nameLow = (vessel.name || "").toLowerCase();
-  if (!nameLow || nameLow.length < 4) return [];
+  const nameLow = (vessel.name || "").toLowerCase().trim();
+  // Skip generic/short names that cause too many false positives
+  if (!nameLow || nameLow.length < 5) return [];
+
+  // Word-boundary regex: " anke " matches vessel "ANKE" but not "tanker"
+  const nameRe = new RegExp(`\\b${nameLow.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
 
   return articles.filter(a => {
-    const hay = (a.title + " " + a.desc).toLowerCase();
-    return hay.includes(nameLow) || hay.includes(imoStr);
+    const hay = a.title + " " + a.desc;
+    return nameRe.test(hay) || hay.includes(imoStr);
   });
 }
 
@@ -153,7 +173,7 @@ async function runNewsScan(articles) {
   log("[Phase 1] News scan starting...");
 
   // Load high-scrap vessels (batch limit for performance)
-  const { rows: vessels } = await pool.query(`
+  const { rows: vessels } = await getPool().query(`
     SELECT imo, name, scrap_score
     FROM vessels
     WHERE scrap_score IS NOT NULL
@@ -171,7 +191,7 @@ async function runNewsScan(articles) {
 
     for (const article of matches) {
       // Avoid duplicate events: check if same URL already stored
-      const { rows: existing } = await pool.query(
+      const { rows: existing } = await getPool().query(
         `SELECT 1 FROM vessel_events WHERE imo = $1 AND url = $2 LIMIT 1`,
         [vessel.imo, article.link]
       );
@@ -181,7 +201,7 @@ async function runNewsScan(articles) {
       log(`[News] HIT: ${vessel.name} (${vessel.imo}) — "${article.title}" [${article.source}]`);
 
       if (!isDryRun) {
-        await pool.query(`
+        await getPool().query(`
           INSERT INTO vessel_events (imo, event_type, source, title, url, summary, raw_data)
           VALUES ($1, 'news_mention', $2, $3, $4, $5, $6)
         `, [
@@ -206,7 +226,7 @@ async function runContactRefresh() {
   log("[Phase 2] Contact re-enrichment starting...");
 
   // Vessels with: owner record exists, has website, not enriched recently OR never
-  const { rows: stale } = await pool.query(`
+  const { rows: stale } = await getPool().query(`
     SELECT v.imo, v.name, v.scrap_score, v.scrap_category,
            o.manager_name, o.owner_name, o.website, o.web_fetched_at
     FROM vessels v
@@ -237,12 +257,12 @@ async function runContactRefresh() {
     }
 
     try {
-      const result = await getEnrichWithDb()(company, vessel.imo, pool, null, ENRICH_OPTS);
+      const result = await getEnrichWithDb()(company, vessel.imo, getPool(), null, ENRICH_OPTS());
       if (result?.emails?.length || result?.contacts?.length) {
         updated++;
         log(`[Enrich] ✓ ${company}: ${result.emails?.length ?? 0} emails, ${result.contacts?.length ?? 0} contacts`);
 
-        await pool.query(`
+        await getPool().query(`
           INSERT INTO vessel_events (imo, event_type, source, title, summary)
           VALUES ($1, 'contact_updated', 'intelligenceAgent',
                   $2, $3)
@@ -283,7 +303,7 @@ async function runStatusChangeDetection() {
   let detections = 0;
 
   for (const zone of SCRAP_ZONES) {
-    const { rows } = await pool.query(`
+    const { rows } = await getPool().query(`
       SELECT v.imo, v.name, v.scrap_score, v.lat, v.lon, v.speed, v.nav_status, v.destination
       FROM vessels v
       WHERE v.lat IS NOT NULL AND v.lon IS NOT NULL
@@ -294,7 +314,7 @@ async function runStatusChangeDetection() {
 
     for (const v of rows) {
       // Only log if we haven't logged this vessel+zone recently (within 7d)
-      const { rows: recent } = await pool.query(`
+      const { rows: recent } = await getPool().query(`
         SELECT 1 FROM vessel_events
         WHERE imo = $1
           AND event_type = 'status_change'
@@ -310,7 +330,7 @@ async function runStatusChangeDetection() {
       log(`[Status] 🚨 ${v.name} (${v.imo}) — ${msg}`);
 
       if (!isDryRun) {
-        await pool.query(`
+        await getPool().query(`
           INSERT INTO vessel_events (imo, event_type, source, title, summary, raw_data)
           VALUES ($1, 'status_change', 'ais_position', $2, $3, $4)
         `, [
@@ -332,7 +352,7 @@ async function runStatusChangeDetection() {
 // ─── Stats summary ────────────────────────────────────────────────────────────
 
 async function logStats() {
-  const { rows } = await pool.query(`
+  const { rows } = await getPool().query(`
     SELECT event_type, COUNT(*) as cnt
     FROM vessel_events
     WHERE created_at > NOW() - INTERVAL '24 hours'
@@ -342,7 +362,7 @@ async function logStats() {
   const summary = rows.map(r => `${r.event_type}:${r.cnt}`).join(" | ");
   log(`[Stats] Last 24h events — ${summary || "none"}`);
 
-  const { rows: total } = await pool.query(`SELECT COUNT(*) FROM vessel_events`);
+  const { rows: total } = await getPool().query(`SELECT COUNT(*) FROM vessel_events`);
   log(`[Stats] Total vessel_events in DB: ${total[0].count}`);
 }
 
@@ -389,7 +409,7 @@ async function main() {
     }
   } else {
     await runCycle();
-    await pool.end();
+    await getPool().end();
     log("[Agent] Done, exiting.");
   }
 }

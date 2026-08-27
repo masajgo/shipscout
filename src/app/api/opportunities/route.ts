@@ -36,6 +36,8 @@ export interface OpportunityVessel {
   phones: string[] | null;
   website: string | null;
   linkedin_url: string | null;
+  contacts: { name: string | null; title: string | null; email: string | null; linkedin: string | null; source: string }[] | null;
+  enriched: boolean;
   // computed
   signals: VesselSignal[];
   signal_count: number;
@@ -64,7 +66,7 @@ export async function GET(req: NextRequest) {
     lat: number | null; lon: number | null; dist_aliaga_nm: number | null;
     owner_name: string | null; manager_name: string | null; best_email: string | null;
     emails: string[] | null; phones: string[] | null; website: string | null;
-    linkedin_url: string | null;
+    linkedin_url: string | null; contacts: unknown; web_fetched_at: string | null;
   }>(`
     SELECT
       v.mmsi::text, v.imo::text, v.name, v.type, v.type_specific, v.flag,
@@ -84,7 +86,8 @@ export async function GET(req: NextRequest) {
       ELSE NULL END AS dist_aliaga_nm,
       o.owner_name, o.manager_name, o.best_email,
       o.emails, o.phones, o.website,
-      COALESCE(o.linkedin_company_url, o.linkedin_url) AS linkedin_url
+      COALESCE(o.linkedin_company_url, o.linkedin_url) AS linkedin_url,
+      o.contacts, o.web_fetched_at
     FROM vessels v
     LEFT JOIN owners o ON o.imo = v.imo
     WHERE (v.age >= $3 OR v.detention_count > 0)
@@ -124,6 +127,8 @@ export async function GET(req: NextRequest) {
       signal_count:      signals.length,
       opportunity_score: opportunityScore(signals, row.scrap_score),
       price_category:    priceCategory(row.type, row.type_specific),
+      contacts:          (row.contacts as { name: string | null; title: string | null; email: string | null; linkedin: string | null; source: string }[] | null) ?? null,
+      enriched:          !!row.web_fetched_at,
     });
   }
 

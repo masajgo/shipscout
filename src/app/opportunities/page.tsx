@@ -102,14 +102,29 @@ function SignalBadge({ type }: { type: SignalType }) {
 function ExpandedRow({ vessel, yard, yards }: { vessel: OpportunityVessel; yard: string; yards: YardPrices }) {
   const cheque      = estimateCheque(vessel.ldt, vessel.price_category, yard, yards);
   const pricePerLdt = yards[yard]?.prices[vessel.price_category] ?? null;
-  const EMAIL_LIMIT = 6;
-  // best_email first: some owners expose 20 generic mailboxes and the useful one
-  // would otherwise be buried below the fold.
+  const EMAIL_LIMIT = 8;
   const emails = [
     ...(vessel.best_email ? [vessel.best_email] : []),
     ...(vessel.emails?.filter(e => e && e !== vessel.best_email) ?? []),
   ];
   const phones = vessel.phones?.filter(Boolean) ?? [];
+  const people = vessel.contacts?.filter(c => c.name || c.email) ?? [];
+  const [enriching, setEnriching] = React.useState(false);
+  const [enrichDone, setEnrichDone] = React.useState(false);
+
+  async function handleEnrich() {
+    setEnriching(true);
+    try {
+      await fetch("/api/vessels/enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imo: vessel.imo }),
+      });
+      setEnrichDone(true);
+    } finally {
+      setEnriching(false);
+    }
+  }
 
   return (
     <tr>
@@ -181,39 +196,92 @@ function ExpandedRow({ vessel, yard, yards }: { vessel: OpportunityVessel; yard:
           </div>
 
           {/* Full contact details */}
-          <div style={{ flex: "0 0 220px" }}>
+          <div style={{ flex: "1 1 280px" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
               Owner / Manager
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "#374151" }}>
-              {vessel.owner_name   && <div style={{ fontWeight: 600 }}>{vessel.owner_name}</div>}
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12, color: "#374151" }}>
+              {vessel.owner_name   && <div style={{ fontWeight: 700, fontSize: 13 }}>{vessel.owner_name}</div>}
               {vessel.manager_name && vessel.manager_name !== vessel.owner_name && (
-                <div style={{ color: "#6B7280" }}>Mgr: {vessel.manager_name}</div>
+                <div style={{ color: "#6B7280" }}>{vessel.manager_name}</div>
               )}
-              {emails.slice(0, EMAIL_LIMIT).map(e => (
-                <a key={e} href={`mailto:${e}`} style={{ color: "#1D4ED8", textDecoration: "none" }}>{e}</a>
-              ))}
-              {emails.length > EMAIL_LIMIT && (
-                <span style={{ color: "#9CA3AF", fontSize: 11 }}>+{emails.length - EMAIL_LIMIT} more addresses</span>
-              )}
-              {phones.map(p => (
-                <a key={p} href={`tel:${p}`} style={{ color: "#15803D", textDecoration: "none" }}>{p}</a>
-              ))}
               {vessel.website && (
                 <a href={vessel.website.startsWith("http") ? vessel.website : `https://${vessel.website}`}
-                  target="_blank" rel="noopener noreferrer"
-                  style={{ color: "#6B7280", textDecoration: "none", wordBreak: "break-all" }}>
-                  {vessel.website.replace(/^https?:\/\//, "")}
+                  target="_blank" rel="noopener noreferrer" style={{ color: "#6B7280", textDecoration: "none" }}>
+                  🌐 {vessel.website.replace(/^https?:\/\//, "")}
                 </a>
               )}
               {vessel.linkedin_url && (
                 <a href={vessel.linkedin_url} target="_blank" rel="noopener noreferrer"
-                  style={{ color: "#0369A1", textDecoration: "none" }}>
-                  LinkedIn →
+                  style={{ color: "#0A66C2", textDecoration: "none", fontWeight: 600 }}>
+                  in LinkedIn
                 </a>
               )}
-              {!vessel.owner_name && !vessel.manager_name && emails.length === 0 && phones.length === 0 && (
-                <span style={{ color: "#D1D5DB", fontStyle: "italic" }}>No contact data available</span>
+
+              {/* Emails */}
+              {emails.length > 0 && (
+                <div style={{ marginTop: 4 }}>
+                  <div style={{ fontSize: 10, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
+                    Emails ({emails.length})
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                    {emails.slice(0, EMAIL_LIMIT).map(e => (
+                      <a key={e} href={`mailto:${e}`}
+                        style={{ fontSize: 11, color: "#1D4ED8", textDecoration: "none",
+                          background: e === vessel.best_email ? "#EFF6FF" : "#F8FAFC",
+                          border: `1px solid ${e === vessel.best_email ? "#BFDBFE" : "#E5E7EB"}`,
+                          borderRadius: 4, padding: "2px 6px" }}>
+                        {e}{e === vessel.best_email ? " ★" : ""}
+                      </a>
+                    ))}
+                    {emails.length > EMAIL_LIMIT && (
+                      <span style={{ fontSize: 11, color: "#9CA3AF" }}>+{emails.length - EMAIL_LIMIT} more</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Phones */}
+              {phones.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                  {phones.map(p => (
+                    <a key={p} href={`tel:${p}`}
+                      style={{ fontSize: 11, color: "#15803D", textDecoration: "none",
+                        background: "#F0FDF4", border: "1px solid #BBF7D0",
+                        borderRadius: 4, padding: "2px 6px" }}>
+                      📞 {p}
+                    </a>
+                  ))}
+                </div>
+              )}
+
+              {/* People */}
+              {people.length > 0 && (
+                <div style={{ marginTop: 4 }}>
+                  <div style={{ fontSize: 10, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
+                    People ({people.length})
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {people.slice(0, 6).map((c, i) => (
+                      <div key={i} style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 6, padding: "6px 10px", fontSize: 11 }}>
+                        {c.name && <div style={{ fontWeight: 600, color: "#111827" }}>{c.name}</div>}
+                        {c.title && <div style={{ color: "#6B7280", marginBottom: 3 }}>{c.title}</div>}
+                        {c.email && <a href={`mailto:${c.email}`} style={{ color: "#1D4ED8", textDecoration: "none", display: "block" }}>{c.email}</a>}
+                        {c.linkedin && <a href={c.linkedin} target="_blank" rel="noopener noreferrer" style={{ color: "#0A66C2", fontWeight: 600, textDecoration: "none" }}>in LinkedIn</a>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* No contact — find button */}
+              {!vessel.enriched && emails.length === 0 && people.length === 0 && (
+                <button onClick={handleEnrich} disabled={enriching || enrichDone}
+                  style={{ fontSize: 11, fontWeight: 600, color: "#2563EB",
+                    background: "#EFF6FF", border: "1px solid #BFDBFE",
+                    borderRadius: 5, padding: "4px 12px", cursor: "pointer", marginTop: 4, alignSelf: "flex-start" }}>
+                  {enrichDone ? "✓ Search started" : enriching ? "Searching…" : "Find contacts"}
+                </button>
               )}
             </div>
           </div>

@@ -6,6 +6,12 @@ type Contact = {
   linkedin: string | null; confidence: number | null; type: string | null; source: string;
 };
 
+type VesselEvent = {
+  id: number; event_type: string; source: string | null;
+  title: string | null; url: string | null; summary: string | null;
+  created_at: string;
+};
+
 type Vessel = {
   imo: string; mmsi: string; name: string; type: string; flag: string;
   age: number | null; builtYear: number | null;
@@ -99,12 +105,23 @@ export default function VesselsPage() {
   const [aiInterpretation, setAiInterpretation] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [enriching, setEnriching] = useState<Set<string>>(new Set());
+  const [vesselEvents, setVesselEvents] = useState<Map<string, VesselEvent[]>>(new Map());
   const inputRef = useRef<HTMLInputElement>(null);
+
+  async function fetchEvents(imo: string) {
+    if (vesselEvents.has(imo)) return;
+    try {
+      const res = await fetch(`/api/vessel/${imo}/events`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setVesselEvents(prev => new Map(prev).set(imo, data.events ?? []));
+    } catch { /* ignore */ }
+  }
 
   function toggleExpand(imo: string) {
     setExpanded(prev => {
       const s = new Set(prev);
-      s.has(imo) ? s.delete(imo) : s.add(imo);
+      if (s.has(imo)) { s.delete(imo); } else { s.add(imo); fetchEvents(imo); }
       return s;
     });
   }
@@ -312,8 +329,8 @@ export default function VesselsPage() {
 
                 {/* Expanded detail — Equasis style */}
                 {isOpen && (
-                  <div style={{ borderTop: "1px solid #F1F5F9", padding: "20px 20px 24px",
-                    display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 24 }}>
+                  <div style={{ borderTop: "1px solid #F1F5F9", padding: "20px 20px 24px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 24 }}>
 
                     {/* Column 1: Vessel particulars */}
                     <div>
@@ -471,6 +488,46 @@ export default function VesselsPage() {
                     </div>
 
                   </div>
+
+                  {/* Recent intelligence events */}
+                  {(() => {
+                    const evts = vesselEvents.get(v.imo);
+                    if (!evts || evts.length === 0) return null;
+                    const EVENT_ICON: Record<string, string> = {
+                      news_mention: "📰", contact_updated: "✉️", status_change: "📍",
+                    };
+                    return (
+                      <div style={{ marginTop: 16, borderTop: "1px solid #F1F5F9", paddingTop: 16 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "#94A3B8",
+                          textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 10 }}>
+                          Recent Intelligence ({evts.length})
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {evts.slice(0, 6).map(e => (
+                            <div key={e.id} style={{ display: "flex", gap: 10, alignItems: "flex-start",
+                              fontSize: 12, background: "#F8FAFC", borderRadius: 6, padding: "7px 10px" }}>
+                              <span style={{ flexShrink: 0 }}>{EVENT_ICON[e.event_type] ?? "•"}</span>
+                              <div style={{ flex: 1 }}>
+                                {e.url ? (
+                                  <a href={e.url} target="_blank" rel="noopener noreferrer"
+                                    style={{ color: "#0F172A", fontWeight: 500, textDecoration: "none" }}>
+                                    {e.title || e.summary}
+                                  </a>
+                                ) : (
+                                  <span style={{ color: "#0F172A", fontWeight: 500 }}>{e.title || e.summary}</span>
+                                )}
+                                <span style={{ color: "#94A3B8", marginLeft: 8, fontSize: 11 }}>
+                                  {e.source} · {new Date(e.created_at).toLocaleDateString("en-GB")}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                </div>
                 )}
 
               </div>

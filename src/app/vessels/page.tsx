@@ -15,9 +15,12 @@ type Vessel = {
   scrapScore: number | null; scrapCategory: string | null;
   detentionCount: number;
   bestEmail: string | null; phone: string | null;
-  website: string | null; linkedinUrl: string | null;
+  website: string | null; linkedinUrl: string | null; linkedinPeopleUrl: string | null;
   ownerName: string | null; manager: string | null;
   contacts: Contact[];
+  allEmails: string[]; allPhones: string[];
+  emailValidations: Record<string, { status?: string }>;
+  enriched: boolean;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -131,9 +134,26 @@ export default function VesselsPage() {
     if (e.key === "Enter") search();
   }
 
-  const email = (v: Vessel) => v.bestEmail ?? null;
-  const phone = (v: Vessel) => v.phone ?? null;
+  const email = (v: Vessel) => v.bestEmail ?? v.allEmails?.[0] ?? null;
+  const phone = (v: Vessel) => v.phone ?? v.allPhones?.[0] ?? null;
   const manager = (v: Vessel) => v.manager ?? null;
+
+  const [enriching, setEnriching] = useState<Set<string>>(new Set());
+
+  async function triggerEnrich(imo: string) {
+    setEnriching(prev => new Set(prev).add(imo));
+    try {
+      await fetch(`/api/vessels/enrich`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imo }),
+      });
+      // re-search to pick up new data
+      await search();
+    } finally {
+      setEnriching(prev => { const s = new Set(prev); s.delete(imo); return s; });
+    }
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: "#F8FAFC", fontFamily: "system-ui, -apple-system, sans-serif" }}>
@@ -306,62 +326,140 @@ export default function VesselsPage() {
                   </a>
                 </div>
 
-                {/* Contact section */}
-                <div style={{ borderTop: "1px solid #F1F5F9", background: hasContact ? "#FAFFFE" : "#FAFAFA" }}>
+                {/* Contact section — Equasis style: show all found data */}
+                <div style={{ borderTop: "1px solid #F1F5F9", background: "#FAFAFA" }}>
+                  <div style={{ padding: "14px 20px", display: "grid", gridTemplateColumns: "180px 1fr", gap: 20, alignItems: "start" }}>
 
-                  {/* Company + general contact */}
-                  <div style={{ padding: "12px 20px", display: "flex", flexWrap: "wrap", gap: 16, alignItems: "flex-start" }}>
-                    <div style={{ minWidth: 160 }}>
-                      <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Company</div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{v.ownerName ?? mgr ?? "—"}</div>
+                    {/* Left: company identity */}
+                    <div>
+                      <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Owner / Manager</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", marginBottom: 2 }}>{v.ownerName ?? "—"}</div>
                       {mgr && mgr !== v.ownerName && (
-                        <div style={{ fontSize: 12, color: "#64748B" }}>Manager: {mgr}</div>
+                        <div style={{ fontSize: 12, color: "#64748B" }}>{mgr}</div>
+                      )}
+                      {v.website && (
+                        <a href={v.website.startsWith("http") ? v.website : `https://${v.website}`}
+                          target="_blank" rel="noopener noreferrer"
+                          style={{ fontSize: 12, color: "#2563EB", textDecoration: "none", display: "block", marginTop: 6 }}>
+                          🌐 {v.website.replace(/^https?:\/\/(www\.)?/, "")}
+                        </a>
+                      )}
+                      {v.linkedinUrl && (
+                        <a href={v.linkedinUrl} target="_blank" rel="noopener noreferrer"
+                          style={{ fontSize: 12, color: "#0A66C2", textDecoration: "none", display: "block", marginTop: 4, fontWeight: 600 }}>
+                          in Company page
+                        </a>
+                      )}
+                      {v.linkedinPeopleUrl && (
+                        <a href={v.linkedinPeopleUrl} target="_blank" rel="noopener noreferrer"
+                          style={{ fontSize: 12, color: "#0A66C2", textDecoration: "none", display: "block", marginTop: 2 }}>
+                          in People search
+                        </a>
                       )}
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
-                      {v.website && <ContactRow icon="🌐" value={v.website.replace(/^https?:\/\//, "")} href={v.website.startsWith("http") ? v.website : `https://${v.website}`} />}
-                      {em && <ContactRow icon="📧" value={em} href={`mailto:${em}`} />}
-                      {ph && <ContactRow icon="📞" value={ph} href={`tel:${ph.replace(/\s/g, "")}`} />}
-                      {v.linkedinUrl && <ContactRow icon="in" value="LinkedIn Company" href={v.linkedinUrl} />}
-                      {!hasContact && !v.contacts?.length && (
-                        <span style={{ fontSize: 12, color: "#CBD5E1", fontStyle: "italic" }}>No contact data yet</span>
-                      )}
-                    </div>
-                  </div>
 
-                  {/* Named contacts from Hunter */}
-                  {v.contacts?.filter(c => c.name || c.email).length > 0 && (
-                    <div style={{ borderTop: "1px solid #E2E8F0", padding: "10px 20px 14px" }}>
-                      <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>
-                        People · {v.contacts.filter(c => c.name || c.email).length} found
-                      </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 8 }}>
-                        {v.contacts.filter(c => c.name || c.email).slice(0, 6).map((c, i) => (
-                          <div key={i} style={{
-                            background: "#fff", border: "1px solid #E2E8F0", borderRadius: 8,
-                            padding: "10px 12px",
-                          }}>
-                            {c.name && <div style={{ fontSize: 13, fontWeight: 600, color: "#0F172A", marginBottom: 2 }}>{c.name}</div>}
-                            {c.title && <div style={{ fontSize: 12, color: "#64748B", marginBottom: 6 }}>{c.title}</div>}
-                            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                              {c.email && (
-                                <a href={`mailto:${c.email}`} style={{ fontSize: 12, color: "#2563EB", textDecoration: "none" }}>
-                                  📧 {c.email}
-                                </a>
-                              )}
-                              {c.linkedin && (
-                                <a href={c.linkedin} target="_blank" rel="noopener noreferrer"
-                                  style={{ fontSize: 12, color: "#0A66C2", textDecoration: "none", fontWeight: 600 }}>
-                                  in LinkedIn
-                                </a>
-                              )}
-                            </div>
+                    {/* Right: all contact data */}
+                    <div>
+                      {/* Emails */}
+                      {v.allEmails?.length > 0 ? (
+                        <div style={{ marginBottom: 10 }}>
+                          <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+                            Emails ({v.allEmails.length})
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                            {v.allEmails.slice(0, 8).map(e => {
+                              const status = v.emailValidations?.[e]?.status;
+                              const isBest = e === v.bestEmail;
+                              return (
+                                <a key={e} href={`mailto:${e}`}
+                                  style={{
+                                    fontSize: 12, color: "#2563EB", textDecoration: "none",
+                                    background: isBest ? "#EFF6FF" : "#F8FAFC",
+                                    border: `1px solid ${isBest ? "#BFDBFE" : "#E2E8F0"}`,
+                                    borderRadius: 5, padding: "3px 8px",
+                                    display: "flex", alignItems: "center", gap: 4,
+                                  }}>
+                                  {e}
+                                  {status === "verified" && <span style={{ color: "#16A34A", fontSize: 10 }}>✓</span>}
+                                  {isBest && <span style={{ color: "#2563EB", fontSize: 10 }}>★</span>}
+                                </a>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : null}
 
+                      {/* Phones */}
+                      {v.allPhones?.length > 0 && (
+                        <div style={{ marginBottom: 10 }}>
+                          <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+                            Phones
+                          </div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                            {v.allPhones.slice(0, 4).map(p => (
+                              <a key={p} href={`tel:${p.replace(/\s/g,"")}`}
+                                style={{ fontSize: 12, color: "#475569", textDecoration: "none",
+                                  background: "#F8FAFC", border: "1px solid #E2E8F0",
+                                  borderRadius: 5, padding: "3px 8px" }}>
+                                📞 {p}
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* People */}
+                      {v.contacts?.filter(c => c.name || c.email).length > 0 && (
+                        <div>
+                          <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>
+                            People ({v.contacts.filter(c => c.name || c.email).length})
+                          </div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                            {v.contacts.filter(c => c.name || c.email).slice(0, 8).map((c, i) => (
+                              <div key={i} style={{
+                                background: "#fff", border: "1px solid #E2E8F0", borderRadius: 7,
+                                padding: "6px 10px", fontSize: 12,
+                              }}>
+                                {c.name && <span style={{ fontWeight: 600, color: "#0F172A" }}>{c.name}</span>}
+                                {c.title && <span style={{ color: "#64748B" }}> · {c.title}</span>}
+                                {c.email && (
+                                  <a href={`mailto:${c.email}`} style={{ display: "block", color: "#2563EB", textDecoration: "none", marginTop: 2 }}>
+                                    {c.email}
+                                  </a>
+                                )}
+                                {c.linkedin && (
+                                  <a href={c.linkedin} target="_blank" rel="noopener noreferrer"
+                                    style={{ color: "#0A66C2", textDecoration: "none", fontWeight: 600, marginTop: 2, display: "block" }}>
+                                    in LinkedIn
+                                  </a>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Not enriched yet — offer to trigger */}
+                      {!v.enriched && !v.allEmails?.length && !v.contacts?.length && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <span style={{ fontSize: 12, color: "#CBD5E1", fontStyle: "italic" }}>
+                            Contact data not yet collected
+                          </span>
+                          <button
+                            onClick={() => triggerEnrich(v.imo)}
+                            disabled={enriching.has(v.imo)}
+                            style={{
+                              fontSize: 11, fontWeight: 600, color: "#2563EB",
+                              background: "#EFF6FF", border: "1px solid #BFDBFE",
+                              borderRadius: 5, padding: "3px 10px", cursor: "pointer",
+                            }}>
+                            {enriching.has(v.imo) ? "Searching…" : "Find contacts"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
                 </div>
               </div>
             );

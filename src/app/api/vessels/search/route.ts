@@ -146,8 +146,9 @@ export async function GET(req: NextRequest) {
     (v.licensed_photo->>'pageUrl') AS photo_page_url,
     o.best_email, o.email AS owner_email, o.emails, o.phones,
     o.email_validations, o.website, o.linkedin_company_url,
-    o.owner_name, o.manager_name AS contact_manager,
-    o.contacts
+    o.linkedin_people_url, o.owner_name, o.manager_name AS contact_manager,
+    o.contacts, o.department_emails, o.generic_emails,
+    o.web_fetched_at
   `;
 
   const FROM = `FROM vessels v LEFT JOIN owners o ON v.imo = o.imo`;
@@ -249,9 +250,18 @@ export async function GET(req: NextRequest) {
           emailStatus,
           phone:          r.phones?.[0] ?? null,
           website:        r.website,
-          linkedinUrl:    r.linkedin_company_url,
-          contacts:       r.contacts ?? [],
-          photoThumb:     r.photo_thumb    || null,
+          linkedinUrl:        r.linkedin_company_url,
+          linkedinPeopleUrl:  r.linkedin_people_url,
+          allEmails:          [
+            ...(r.department_emails ?? []),
+            ...(r.generic_emails    ?? []),
+            ...(r.emails            ?? []),
+          ].filter((e: string, i: number, a: string[]) => e && a.indexOf(e) === i),
+          allPhones:          r.phones ?? [],
+          emailValidations:   r.email_validations ?? {},
+          contacts:           r.contacts ?? [],
+          enriched:           !!r.web_fetched_at,
+          photoThumb:         r.photo_thumb    || null,
           photoArtist:    r.photo_artist   || null,
           photoLicense:   r.photo_license  || null,
           photoPageUrl:   r.photo_page_url || null,

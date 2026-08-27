@@ -140,7 +140,12 @@ function ExpandedRow({ vessel }: { vessel: OpportunityVessel }) {
                 <span style={{ fontSize: 12, fontWeight: 500, color: "#6B7280", marginLeft: 4 }}>t</span>
               </div>
             ) : (
-              <div style={{ fontSize: 13, color: "#9CA3AF", fontStyle: "italic" }}>ask</div>
+              <a href={`/vessel/${vessel.imo}`}
+                style={{ fontSize: 13, color: "#2563EB", fontWeight: 600,
+                  textDecoration: "none", padding: "4px 12px", borderRadius: 5,
+                  background: "#EFF6FF", border: "1px solid #BFDBFE", display: "inline-block" }}>
+                Contact →
+              </a>
             )}
           </div>
 
@@ -686,7 +691,12 @@ export default function OpportunitiesPage() {
                       <td style={{ padding: "12px 16px", textAlign: "right" }}>
                         {v.ldt
                           ? <span style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>{v.ldt.toLocaleString()}</span>
-                          : <span style={{ fontSize: 12, color: "#D1D5DB", fontStyle: "italic" }}>ask</span>
+                          : <a href={`/vessel/${v.imo}`} onClick={e => e.stopPropagation()}
+                              style={{ fontSize: 12, color: "#2563EB", fontWeight: 600,
+                                textDecoration: "none", padding: "2px 8px", borderRadius: 4,
+                                background: "#EFF6FF", border: "1px solid #BFDBFE" }}>
+                              Contact →
+                            </a>
                         }
                       </td>
 
@@ -721,7 +731,7 @@ export default function OpportunitiesPage() {
       {!loading && filtered.length > 0 && (
         <div style={{ marginTop: 16, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ fontSize: 11, color: "#9CA3AF" }}>
-            LDT shown where available from Datalastic enrichment. "ask" = not yet enriched.
+            LDT shown where known. "Contact →" = LDT not yet enriched, links to vessel page.
           </span>
           <span style={{ fontSize: 11, color: "#9CA3AF" }}>Score = signal weights × 10 + scrap score (0–100).</span>
           {(["survey_pressure", "detention_age", "layup", "age_threshold"] as SignalType[]).map(t => (

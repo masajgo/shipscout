@@ -1,13 +1,12 @@
-export type SignalType = "layup" | "survey_pressure" | "detention_age" | "age_threshold";
+export type SignalType = "layup" | "survey_pressure" | "detention_age" | "detention_trend" | "scrap_proximity" | "age_threshold";
 
 export interface VesselSignal {
   type: SignalType;
   label: string;
   explanation: string;
-  weight: number; // contribution to opportunity score
+  weight: number;
 }
 
-// AIS nav_status codes considered idle
 const IDLE_STATUSES = new Set([1, 5, 6]); // anchored, moored, aground
 
 export interface SignalInput {
@@ -16,6 +15,8 @@ export interface SignalInput {
   nav_status: number | null;
   special_survey_date: string | null;
   detention_count: number;
+  min_dist_scrapyard_nm?: number | null;
+  nearest_yard?: string | null;
 }
 
 export function computeSignals(v: SignalInput): VesselSignal[] {
@@ -48,8 +49,15 @@ export function computeSignals(v: SignalInput): VesselSignal[] {
     }
   }
 
-  // 3. DETENTION + AGE
-  if (v.detention_count > 0 && v.age > 20) {
+  // 3. DETENTION — chronic offenders (3+) get a stronger signal than one-timers
+  if (v.detention_count >= 3 && v.age > 20) {
+    signals.push({
+      type: "detention_trend",
+      label: "Chronic Detentions",
+      weight: 5,
+      explanation: `${v.detention_count} PSC detentions recorded on a ${v.age}-year-old vessel — a pattern of repeat non-compliance signals the owner is no longer investing in the hull, making recycling imminent.`,
+    });
+  } else if (v.detention_count > 0 && v.age > 20) {
     signals.push({
       type: "detention_age",
       label: "PSC Detained",
@@ -58,7 +66,18 @@ export function computeSignals(v: SignalInput): VesselSignal[] {
     });
   }
 
-  // 4. AGE THRESHOLD
+  // 4. SCRAP YARD PROXIMITY — vessel is already close to a breaking yard
+  if (v.min_dist_scrapyard_nm != null && v.min_dist_scrapyard_nm <= 300 && v.age > 20) {
+    const yard = v.nearest_yard ?? "a major scrap yard";
+    signals.push({
+      type: "scrap_proximity",
+      label: "Near Scrap Yard",
+      weight: 2,
+      explanation: `${Math.round(v.min_dist_scrapyard_nm)} nm from ${yard} — vessels this close to a breaking yard are often already in final transit or anchored awaiting beach.`,
+    });
+  }
+
+  // 5. AGE THRESHOLD
   if (v.age >= 25) {
     signals.push({
       type: "age_threshold",
@@ -77,8 +96,10 @@ export function opportunityScore(signals: VesselSignal[], scrap_score: number): 
 }
 
 export const SIGNAL_META: Record<SignalType, { color: string; bg: string; border: string }> = {
-  survey_pressure: { color: "#B42318", bg: "#FEF3F2", border: "#FECDCA" },
-  detention_age:   { color: "#92400E", bg: "#FFFBEB", border: "#FDE68A" },
-  layup:           { color: "#1D4ED8", bg: "#EFF6FF", border: "#BFDBFE" },
-  age_threshold:   { color: "#374151", bg: "#F3F4F6", border: "#D1D5DB" },
+  survey_pressure:  { color: "#B42318", bg: "#FEF3F2", border: "#FECDCA" },
+  detention_age:    { color: "#92400E", bg: "#FFFBEB", border: "#FDE68A" },
+  detention_trend:  { color: "#7C2D12", bg: "#FFF7ED", border: "#FDBA74" },
+  scrap_proximity:  { color: "#065F46", bg: "#ECFDF5", border: "#6EE7B7" },
+  layup:            { color: "#1D4ED8", bg: "#EFF6FF", border: "#BFDBFE" },
+  age_threshold:    { color: "#374151", bg: "#F3F4F6", border: "#D1D5DB" },
 };

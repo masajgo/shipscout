@@ -6,6 +6,17 @@ import { priceCategory, type PriceCategory, type YardPrices } from "@/lib/scrapV
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// Major scrap yard coordinates [lon, lat]
+const SCRAP_YARDS = {
+  Aliaga:      { lon: 26.9671, lat: 38.8483 },
+  Alang:       { lon: 72.2000, lat: 21.4000 },
+  Chittagong:  { lon: 91.8000, lat: 22.3000 },
+  Gadani:      { lon: 66.7000, lat: 25.1000 },
+} as const;
+
+const ALIAGA_LON = SCRAP_YARDS.Aliaga.lon;
+const ALIAGA_LAT = SCRAP_YARDS.Aliaga.lat;
+
 export interface OpportunityVessel {
   mmsi: string;
   imo: string;
@@ -28,6 +39,11 @@ export interface OpportunityVessel {
   lat: number | null;
   lon: number | null;
   dist_aliaga_nm: number | null;
+  dist_alang_nm: number | null;
+  dist_chittagong_nm: number | null;
+  dist_gadani_nm: number | null;
+  min_dist_scrapyard_nm: number | null;
+  nearest_yard: string | null;
   // owner contact
   owner_name: string | null;
   manager_name: string | null;
@@ -51,11 +67,8 @@ export async function GET(req: NextRequest) {
   const min_age      = parseInt(searchParams.get("min_age") ?? "20", 10);
   const vessel_type  = searchParams.get("vessel_type") ?? "all";
   const max_dist     = searchParams.get("max_dist_aliaga");
+  const max_yard_dist = searchParams.get("max_dist_yard");
   const limit        = Math.min(parseInt(searchParams.get("limit") ?? "200", 10), 500);
-
-  // Aliağa coordinates
-  const ALIAGA_LON = 26.9671;
-  const ALIAGA_LAT = 38.8483;
 
   const { rows } = await pool.query<{
     mmsi: string; imo: string; name: string; type: string; type_specific: string | null;
@@ -63,7 +76,11 @@ export async function GET(req: NextRequest) {
     deadweight: number | null; gross_tonnage: number | null; speed: number | null;
     nav_status: number | null; scrap_score: number; scrap_category: string | null;
     detention_count: number; deficiency_count: number; special_survey_date: string | null;
-    lat: number | null; lon: number | null; dist_aliaga_nm: number | null;
+    lat: number | null; lon: number | null;
+    dist_aliaga_nm: number | null;
+    dist_alang_nm: number | null;
+    dist_chittagong_nm: number | null;
+    dist_gadani_nm: number | null;
     owner_name: string | null; manager_name: string | null; best_email: string | null;
     emails: string[] | null; phones: string[] | null; website: string | null;
     linkedin_url: string | null; contacts: unknown; web_fetched_at: string | null;
@@ -78,12 +95,10 @@ export async function GET(req: NextRequest) {
       COALESCE(v.deficiency_count, 0) AS deficiency_count,
       v.special_survey_date::text,
       v.lat, v.lon,
-      CASE WHEN v.geom IS NOT NULL THEN
-        ROUND((ST_Distance(
-          v.geom::geography,
-          ST_MakePoint($1, $2)::geography
-        ) / 1852.0)::numeric, 0)
-      ELSE NULL END AS dist_aliaga_nm,
+      CASE WHEN v.geom IS NOT NULL THEN ROUND((ST_Distance(v.geom::geography, ST_MakePoint($1,$2)::geography) / 1852.0)::numeric, 0) ELSE NULL END AS dist_aliaga_nm,
+      CASE WHEN v.geom IS NOT NULL THEN ROUND((ST_Distance(v.geom::geography, ST_MakePoint(72.2,21.4)::geography) / 1852.0)::numeric, 0) ELSE NULL END AS dist_alang_nm,
+      CASE WHEN v.geom IS NOT NULL THEN ROUND((ST_Distance(v.geom::geography, ST_MakePoint(91.8,22.3)::geography) / 1852.0)::numeric, 0) ELSE NULL END AS dist_chittagong_nm,
+      CASE WHEN v.geom IS NOT NULL THEN ROUND((ST_Distance(v.geom::geography, ST_MakePoint(66.7,25.1)::geography) / 1852.0)::numeric, 0) ELSE NULL END AS dist_gadani_nm,
       o.owner_name, o.manager_name, o.best_email,
       o.emails, o.phones, o.website,
       COALESCE(o.linkedin_company_url, o.linkedin_url) AS linkedin_url,
@@ -99,30 +114,45 @@ export async function GET(req: NextRequest) {
     : [ALIAGA_LON, ALIAGA_LAT, min_age]
   );
 
-  // Compute signals in JS and filter/sort
   const results: OpportunityVessel[] = [];
 
   for (const row of rows) {
+    // Compute nearest scrap yard
+    const yardDists: [string, number][] = [
+      ["Aliağa",     row.dist_aliaga_nm     ?? Infinity],
+      ["Alang",      row.dist_alang_nm      ?? Infinity],
+      ["Chittagong", row.dist_chittagong_nm ?? Infinity],
+      ["Gadani",     row.dist_gadani_nm     ?? Infinity],
+    ];
+    const [nearest_yard, min_dist] = yardDists.reduce((a, b) => b[1] < a[1] ? b : a);
+    const min_dist_scrapyard_nm = isFinite(min_dist) ? min_dist : null;
+
     const signals = computeSignals({
-      age:                 row.age,
-      speed:               row.speed,
-      nav_status:          row.nav_status,
-      special_survey_date: row.special_survey_date,
-      detention_count:     row.detention_count,
+      age:                  row.age,
+      speed:                row.speed,
+      nav_status:           row.nav_status,
+      special_survey_date:  row.special_survey_date,
+      detention_count:      row.detention_count,
+      min_dist_scrapyard_nm,
+      nearest_yard,
     });
 
     if (signals.length === 0) continue;
 
-    // Filter by signal type
     if (signal_type !== "all" && !signals.some(s => s.type === signal_type)) continue;
 
-    // Filter by max distance to Aliağa
     if (max_dist && row.dist_aliaga_nm !== null) {
       if (row.dist_aliaga_nm > parseInt(max_dist, 10)) continue;
     }
 
+    if (max_yard_dist && min_dist_scrapyard_nm !== null) {
+      if (min_dist_scrapyard_nm > parseInt(max_yard_dist, 10)) continue;
+    }
+
     results.push({
       ...row,
+      min_dist_scrapyard_nm,
+      nearest_yard,
       signals,
       signal_count:      signals.length,
       opportunity_score: opportunityScore(signals, row.scrap_score),
@@ -132,13 +162,11 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // contactable = real email or phone (website/linkedin alone doesn't count)
   function hasContact(v: OpportunityVessel) {
     const emails = [...(v.emails?.filter(Boolean) ?? []), ...(v.best_email ? [v.best_email] : [])];
     return emails.length > 0 || (v.phones?.length ?? 0) > 0;
   }
 
-  // Sort: contactable first → more signals → higher score
   results.sort((a, b) => {
     const aC = hasContact(a) ? 1 : 0;
     const bC = hasContact(b) ? 1 : 0;
@@ -147,14 +175,15 @@ export async function GET(req: NextRequest) {
     return b.opportunity_score - a.opportunity_score;
   });
 
-  // Shipped with the vessels so switching yard in the UI is pure arithmetic, no refetch.
   const yards: YardPrices = {};
-  const priceRows = await pool.query<{ yard: string; country: string; vessel_type: string; price_usd_ldt: number }>(
-    `SELECT yard, country, vessel_type, price_usd_ldt FROM scrap_prices`
+  const priceRows = await pool.query<{ yard: string; country: string; vessel_type: string; price_usd_ldt: number; updated_at: string }>(
+    `SELECT yard, country, vessel_type, price_usd_ldt, updated_at FROM scrap_prices ORDER BY updated_at DESC`
   );
+  let prices_updated_at: string | null = null;
   for (const p of priceRows.rows) {
     yards[p.yard] ??= { country: p.country, prices: {} };
     yards[p.yard].prices[p.vessel_type] = Number(p.price_usd_ldt);
+    if (!prices_updated_at || p.updated_at > prices_updated_at) prices_updated_at = p.updated_at;
   }
 
   return NextResponse.json({
@@ -162,5 +191,6 @@ export async function GET(req: NextRequest) {
     contactable_total: results.filter(hasContact).length,
     vessels:           results.slice(0, limit),
     yards,
+    prices_updated_at,
   });
 }

@@ -202,7 +202,7 @@
     ]
   },
   "2026-08-26": {
-    "count": 10,
+    "count": 13,
     "calls": [
       {
         "domain": "medships.com",
@@ -243,6 +243,27 @@
       {
         "domain": "tcmarine.com",
         "at": "2026-08-26T10:24:49.145Z"
+      },
+      {
+        "domain": "fesco.com",
+        "at": "2026-08-26T19:23:52.977Z"
+      },
+      {
+        "domain": "sc-shipping.com",
+        "at": "2026-08-26T19:37:13.116Z"
+      },
+      {
+        "domain": "oldendorff.com",
+        "at": "2026-08-26T19:37:43.815Z"
+      }
+    ]
+  },
+  "2026-08-27": {
+    "count": 1,
+    "calls": [
+      {
+        "domain": "fesco.com",
+        "at": "2026-08-27T06:13:03.594Z"
       }
     ]
   }

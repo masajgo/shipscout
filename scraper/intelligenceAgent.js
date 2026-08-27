@@ -23,7 +23,12 @@ const cheerio = require("cheerio");
 
 require("dotenv").config({ path: path.join(__dirname, "../.env.local") });
 
-const { enrichWithDb } = require("./contactEnrichment");
+// Lazy-loaded to avoid blocking startup
+let _enrichWithDb;
+function getEnrichWithDb() {
+  if (!_enrichWithDb) _enrichWithDb = require("./contactEnrichment").enrichWithDb;
+  return _enrichWithDb;
+}
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -49,12 +54,15 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
 
-const logStream = fs.createWriteStream(LOG_FILE, { flags: "a" });
+let logStream;
+try {
+  logStream = fs.createWriteStream(LOG_FILE, { flags: "a" });
+} catch (_) { /* log to console only if file fails */ }
 
 function log(msg) {
   const line = `[${new Date().toISOString()}] ${msg}`;
-  console.log(line);
-  logStream.write(line + "\n");
+  process.stdout.write(line + "\n");
+  if (logStream) logStream.write(line + "\n");
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -229,7 +237,7 @@ async function runContactRefresh() {
     }
 
     try {
-      const result = await enrichWithDb(company, vessel.imo, pool, null, ENRICH_OPTS);
+      const result = await getEnrichWithDb()(company, vessel.imo, pool, null, ENRICH_OPTS);
       if (result?.emails?.length || result?.contacts?.length) {
         updated++;
         log(`[Enrich] ✓ ${company}: ${result.emails?.length ?? 0} emails, ${result.contacts?.length ?? 0} contacts`);

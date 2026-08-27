@@ -4,6 +4,7 @@ import Link from "next/link";
 import pool from "@/lib/db";
 import { computeSignals, SIGNAL_META, type VesselSignal } from "@/lib/signals";
 import { priceCategory, estimateCheque, formatUsd, type YardPrices } from "@/lib/scrapValue";
+import VesselIntelligenceBrief from "@/components/VesselIntelligenceBrief";
 
 export const dynamic = "force-dynamic";
 
@@ -131,12 +132,28 @@ export default async function VesselPublicPage(
         <h1 style={{ fontSize: 28, fontWeight: 700, color: "#0F172A", margin: "0 0 6px" }}>
           M/V {v.name}
         </h1>
-        <p style={{ color: "#64748B", fontSize: 15, margin: "0 0 28px" }}>
+        <p style={{ color: "#64748B", fontSize: 15, margin: "0 0 20px" }}>
           {v.type_specific ?? v.type ?? "Vessel"}
           {v.built_year ? ` · Built ${v.built_year}` : ""}
           {v.flag ? ` · ${v.flag}` : ""}
           {v.deadweight ? ` · ${Number(v.deadweight).toLocaleString()} DWT` : ""}
         </p>
+
+        <VesselIntelligenceBrief
+          vesselName={v.name}
+          imo={v.imo}
+          age={v.age}
+          type={v.type_specific ?? v.type}
+          flag={v.flag}
+          ldt={v.ldt ? Number(v.ldt) : null}
+          scrapScore={v.scrap_score}
+          detentionCount={v.detention_count}
+          specialSurveyDate={v.special_survey_date}
+          signals={v.signals.map((s: VesselSignal) => ({ label: s.label, explanation: s.explanation }))}
+          managerName={v.manager_name}
+          ownerName={v.owner_name}
+          estimatedValue={v.cheque ? formatUsd(v.cheque) : null}
+        />
 
         {/* Scrap value card */}
         <div style={{

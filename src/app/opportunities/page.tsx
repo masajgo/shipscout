@@ -499,6 +499,36 @@ function NewsSignalsSection() {
   const [events, setEvents]   = useState<RadarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState("all");
+  const [angles, setAngles]         = useState<Record<number, string>>({});
+  const [anglesLoading, setAnglesLoading] = useState<Record<number, boolean>>({});
+  const [anglesOpen, setAnglesOpen] = useState<Record<number, boolean>>({});
+
+  function toggleAngle(ev: RadarEvent) {
+    const id = ev.id;
+    if (anglesOpen[id]) {
+      setAnglesOpen(prev => ({ ...prev, [id]: false }));
+      return;
+    }
+    setAnglesOpen(prev => ({ ...prev, [id]: true }));
+    if (angles[id]) return;
+    setAnglesLoading(prev => ({ ...prev, [id]: true }));
+    fetch("/api/radar-events/buyer-angle", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventType:  ev.event_type,
+        vesselName: ev.vessel_name ?? null,
+        imo:        ev.imo ?? null,
+        location:   ev.location ?? null,
+        summary:    ev.summary,
+        sourceName: ev.source_name,
+      }),
+    })
+      .then(r => r.json())
+      .then(d => d.angle && setAngles(prev => ({ ...prev, [id]: d.angle })))
+      .catch(() => null)
+      .finally(() => setAnglesLoading(prev => ({ ...prev, [id]: false })));
+  }
 
   useEffect(() => {
     setLoading(true);
@@ -584,7 +614,45 @@ function NewsSignalsSection() {
                     <span style={{ fontSize: 11, color: "#9CA3AF", marginLeft: 8 }}>IMO {ev.imo}</span>
                   )}
                   <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.55, marginTop: 6 }}>{ev.summary}</div>
-                  <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 6 }}>Source: {ev.source_name}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 11, color: "#9CA3AF" }}>Source: {ev.source_name}</span>
+                    <button
+                      onClick={() => toggleAngle(ev)}
+                      style={{
+                        fontSize: 11, padding: "2px 9px", borderRadius: 5, cursor: "pointer",
+                        background: anglesOpen[ev.id] ? "#065F46" : "#ECFDF5",
+                        border: `1px solid ${anglesOpen[ev.id] ? "#065F46" : "#6EE7B7"}`,
+                        color: anglesOpen[ev.id] ? "#fff" : "#065F46",
+                        fontWeight: 600, transition: "all 0.15s",
+                      }}
+                    >
+                      {anglesOpen[ev.id] ? "Hide angle" : "Buyer angle →"}
+                    </button>
+                  </div>
+                  {anglesOpen[ev.id] && (
+                    <div style={{
+                      marginTop: 8, background: "#F0FDF4", border: "1px solid #BBF7D0",
+                      borderRadius: 7, padding: "9px 12px",
+                    }}>
+                      {anglesLoading[ev.id] ? (
+                        <span style={{ fontSize: 12, color: "#6B7280", fontStyle: "italic" }}>
+                          Analysing buyer angle…
+                        </span>
+                      ) : angles[ev.id] ? (
+                        <>
+                          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: "0.1em",
+                            textTransform: "uppercase", color: "#065F46", marginBottom: 4 }}>
+                            Buyer angle · Claude
+                          </div>
+                          <p style={{ margin: 0, fontSize: 12, color: "#1F2937", lineHeight: 1.6 }}>
+                            {angles[ev.id]}
+                          </p>
+                        </>
+                      ) : (
+                        <span style={{ fontSize: 12, color: "#9CA3AF" }}>No angle available.</span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {ev.matched_vessel_id && (

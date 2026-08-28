@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
+import { authorized } from "@/lib/adminAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -7,6 +8,9 @@ export const dynamic = "force-dynamic";
 // POST /api/admin/scrap-prices
 // Body: { yard, vessel_type, price_usd_ldt, source? }
 export async function POST(req: NextRequest) {
+  if (!authorized(req, new URL(req.url))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const body = await req.json();
     const { yard, vessel_type, price_usd_ldt, source } = body;

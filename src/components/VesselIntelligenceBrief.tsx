@@ -31,7 +31,7 @@ export default function VesselIntelligenceBrief(props: Props) {
       .then(d => d.brief && setBrief(d.brief))
       .catch(() => null)
       .finally(() => setLoading(false));
-  }, []);
+  }, [props.imo]);
 
   if (loading) {
     return (

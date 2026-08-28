@@ -8,7 +8,7 @@ export interface RadarEvent {
   id:                number;
   imo:               string | null;
   vessel_name:       string | null;
-  event_type:        "arrest" | "detention" | "auction" | "bank_seizure" | "sanction" | "scrap_sale";
+  event_type:        "arrest" | "detention" | "auction" | "bank_seizure" | "sanction" | "scrap_sale" | "layup" | "judicial_auction" | "bankruptcy";
   event_date:        string | null;
   location:          string | null;
   source_name:       string;

@@ -598,7 +598,7 @@ function NewsSignalsSection() {
 
                 <div style={{ flex: "1 1 280px", minWidth: 200 }}>
                   {ev.matched_vessel_id ? (
-                    <a href={`/?mmsi=${ev.vessel_mmsi}`}
+                    <a href={ev.imo ? `/vessel/${ev.imo}` : `/?mmsi=${ev.vessel_mmsi}`}
                       style={{ fontWeight: 700, color: "#1D4ED8", textDecoration: "none", fontSize: 14 }}>
                       {ev.vessel_name || `IMO ${ev.imo}`}
                     </a>

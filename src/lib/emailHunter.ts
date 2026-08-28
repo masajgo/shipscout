@@ -1,34 +1,84 @@
 /**
  * emailHunter.ts — Contact enrichment layers 2, 3, 4
  *
- * Layer 2: Hunter.io  — domain-level email search (TODO: needs API key / paid plan)
- * Layer 3: Apollo.io  — people search by title   (TODO: needs Apollo account)
+ * Layer 2: Hunter.io  — domain-level email search (HUNTER_API_KEY)
+ * Layer 3: Apollo.io  — people search by title   (TODO: needs APOLLO_API_KEY)
  * Layer 4: SMTP probe — direct MX verification   (implemented in smtpVerify.ts)
  */
 
 // ─── Layer 2: Hunter.io ───────────────────────────────────────────────────────
-// TODO: implement when HUNTER_API_KEY paid plan is active.
-// Expected: GET https://api.hunter.io/v2/domain-search?domain=<domain>&api_key=<key>
-// Returns: emails[], emailFormat string
 
-export interface HunterResult {
-  emails: string[];
-  format: string | null;
+export interface HunterEmail {
+  email:       string;
+  type:        "generic" | "personal";
+  confidence:  number;
+  firstName:   string | null;
+  lastName:    string | null;
+  position:    string | null;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function huntDomain(_domain: string): Promise<HunterResult> {
-  // TODO: Hunter.io integration
-  // const key = process.env.HUNTER_API_KEY;
-  // if (!key) return { emails: [], format: null };
-  // const res = await fetch(`https://api.hunter.io/v2/domain-search?domain=${domain}&api_key=${key}`);
-  // ...
-  return { emails: [], format: null };
+export interface HunterResult {
+  emails:      HunterEmail[];
+  format:      string | null;
+  organization: string | null;
+}
+
+export async function huntDomain(domain: string): Promise<HunterResult> {
+  const key = process.env.HUNTER_API_KEY;
+  if (!key) return { emails: [], format: null, organization: null };
+
+  try {
+    const url = `https://api.hunter.io/v2/domain-search?domain=${encodeURIComponent(domain)}&api_key=${key}&limit=10`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) return { emails: [], format: null, organization: null };
+
+    const json = await res.json() as {
+      data?: {
+        emails?: Array<{
+          value: string;
+          type: string;
+          confidence: number;
+          first_name?: string | null;
+          last_name?: string | null;
+          position?: string | null;
+        }>;
+        pattern?: string;
+        organization?: string;
+      };
+    };
+
+    const data = json.data;
+    if (!data) return { emails: [], format: null, organization: null };
+
+    const emails: HunterEmail[] = (data.emails ?? []).map(e => ({
+      email:      e.value,
+      type:       e.type === "personal" ? "personal" : "generic",
+      confidence: e.confidence ?? 0,
+      firstName:  e.first_name ?? null,
+      lastName:   e.last_name ?? null,
+      position:   e.position ?? null,
+    }));
+
+    // Convert Hunter's pattern (e.g. "{first}.{last}@domain.com") to our format
+    let format: string | null = null;
+    if (data.pattern) {
+      const p = data.pattern.replace(/@.*/, "").toLowerCase();
+      if (p === "{first}.{last}")           format = `first.last@${domain}`;
+      else if (p === "{f}.{last}")          format = `first_initial.last@${domain}`;
+      else if (p === "{first}{last}")       format = `firstlast@${domain}`;
+      else if (p === "{first}-{last}")      format = `first-last@${domain}`;
+    }
+
+    return { emails, format, organization: data.organization ?? null };
+  } catch {
+    return { emails: [], format: null, organization: null };
+  }
 }
 
 // ─── Layer 3: Apollo.io ───────────────────────────────────────────────────────
-// TODO: implement when Apollo account is available.
-// Expected: POST https://api.apollo.io/v1/people/search with title filters
+// TODO: implement when APOLLO_API_KEY is available.
+// Free tier: 600 people-search credits/month
+// POST https://api.apollo.io/v1/people/search
 // Targets: "Commercial Director", "Fleet Manager", "Sale Purchase Manager"
 
 export interface ApolloContact {
@@ -39,13 +89,11 @@ export interface ApolloContact {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function searchApolloContacts(_companyName: string): Promise<ApolloContact[]> {
-  // TODO: Apollo.io integration
-  // const key = process.env.APOLLO_API_KEY;
-  // if (!key) return [];
-  // ...
+  const key = process.env.APOLLO_API_KEY;
+  if (!key) return [];
+  // TODO: implement Apollo people search
   return [];
 }
 
 // ─── Layer 4: SMTP verify ─────────────────────────────────────────────────────
-// Re-export from smtpVerify.ts for unified import
 export { verifyEmail, verifyEmails, type SmtpVerifyResult, type SmtpVerifyStatus } from "./smtpVerify";

@@ -328,6 +328,23 @@ export async function enrichCompanyContact(
   result.emailFormat  = guessEmailFormat(allEmails, result.website)
     ?? await detectEmailFormat(result.website);
 
+  // Layer 2 — Hunter.io domain search (fallback when website scrape found nothing)
+  if (result.emails.length === 0 && result.website) {
+    try {
+      const { huntDomain } = await import("./emailHunter");
+      const hunterResult = await huntDomain(result.website);
+      if (hunterResult.emails.length > 0) {
+        result.emails = hunterResult.emails.map(e => e.email);
+        result.emailsByType = categorizeEmails(result.emails);
+        if (!result.emailFormat && hunterResult.format) {
+          result.emailFormat = hunterResult.format;
+        }
+      }
+    } catch {
+      // Hunter.io unavailable — silently skip
+    }
+  }
+
   // Layer 4a — guess personal email for named decision-maker
   const guessDomain = extractDomainFromEmails(result.emails);
   if (managerName && guessDomain) {

@@ -3,38 +3,29 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import pool from "@/lib/db";
 import { computeSignals, SIGNAL_META, type VesselSignal } from "@/lib/signals";
-import { priceCategory, estimateCheque, formatUsd, type YardPrices } from "@/lib/scrapValue";
 import VesselIntelligenceBrief from "@/components/VesselIntelligenceBrief";
 
 export const dynamic = "force-dynamic";
 
 async function fetchVessel(imo: string) {
-  const [vRes, pRes] = await Promise.all([
-    pool.query(`
-      SELECT v.imo::text, v.name, v.type, v.type_specific, v.flag,
-             v.age, v.built_year, v.ldt, v.deadweight, v.gross_tonnage,
-             COALESCE(v.scrap_score, 0)      AS scrap_score,
-             v.scrap_category,
-             COALESCE(v.detention_count, 0)  AS detention_count,
-             v.special_survey_date::text,
-             v.speed, v.nav_status, v.photo_url,
-             o.owner_name, o.manager_name
-      FROM vessels v
-      LEFT JOIN owners o ON o.imo = v.imo
-      WHERE v.imo = $1::bigint
-      LIMIT 1
-    `, [imo]),
-    pool.query(`SELECT yard, country, vessel_type, price_usd_ldt FROM scrap_prices`),
-  ]);
+  const vRes = await pool.query(`
+    SELECT v.imo::text, v.name, v.type, v.type_specific, v.flag,
+           v.age, v.built_year, v.ldt, v.deadweight, v.gross_tonnage,
+           COALESCE(v.scrap_score, 0)      AS scrap_score,
+           v.scrap_category,
+           COALESCE(v.detention_count, 0)  AS detention_count,
+           v.special_survey_date::text,
+           v.speed, v.nav_status, v.photo_url,
+           o.owner_name, o.manager_name
+    FROM vessels v
+    LEFT JOIN owners o ON o.imo = v.imo
+    WHERE v.imo = $1::bigint
+    LIMIT 1
+  `, [imo]);
 
   if (!vRes.rows.length) return null;
 
   const v = vRes.rows[0];
-  const yards: YardPrices = {};
-  for (const p of pRes.rows) {
-    yards[p.yard] ??= { country: p.country, prices: {} };
-    yards[p.yard].prices[p.vessel_type] = Number(p.price_usd_ldt);
-  }
 
   const signals = computeSignals({
     age:                 v.age,
@@ -44,11 +35,7 @@ async function fetchVessel(imo: string) {
     detention_count:     v.detention_count,
   });
 
-  const category = priceCategory(v.type, v.type_specific);
-  const cheque   = estimateCheque(v.ldt, category, "Aliaga", yards);
-  const unitPrice = yards["Aliaga"]?.prices[category] ?? null;
-
-  return { ...v, signals, category, cheque, unitPrice, yards };
+  return { ...v, signals };
 }
 
 export async function generateMetadata(
@@ -57,13 +44,12 @@ export async function generateMetadata(
   const { imo } = await params;
   const v = await fetchVessel(imo);
   if (!v) return { title: "Vessel Not Found | ShipScout" };
-  const chequeStr = v.cheque ? ` · Est. scrap value ${formatUsd(v.cheque)}` : "";
   return {
     title: `${v.name} — Ship Recycling Report | ShipScout`,
-    description: `${v.type_specific ?? v.type ?? "Vessel"} built ${v.built_year ?? "unknown"}, ${v.age} years old${chequeStr}. View recycling signals and market valuation on ShipScout.`,
+    description: `${v.type_specific ?? v.type ?? "Vessel"} built ${v.built_year ?? "unknown"}, ${v.age} years old. Recycling signals and intelligence on ShipScout.`,
     openGraph: {
       title: `${v.name} — Recycling Intelligence`,
-      description: `${v.signals.length} signal${v.signals.length !== 1 ? "s" : ""} detected${chequeStr}`,
+      description: `${v.signals.length} signal${v.signals.length !== 1 ? "s" : ""} detected`,
       ...(v.photo_url ? { images: [{ url: v.photo_url }] } : {}),
     },
   };
@@ -152,45 +138,28 @@ export default async function VesselPublicPage(
           signals={v.signals.map((s: VesselSignal) => ({ label: s.label, explanation: s.explanation }))}
           managerName={v.manager_name}
           ownerName={v.owner_name}
-          estimatedValue={v.cheque ? formatUsd(v.cheque) : null}
+          estimatedValue={null}
         />
 
-        {/* Scrap value card */}
-        <div style={{
-          background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12,
-          padding: "20px 24px", marginBottom: 20,
-        }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
-            Estimated Scrap Value · Aliağa, Turkey
+        {/* Score + LDT row */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+          <div style={{
+            background: scoreColor + "15", border: `1px solid ${scoreColor}40`,
+            borderRadius: 6, padding: "4px 12px",
+            fontSize: 13, fontWeight: 600, color: scoreColor,
+          }}>
+            Scrap score {v.scrap_score}
           </div>
-          {v.cheque ? (
-            <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
-              <span style={{ fontSize: 40, fontWeight: 700, color: "#0F172A", lineHeight: 1 }}>
-                {formatUsd(v.cheque)}
-              </span>
-              <span style={{ fontSize: 13, color: "#94A3B8" }}>
-                {Number(v.ldt).toLocaleString()} LDT × ${v.unitPrice}/LDT
-              </span>
-            </div>
-          ) : (
-            <p style={{ fontSize: 16, color: "#94A3B8", margin: 0 }}>
-              LDT data unavailable — contact us for a manual valuation
-            </p>
+          {v.scrap_category && (
+            <span style={{ fontSize: 13, color: "#94A3B8", textTransform: "capitalize" }}>
+              {v.scrap_category} risk
+            </span>
           )}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14 }}>
-            <div style={{
-              background: scoreColor + "15", border: `1px solid ${scoreColor}40`,
-              borderRadius: 6, padding: "3px 10px",
-              fontSize: 12, fontWeight: 600, color: scoreColor,
-            }}>
-              Scrap score {v.scrap_score}
-            </div>
-            {v.scrap_category && (
-              <span style={{ fontSize: 12, color: "#94A3B8", textTransform: "capitalize" }}>
-                {v.scrap_category} risk
-              </span>
-            )}
-          </div>
+          {v.ldt && (
+            <span style={{ fontSize: 13, color: "#64748B" }}>
+              · {Number(v.ldt).toLocaleString()} LDT
+            </span>
+          )}
         </div>
 
         {/* Signals */}

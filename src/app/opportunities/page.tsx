@@ -3,7 +3,7 @@ import React, { useEffect, useState, useMemo, useCallback } from "react";
 import type { OpportunityVessel } from "@/app/api/opportunities/route";
 import type { RadarEvent } from "@/app/api/radar-events/route";
 import { SIGNAL_META, type SignalType } from "@/lib/signals";
-import { type YardPrices, estimateCheque, formatUsd } from "@/lib/scrapValue";
+import { type YardPrices } from "@/lib/scrapValue";
 
 const SIGNAL_LABELS: Record<SignalType, string> = {
   survey_pressure:  "Survey Due",
@@ -30,8 +30,6 @@ function DraftEmailModal({ vessel, yards, yard, onClose }: {
   const [error, setError]     = useState<string | null>(null);
   const [copied, setCopied]   = useState(false);
 
-  const cheque = vessel.ldt ? estimateCheque(vessel.ldt, vessel.price_category, yard, yards) : null;
-  const estimatedValue = cheque ? formatUsd(cheque) : null;
   const recipientEmail = vessel.best_email ?? vessel.emails?.[0] ?? "";
 
   useEffect(() => {
@@ -48,7 +46,7 @@ function DraftEmailModal({ vessel, yards, yard, onClose }: {
         managerName:    vessel.manager_name ?? null,
         ownerName:      vessel.owner_name ?? null,
         signals:        vessel.signals.map(s => ({ label: s.label, explanation: s.explanation })),
-        estimatedValue,
+        estimatedValue: null,
       }),
     })
       .then(r => r.json())
@@ -249,8 +247,6 @@ function ExpandedRow({ vessel, yards, yard, onDraftEmail }: {
   const [enriching, setEnriching] = React.useState(false);
   const [enrichDone, setEnrichDone] = React.useState(false);
 
-  const cheque = estimateCheque(vessel.ldt, vessel.price_category, yard, yards);
-
   async function handleEnrich() {
     setEnriching(true);
     try {
@@ -281,23 +277,15 @@ function ExpandedRow({ vessel, yards, yard, onDraftEmail }: {
       <td colSpan={8} style={{ padding: "0 16px 16px 48px", background: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
         <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
 
-          {/* LDT + Value */}
-          <div style={{ flex: "0 0 140px" }}>
+          {/* LDT */}
+          <div style={{ flex: "0 0 110px" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
-              LDT / Value
+              LDT
             </div>
             {vessel.ldt ? (
-              <div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: "#111827" }}>
-                  {vessel.ldt.toLocaleString()}
-                  <span style={{ fontSize: 12, fontWeight: 500, color: "#6B7280", marginLeft: 4 }}>t</span>
-                </div>
-                {cheque && (
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#065F46", marginTop: 4 }}>
-                    {formatUsd(cheque)}
-                    <span style={{ fontSize: 11, fontWeight: 400, color: "#6B7280", marginLeft: 4 }}>at {yard}</span>
-                  </div>
-                )}
+              <div style={{ fontSize: 22, fontWeight: 800, color: "#111827" }}>
+                {vessel.ldt.toLocaleString()}
+                <span style={{ fontSize: 12, fontWeight: 500, color: "#6B7280", marginLeft: 4 }}>t</span>
               </div>
             ) : (
               <a href={`/vessel/${vessel.imo}`}
@@ -926,7 +914,7 @@ export default function OpportunitiesPage() {
                 <th style={TH}>Age / Type</th>
                 <th style={TH}>Signals</th>
                 <th style={TH}>Owner / Contact</th>
-                <th style={{ ...TH, textAlign: "right" }}>LDT / Value</th>
+                <th style={{ ...TH, textAlign: "right" }}>LDT</th>
                 <th style={{ ...TH, textAlign: "right" }}>Score</th>
                 <th style={{ ...TH, textAlign: "right" }}>Nearest Yard</th>
                 <th style={{ width: 32 }} />
@@ -935,7 +923,6 @@ export default function OpportunitiesPage() {
             <tbody>
               {filtered.map(v => {
                 const isOpen = expanded.has(v.mmsi);
-                const cheque = estimateCheque(v.ldt, v.price_category, yard, yards);
                 return (
                   <React.Fragment key={v.mmsi}>
                     <tr
@@ -965,13 +952,10 @@ export default function OpportunitiesPage() {
                         <ContactCell vessel={v} />
                       </td>
 
-                      {/* LDT + value */}
+                      {/* LDT */}
                       <td style={{ padding: "12px 16px", textAlign: "right" }}>
                         {v.ldt ? (
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>{v.ldt.toLocaleString()} t</div>
-                            {cheque && <div style={{ fontSize: 11, color: "#065F46", fontWeight: 600 }}>{formatUsd(cheque)}</div>}
-                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>{v.ldt.toLocaleString()} t</div>
                         ) : (
                           <a href={`/vessel/${v.imo}`} onClick={e => e.stopPropagation()}
                             style={{ fontSize: 12, color: "#2563EB", fontWeight: 600,
@@ -1025,7 +1009,7 @@ export default function OpportunitiesPage() {
       {!loading && filtered.length > 0 && (
         <div style={{ marginTop: 16, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ fontSize: 11, color: "#9CA3AF" }}>
-            LDT shown where known. Values calculated at selected yard.
+            LDT shown where known.
           </span>
           <span style={{ fontSize: 11, color: "#9CA3AF" }}>Score = signal weights × 10 + scrap score (0–100).</span>
           {(["survey_pressure", "detention_trend", "detention_age", "scrap_proximity", "layup", "age_threshold"] as SignalType[]).map(t => (

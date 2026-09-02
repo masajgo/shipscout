@@ -54,6 +54,7 @@ export interface OpportunityVessel {
   linkedin_url: string | null;
   contacts: { name: string | null; title: string | null; email: string | null; linkedin: string | null; source: string }[] | null;
   enriched: boolean;
+  photo_url: string | null;
   // computed
   signals: VesselSignal[];
   signal_count: number;
@@ -84,6 +85,7 @@ export async function GET(req: NextRequest) {
     owner_name: string | null; manager_name: string | null; best_email: string | null;
     emails: string[] | null; phones: string[] | null; website: string | null;
     linkedin_url: string | null; contacts: unknown; web_fetched_at: string | null;
+    photo_url: string | null;
   }>(`
     SELECT
       v.mmsi::text, v.imo::text, v.name, v.type, v.type_specific, v.flag,
@@ -102,9 +104,15 @@ export async function GET(req: NextRequest) {
       o.owner_name, o.manager_name, o.best_email,
       o.emails, o.phones, o.website,
       COALESCE(o.linkedin_company_url, o.linkedin_url) AS linkedin_url,
-      o.contacts, o.web_fetched_at
+      o.contacts, o.web_fetched_at,
+      vp.photo_url
     FROM vessels v
     LEFT JOIN owners o ON o.imo = v.imo
+    LEFT JOIN LATERAL (
+      SELECT photo_url FROM vessel_photos
+      WHERE imo = v.imo AND photo_url IS NOT NULL AND photo_url <> 'none'
+      ORDER BY is_primary DESC NULLS LAST LIMIT 1
+    ) vp ON true
     WHERE (v.age >= $3 OR v.detention_count > 0)
       ${vessel_type !== "all" ? `AND LOWER(v.type) = LOWER($4)` : ""}
     ORDER BY v.scrap_score DESC NULLS LAST, v.age DESC
@@ -159,6 +167,7 @@ export async function GET(req: NextRequest) {
       price_category:    priceCategory(row.type, row.type_specific),
       contacts:          (row.contacts as { name: string | null; title: string | null; email: string | null; linkedin: string | null; source: string }[] | null) ?? null,
       enriched:          !!row.web_fetched_at,
+      photo_url:         row.photo_url ?? null,
     });
   }
 

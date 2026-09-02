@@ -16,6 +16,125 @@ const SIGNAL_LABELS: Record<SignalType, string> = {
 
 const VESSEL_TYPES = ["Bulk Carrier", "General Cargo", "Container", "Tanker", "Ro-Ro", "Reefer", "Vehicles Carrier"];
 
+// ─── Breaking Banner ─────────────────────────────────────────────────────────
+
+function buildSlogan(v: OpportunityVessel): string {
+  const parts: string[] = [];
+  const type = v.type_specific ?? v.type ?? "vessel";
+  parts.push(`${v.age}-year-old ${type.toLowerCase()}`);
+  if (v.signals.some(s => s.type === "layup")) parts.push("in lay-up");
+  if (v.signals.some(s => s.type === "detention_age" || s.type === "detention_trend"))
+    parts.push(`${v.detention_count} PSC detention${v.detention_count !== 1 ? "s" : ""}`);
+  if (v.signals.some(s => s.type === "survey_pressure")) parts.push("special survey overdue");
+  if (v.signals.some(s => s.type === "scrap_proximity") && v.nearest_yard)
+    parts.push(`anchored near ${v.nearest_yard}`);
+  if (v.flag) parts.push(`flagged ${v.flag}`);
+  if (v.manager_name ?? v.owner_name) parts.push(`managed by ${v.manager_name ?? v.owner_name}`);
+  return parts.join(" · ");
+}
+
+const SIGNAL_COLORS: Record<string, string> = {
+  layup:            "#D97706",
+  detention_age:    "#DC2626",
+  detention_trend:  "#DC2626",
+  survey_pressure:  "#7C3AED",
+  scrap_proximity:  "#065F46",
+  age_threshold:    "#374151",
+};
+
+function BreakingBanner({ vessels }: { vessels: OpportunityVessel[] }) {
+  const top = vessels.slice(0, 3).filter(v => v.scrap_score >= 60);
+  if (!top.length) return null;
+
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        <span style={{
+          fontSize: 10, fontWeight: 800, letterSpacing: "0.14em",
+          textTransform: "uppercase", color: "#fff",
+          background: "#DC2626", borderRadius: 4, padding: "2px 7px",
+        }}>Breaking</span>
+        <span style={{ fontSize: 12, color: "#9CA3AF" }}>Top distressed opportunities right now</span>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${top.length}, 1fr)`, gap: 12 }}>
+        {top.map(v => (
+          <a key={v.mmsi} href={`/vessel/${v.imo}`} style={{ textDecoration: "none" }}>
+            <div style={{
+              borderRadius: 12, overflow: "hidden",
+              border: "1px solid #E5E7EB",
+              background: "#fff",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+              transition: "box-shadow 0.15s",
+              cursor: "pointer",
+            }}>
+              {/* Photo */}
+              <div style={{
+                width: "100%", height: 140, position: "relative",
+                background: "linear-gradient(135deg, #0F172A 0%, #1E3A5F 100%)",
+                overflow: "hidden",
+              }}>
+                {v.photo_url && (
+                  <img
+                    src={v.photo_url}
+                    alt={v.name}
+                    style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.85 }}
+                  />
+                )}
+                {/* Score badge */}
+                <div style={{
+                  position: "absolute", top: 10, right: 10,
+                  background: v.scrap_score >= 80 ? "#DC2626" : "#D97706",
+                  color: "#fff", borderRadius: 6, padding: "2px 8px",
+                  fontSize: 12, fontWeight: 800,
+                }}>
+                  {v.scrap_score}
+                </div>
+                {/* Flag + name overlay */}
+                <div style={{
+                  position: "absolute", bottom: 0, left: 0, right: 0,
+                  background: "linear-gradient(to top, rgba(0,0,0,0.75), transparent)",
+                  padding: "20px 12px 10px",
+                }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", lineHeight: 1.2 }}>
+                    {v.name}
+                  </div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.75)", marginTop: 2 }}>
+                    {v.age} yrs · {v.type_specific ?? v.type}{v.flag ? ` · ${v.flag}` : ""}
+                  </div>
+                </div>
+              </div>
+
+              {/* Signals */}
+              <div style={{ padding: "10px 12px 6px", display: "flex", flexWrap: "wrap", gap: 5 }}>
+                {v.signals.map(s => (
+                  <span key={s.type} style={{
+                    fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4,
+                    background: (SIGNAL_COLORS[s.type] ?? "#374151") + "18",
+                    color: SIGNAL_COLORS[s.type] ?? "#374151",
+                    border: `1px solid ${(SIGNAL_COLORS[s.type] ?? "#374151")}30`,
+                  }}>
+                    {s.label}
+                  </span>
+                ))}
+              </div>
+
+              {/* Slogan */}
+              <div style={{ padding: "6px 12px 12px" }}>
+                <p style={{ margin: 0, fontSize: 12, color: "#4B5563", lineHeight: 1.5 }}>
+                  {buildSlogan(v)}
+                </p>
+                <div style={{ marginTop: 8, fontSize: 12, fontWeight: 600, color: "#2563EB" }}>
+                  View vessel →
+                </div>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Draft Email Modal (AI-powered) ──────────────────────────────────────────
 
 function DraftEmailModal({ vessel, yards, yard, onClose }: {
@@ -797,6 +916,11 @@ export default function OpportunitiesPage() {
           </div>
         )}
       </div>
+
+      {/* Breaking opportunities banner */}
+      {!loading && filtered.length > 0 && (
+        <BreakingBanner vessels={filtered.slice(0, 3)} />
+      )}
 
       {/* Filters */}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 20,

@@ -29,8 +29,8 @@ const API_KEY = process.env.DATALASTIC_API_KEY;
 if (!API_KEY) { console.error("DATALASTIC_API_KEY eksik"); process.exit(1); }
 
 const CREDIT_MIN   = 50;          // bu kadar kalırsa çalışma
-const POLL_MS      = 30_000;      // rapor status poll aralığı
-const TIMEOUT_MS   = 10 * 60_000; // max bekleme süresi
+const POLL_MS      = 60_000;      // rapor status poll aralığı
+const TIMEOUT_MS   = 60 * 60_000; // max bekleme süresi — Datalastic raporları 15-30 dk sürebilir
 
 const LOG_FILE = path.join(__dirname, "../logs/weekly_refresh.log");
 const DRY_RUN  = process.argv.includes("--dry-run");
@@ -95,7 +95,7 @@ async function waitForReports(reportIds) {
   const deadline = Date.now() + TIMEOUT_MS;
   const done     = new Map(); // report_id → result_url
 
-  log(`${idSet.size} rapor bekleniyor (max ${TIMEOUT_MS / 60000} dk)…`);
+  log(`${idSet.size} rapor bekleniyor (max ${TIMEOUT_MS / 60000} dk, her ${POLL_MS / 1000}s kontrol)…`);
 
   while (done.size < idSet.size) {
     if (Date.now() > deadline) {

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.shipscout.ownerscan</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/local/bin/node</string>
+    <string>/Users/macbook/Desktop/shipscout/scraper/dailyOwnerScan.js</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/macbook/Desktop/shipscout</string>
+
+  <!-- Every day at 09:00 -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>9</integer>
+    <key>Minute</key>
+    <integer>0</integer>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <false/>
+
+  <!-- macOS 15 + Node 24: StandardOutPath=/dev/null causes APFS file lock (EDEADLK -11),
+       module loading fails. Stdout goes to log; stderr separate for startup crashes. -->
+  <key>StandardOutPath</key>
+  <string>/Users/macbook/Library/Logs/shipscout/daily_scan.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/macbook/Library/Logs/shipscout/daily_scan.err.log</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+</dict>
+</plist>

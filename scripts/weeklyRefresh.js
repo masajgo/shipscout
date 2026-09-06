@@ -103,7 +103,12 @@ async function waitForReports(reportIds) {
       throw new Error(`Timeout — şu raporlar tamamlanamadı: ${pending.join(", ")}`);
     }
 
-    const reports = await listReports();
+    let reports = [];
+    try {
+      reports = await listReports();
+    } catch (e) {
+      log(`  ⚠ Poll hatası (atlanıyor): ${e.message}`);
+    }
     for (const r of reports) {
       if (idSet.has(r.report_id) && r.status === "_DONE_" && !done.has(r.report_id)) {
         done.set(r.report_id, r.result_url);

@@ -32,8 +32,9 @@ const CREDIT_MIN   = 50;          // bu kadar kalırsa çalışma
 const POLL_MS      = 60_000;      // rapor status poll aralığı
 const TIMEOUT_MS   = 60 * 60_000; // max bekleme süresi — Datalastic raporları 15-30 dk sürebilir
 
-const LOG_FILE = path.join(__dirname, "../logs/weekly_refresh.log");
-const DRY_RUN  = process.argv.includes("--dry-run");
+const LOG_FILE      = path.join(__dirname, "../logs/weekly_refresh.log");
+const PENDING_FILE  = path.join(__dirname, "../logs/weekly_refresh_pending.json");
+const DRY_RUN       = process.argv.includes("--dry-run");
 
 const REPORT_TYPES = [
   "ownership",
@@ -41,6 +42,30 @@ const REPORT_TYPES = [
   "dry_dock_dates",
   "sales_purchase_demolitions",
 ];
+
+// ─── Pending report persistence ───────────────────────────────────────────────
+// Saves report IDs to disk so a crash or network failure mid-poll doesn't waste
+// the reports — on next run we resume polling the same IDs instead of creating new ones.
+
+function loadPending() {
+  try {
+    const data = JSON.parse(fs.readFileSync(PENDING_FILE, "utf8"));
+    if (data?.ids?.length && data?.createdAt) {
+      const ageHours = (Date.now() - new Date(data.createdAt).getTime()) / 3_600_000;
+      if (ageHours < 48) return data.ids; // reports expire after 48h on Datalastic
+    }
+  } catch {}
+  return null;
+}
+
+function savePending(ids) {
+  fs.mkdirSync(path.dirname(PENDING_FILE), { recursive: true });
+  fs.writeFileSync(PENDING_FILE, JSON.stringify({ ids, createdAt: new Date().toISOString() }));
+}
+
+function clearPending() {
+  try { fs.unlinkSync(PENDING_FILE); } catch {}
+}
 
 // ─── Logging ──────────────────────────────────────────────────────────────────
 
@@ -212,23 +237,29 @@ async function main() {
     return;
   }
 
-  // 2. Raporları oluştur
-  log("Raporlar oluşturuluyor…");
-  const reportIds = [];
-  for (const type of REPORT_TYPES) {
-    try {
-      const id = await createReport(type);
-      reportIds.push(id);
-      log(`  ${type} → ${id}`);
-    } catch (e) {
-      log(`  ✗ ${type} rapor oluşturulamadı: ${e.message}`);
+  // 2. Bekleyen rapor ID'leri varsa yeniden oluşturma
+  let reportIds = loadPending();
+  if (reportIds) {
+    log(`Önceki çalışmadan ${reportIds.length} bekleyen rapor bulundu, polling devam ediyor…`);
+  } else {
+    log("Raporlar oluşturuluyor…");
+    reportIds = [];
+    for (const type of REPORT_TYPES) {
+      try {
+        const id = await createReport(type);
+        reportIds.push(id);
+        log(`  ${type} → ${id}`);
+      } catch (e) {
+        log(`  ✗ ${type} rapor oluşturulamadı: ${e.message}`);
+      }
     }
+    if (!reportIds.length) throw new Error("Hiç rapor oluşturulamadı.");
+    savePending(reportIds);
   }
-
-  if (!reportIds.length) throw new Error("Hiç rapor oluşturulamadı.");
 
   // 3. Tümü tamamlanana kadar bekle
   await waitForReports(reportIds);
+  clearPending();
   log("Tüm raporlar DONE ✓");
 
   // 4. Import — fresh reports (--local değil, API'den en son alacak)

@@ -76,10 +76,8 @@ export async function huntDomain(domain: string): Promise<HunterResult> {
 }
 
 // ─── Layer 3: Apollo.io ───────────────────────────────────────────────────────
-// TODO: implement when APOLLO_API_KEY is available.
 // Free tier: 600 people-search credits/month
-// POST https://api.apollo.io/v1/people/search
-// Targets: "Commercial Director", "Fleet Manager", "Sale Purchase Manager"
+// Targets maritime decision-makers by title at the given company.
 
 export interface ApolloContact {
   name:  string;
@@ -87,12 +85,54 @@ export interface ApolloContact {
   email: string | null;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function searchApolloContacts(_companyName: string): Promise<ApolloContact[]> {
+const APOLLO_TITLES = [
+  "Commercial Director",
+  "Fleet Manager",
+  "Sale Purchase Manager",
+  "Ship Manager",
+  "Technical Director",
+  "Operations Manager",
+];
+
+export async function searchApolloContacts(companyName: string): Promise<ApolloContact[]> {
   const key = process.env.APOLLO_API_KEY;
   if (!key) return [];
-  // TODO: implement Apollo people search
-  return [];
+
+  try {
+    const res = await fetch("https://api.apollo.io/v1/people/search", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache",
+        "X-Api-Key": key,
+      },
+      body: JSON.stringify({
+        q_organization_name: companyName,
+        person_titles:       APOLLO_TITLES,
+        page:                1,
+        per_page:            5,
+      }),
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (!res.ok) return [];
+
+    const json = await res.json() as {
+      people?: Array<{
+        name?: string;
+        title?: string;
+        email?: string | null;
+      }>;
+    };
+
+    return (json.people ?? []).map(p => ({
+      name:  p.name  ?? "",
+      title: p.title ?? "",
+      email: p.email ?? null,
+    })).filter(p => p.name);
+  } catch {
+    return [];
+  }
 }
 
 // ─── Layer 4: SMTP verify ─────────────────────────────────────────────────────

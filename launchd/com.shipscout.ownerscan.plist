@@ -6,10 +6,13 @@
   <key>Label</key>
   <string>com.shipscout.ownerscan</string>
 
+  <!-- Retry wrapper: Node 24 + macOS 15 occasionally hits EDEADLK (-11) on APFS
+       during module loading. Retrying up to 5 times with a short sleep resolves it. -->
   <key>ProgramArguments</key>
   <array>
-    <string>/usr/local/bin/node</string>
-    <string>/Users/macbook/Desktop/shipscout/scraper/dailyOwnerScan.js</string>
+    <string>/bin/bash</string>
+    <string>-c</string>
+    <string>for i in 1 2 3 4 5; do /usr/bin/caffeinate -i /usr/local/bin/node /Users/macbook/Desktop/shipscout/scraper/dailyOwnerScan.js &amp;&amp; break || sleep 15; done</string>
   </array>
 
   <key>WorkingDirectory</key>
@@ -27,8 +30,6 @@
   <key>RunAtLoad</key>
   <false/>
 
-  <!-- macOS 15 + Node 24: StandardOutPath=/dev/null causes APFS file lock (EDEADLK -11),
-       module loading fails. Stdout goes to log; stderr separate for startup crashes. -->
   <key>StandardOutPath</key>
   <string>/Users/macbook/Library/Logs/shipscout/daily_scan.log</string>
   <key>StandardErrorPath</key>

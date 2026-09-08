@@ -7,25 +7,45 @@ import VesselIntelligenceBrief from "@/components/VesselIntelligenceBrief";
 
 export const dynamic = "force-dynamic";
 
+type ArrestEvent = {
+  id: number;
+  event_type: string;
+  summary: string;
+  event_date: string | null;
+  source_name: string;
+};
+
 async function fetchVessel(imo: string) {
-  const vRes = await pool.query(`
-    SELECT v.imo::text, v.name, v.type, v.type_specific, v.flag,
-           v.age, v.built_year, v.ldt, v.deadweight, v.gross_tonnage,
-           COALESCE(v.scrap_score, 0)      AS scrap_score,
-           v.scrap_category,
-           COALESCE(v.detention_count, 0)  AS detention_count,
-           v.special_survey_date::text,
-           v.speed, v.nav_status, v.photo_url,
-           o.owner_name, o.manager_name
-    FROM vessels v
-    LEFT JOIN owners o ON o.imo = v.imo
-    WHERE v.imo = $1::bigint
-    LIMIT 1
-  `, [imo]);
+  const [vRes, arrestRes] = await Promise.all([
+    pool.query(`
+      SELECT v.imo::text, v.name, v.type, v.type_specific, v.flag,
+             v.age, v.built_year, v.ldt, v.deadweight, v.gross_tonnage,
+             COALESCE(v.scrap_score, 0)      AS scrap_score,
+             v.scrap_category,
+             COALESCE(v.detention_count, 0)  AS detention_count,
+             v.special_survey_date::text,
+             v.speed, v.nav_status, v.photo_url,
+             o.owner_name, o.manager_name
+      FROM vessels v
+      LEFT JOIN owners o ON o.imo = v.imo
+      WHERE v.imo = $1::bigint
+      LIMIT 1
+    `, [imo]),
+    pool.query(`
+      SELECT id, event_type, summary, event_date::text, source_name
+      FROM radar_events
+      WHERE imo = $1
+        AND event_type IN ('arrest', 'bank_seizure', 'judicial_auction')
+        AND (status IS NULL OR status != 'resolved')
+      ORDER BY event_date DESC NULLS LAST
+      LIMIT 5
+    `, [imo]).catch(() => ({ rows: [] as ArrestEvent[] })),
+  ]);
 
   if (!vRes.rows.length) return null;
 
   const v = vRes.rows[0];
+  const arrests: ArrestEvent[] = arrestRes.rows;
 
   const signals = computeSignals({
     age:                 v.age,
@@ -35,7 +55,20 @@ async function fetchVessel(imo: string) {
     detention_count:     v.detention_count,
   });
 
-  return { ...v, signals };
+  // Inject bank_arrest as a signal if radar_events has one
+  if (arrests.length > 0) {
+    const label = arrests[0].event_type === "judicial_auction" ? "Judicial Auction"
+                : arrests[0].event_type === "bank_seizure"     ? "Bank Seizure"
+                : "Under Arrest";
+    signals.unshift({
+      type:        "bank_arrest",
+      label,
+      weight:      10,
+      explanation: arrests[0].summary ?? `Vessel reported under arrest or seized — source: ${arrests[0].source_name}.`,
+    });
+  }
+
+  return { ...v, signals, arrests };
 }
 
 export async function generateMetadata(
@@ -125,6 +158,29 @@ export default async function VesselPublicPage(
           {v.deadweight ? ` · ${Number(v.deadweight).toLocaleString()} DWT` : ""}
         </p>
 
+        {/* Arrest banner — shown above everything when vessel is under arrest */}
+        {v.arrests?.length > 0 && (
+          <div style={{
+            background: "#FDF4FF", border: "2px solid #7C3AED",
+            borderRadius: 12, padding: "16px 20px", marginBottom: 20,
+          }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#6D28D9", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
+              🔒 Vessel Under Arrest / Seizure
+            </div>
+            {v.arrests.map((a: ArrestEvent) => (
+              <p key={a.id} style={{ fontSize: 13, color: "#4C1D95", margin: "0 0 4px", lineHeight: 1.5 }}>
+                · {a.summary}
+                {a.event_date && (
+                  <span style={{ color: "#7C3AED", marginLeft: 6, fontSize: 12 }}>
+                    {new Date(a.event_date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                  </span>
+                )}
+                <span style={{ color: "#A78BFA", marginLeft: 6, fontSize: 11 }}>— {a.source_name}</span>
+              </p>
+            ))}
+          </div>
+        )}
+
         <VesselIntelligenceBrief
           vesselName={v.name}
           imo={v.imo}
@@ -139,6 +195,7 @@ export default async function VesselPublicPage(
           managerName={v.manager_name}
           ownerName={v.owner_name}
           estimatedValue={null}
+          arrestSummary={v.arrests?.[0]?.summary ?? null}
         />
 
         {/* Score + LDT row */}

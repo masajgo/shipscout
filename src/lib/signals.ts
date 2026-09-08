@@ -1,4 +1,4 @@
-export type SignalType = "layup" | "survey_pressure" | "detention_age" | "detention_trend" | "scrap_proximity" | "age_threshold";
+export type SignalType = "layup" | "survey_pressure" | "detention_age" | "detention_trend" | "scrap_proximity" | "age_threshold" | "bank_arrest";
 
 export interface VesselSignal {
   type: SignalType;
@@ -102,4 +102,5 @@ export const SIGNAL_META: Record<SignalType, { color: string; bg: string; border
   scrap_proximity:  { color: "#065F46", bg: "#ECFDF5", border: "#6EE7B7" },
   layup:            { color: "#1D4ED8", bg: "#EFF6FF", border: "#BFDBFE" },
   age_threshold:    { color: "#374151", bg: "#F3F4F6", border: "#D1D5DB" },
+  bank_arrest:      { color: "#6D28D9", bg: "#F5F3FF", border: "#C4B5FD" },
 };

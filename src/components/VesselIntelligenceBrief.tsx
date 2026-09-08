@@ -15,6 +15,7 @@ interface Props {
   managerName:       string | null;
   ownerName:         string | null;
   estimatedValue:    string | null;
+  arrestSummary?:    string | null;
 }
 
 export default function VesselIntelligenceBrief(props: Props) {

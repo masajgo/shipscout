@@ -21,6 +21,7 @@ interface BriefRequest {
   managerName:   string | null;
   ownerName:     string | null;
   estimatedValue: string | null;
+  arrestSummary?: string | null;
 }
 
 export async function POST(req: Request) {
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
 
   const {
     vesselName, imo, age, type, flag, ldt, scrapScore,
-    detentionCount, specialSurveyDate, signals, managerName, ownerName, estimatedValue
+    detentionCount, specialSurveyDate, signals, managerName, ownerName, estimatedValue, arrestSummary
   } = body;
 
   const signalLines = signals
@@ -56,10 +57,13 @@ export async function POST(req: Request) {
     detentionCount > 0 ? `PSC detentions: ${detentionCount}` : null,
     surveyNote,
     managerName || ownerName ? `Manager/Owner: ${managerName ?? ownerName}` : null,
+    arrestSummary ? `\n⚠️ ARREST / SEIZURE: ${arrestSummary}` : null,
     signalLines ? `\nDistress signals:\n${signalLines}` : null,
     ``,
     `Write a 2-sentence intelligence brief for this vessel aimed at a cash buyer or recycling yard.`,
-    `Sentence 1: What makes this vessel notable right now (combine age, score, key signal).`,
+    arrestSummary
+      ? `Sentence 1: Lead with the arrest/seizure situation — this is the dominant factor.`
+      : `Sentence 1: What makes this vessel notable right now (combine age, score, key signal).`,
     `Sentence 2: What the buyer should do or consider (timing, approach, risk).`,
     ``,
     `Rules: factual, no hype, no markdown, no headers. Return only the 2 sentences.`,

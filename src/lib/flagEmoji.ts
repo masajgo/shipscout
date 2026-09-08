@@ -29,9 +29,16 @@ const FLAG_ISO: Record<string, string> = {
   "Madeira": "PT", "Kerguelen Islands": "FR",
 };
 
+function toEmoji(code: string): string {
+  return [...code.toUpperCase()].map(c => String.fromCodePoint(c.charCodeAt(0) + 127397)).join("");
+}
+
 export function flagEmoji(country: string | null | undefined): string {
   if (!country) return "🏳";
+  // Already an ISO alpha-2 code (e.g. "PA", "PT")
+  if (/^[A-Za-z]{2}$/.test(country)) return toEmoji(country);
+  // Full country name → look up ISO code
   const code = FLAG_ISO[country];
   if (!code) return "🏳";
-  return [...code.toUpperCase()].map(c => String.fromCodePoint(c.charCodeAt(0) + 127397)).join("");
+  return toEmoji(code);
 }

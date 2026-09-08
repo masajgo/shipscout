@@ -1,8 +1,11 @@
 "use strict";
 
 /**
- * backfillMissingData.js
+ * backfillMissingData.js  [DEPRECATED — Datalastic kullanıyor]
  *
+ * Bunun yerine: node scripts/backfillFromEquasis.js --limit=200
+ *
+ * ─────────────────────────────────────────────────────────────────
  * Datalastic vessel_info'dan eksik statik veriyi doldurur.
  * Hedef: built_year IS NULL olan (veya --all flag ile tüm) IMO'lu gemiler.
  *

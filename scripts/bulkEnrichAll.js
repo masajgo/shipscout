@@ -1,7 +1,10 @@
 "use strict";
 /**
- * bulkEnrichAll.js  v4
+ * bulkEnrichAll.js  v4  [DEPRECATED — Datalastic kullanıyor, kredi tüketir]
  *
+ * Bunun yerine: node scripts/backfillFromEquasis.js --limit=200
+ *
+ * ─────────────────────────────────────────────────────────────────
  * 9xxx IMO'ları enrich eder — 4 çalışan endpoint:
  *   vessel_info                    → built_year, flag, dwt, gt, length, beam, type, callsign, teu
  *   maritime_reports/ownership     → beneficial_owner, commercial_manager, operator, technical_manager

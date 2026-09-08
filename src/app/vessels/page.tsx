@@ -108,6 +108,11 @@ export default function VesselsPage() {
   const [vesselEvents, setVesselEvents] = useState<Map<string, VesselEvent[]>>(new Map());
   const inputRef = useRef<HTMLInputElement>(null);
 
+  type Suggestion = { imo: string; name: string; type: string; flag: string; builtYear: number };
+  const [suggestions, setSuggestions]         = useState<Suggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   async function fetchEvents(imo: string) {
     if (vesselEvents.has(imo)) return;
     try {
@@ -176,6 +181,50 @@ export default function VesselsPage() {
     }
   }
 
+  function handleQueryChange(val: string) {
+    setQuery(val);
+    setSuggestions([]);
+    setShowSuggestions(false);
+    if (suggestTimer.current) clearTimeout(suggestTimer.current);
+    // No autocomplete in AI mode, IMO mode, or short queries
+    if (aiMode || mode === "imo" || val.trim().length < 2) return;
+    suggestTimer.current = setTimeout(async () => {
+      const endpoint = mode === "company"
+        ? `/api/vessels/search?q=${encodeURIComponent(val.trim())}&limit=8&hasContact=false`
+        : `/api/listings/vessel-search?q=${encodeURIComponent(val.trim())}`;
+      try {
+        const res = await fetch(endpoint);
+        if (!res.ok) return;
+        const data = await res.json();
+        const items: Suggestion[] = mode === "company"
+          ? (data.results ?? []).map((v: Vessel) => ({ imo: v.imo, name: v.name, type: v.type, flag: v.flag, builtYear: v.builtYear ?? 0 }))
+          : data;
+        setSuggestions(items.slice(0, 8));
+        setShowSuggestions(items.length > 0);
+      } catch { /* ignore */ }
+    }, 280);
+  }
+
+  async function selectSuggestion(s: Suggestion) {
+    setShowSuggestions(false);
+    setSuggestions([]);
+    setQuery(s.name);
+    // Search directly with the selected name rather than relying on stale state
+    setLoading(true); setError(""); setAiInterpretation(""); setExpanded(new Set());
+    try {
+      const res = await fetch(`/api/vessels/search?limit=50&hasContact=false&q=${encodeURIComponent(s.name)}`);
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? "Search failed"); return; }
+      setResults(data.results ?? data.vessels ?? []);
+      setTotal(data.total ?? null);
+      setSearched(true);
+    } catch {
+      setError("Connection error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const mgr = (v: Vessel) => v.manager ?? null;
 
   return (
@@ -187,22 +236,56 @@ export default function VesselsPage() {
           <h1 style={{ color: "#fff", fontSize: 22, fontWeight: 700, margin: "0 0 20px", letterSpacing: -0.3 }}>
             Vessel Search
           </h1>
-          <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-            <input ref={inputRef} value={query}
-              onChange={e => setQuery(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && search()}
-              placeholder={aiMode ? 'e.g. "bulk carriers older than 25 years near Turkey"' :
-                mode === "imo" ? "Enter 7-digit IMO…" :
-                mode === "vessel" ? "Vessel name…" :
-                mode === "company" ? "Company or manager name…" :
-                "IMO, vessel name, or company…"}
-              style={{ flex: 1, padding: "13px 18px", fontSize: 15,
-                border: "2px solid rgba(255,255,255,0.15)", borderRadius: 8,
-                background: "rgba(255,255,255,0.08)", color: "#fff", outline: "none" }}
-            />
-            <button onClick={search} disabled={loading} style={{
+          <div style={{ display: "flex", gap: 10, marginBottom: 16, position: "relative" as const }}>
+            <div style={{ flex: 1, position: "relative" as const }}>
+              <input ref={inputRef} value={query}
+                onChange={e => handleQueryChange(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") { setShowSuggestions(false); search(); } if (e.key === "Escape") setShowSuggestions(false); }}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                placeholder={aiMode ? 'e.g. "bulk carriers older than 25 years near Turkey"' :
+                  mode === "imo" ? "Enter 7-digit IMO…" :
+                  mode === "vessel" ? "Vessel name…" :
+                  mode === "company" ? "Company or manager name…" :
+                  "IMO, vessel name, or company…"}
+                style={{ width: "100%", padding: "13px 18px", fontSize: 15,
+                  border: "2px solid rgba(255,255,255,0.15)", borderRadius: 8,
+                  background: "rgba(255,255,255,0.08)", color: "#fff", outline: "none",
+                  boxSizing: "border-box" as const }}
+              />
+              {showSuggestions && suggestions.length > 0 && (
+                <div style={{
+                  position: "absolute" as const, top: "calc(100% + 4px)", left: 0, right: 0,
+                  background: "#0D1B3E", border: "1px solid rgba(255,255,255,0.15)",
+                  borderRadius: 8, overflow: "hidden",
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.4)", zIndex: 100,
+                }}>
+                  {suggestions.map((s, i) => (
+                    <button key={s.imo} type="button"
+                      onMouseDown={() => selectSuggestion(s)}
+                      style={{
+                        display: "flex", alignItems: "center", width: "100%",
+                        padding: "10px 16px", background: "none", border: "none",
+                        borderBottom: i < suggestions.length - 1 ? "1px solid rgba(255,255,255,0.07)" : "none",
+                        cursor: "pointer", textAlign: "left" as const, gap: 12,
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
+                      onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>{s.name}</div>
+                        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 1 }}>
+                          IMO {s.imo} · {s.type} · {s.flag} · {s.builtYear}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button onClick={() => { setShowSuggestions(false); search(); }} disabled={loading} style={{
               background: "#C9A84C", color: "#07122E", border: "none",
-              borderRadius: 8, padding: "0 24px", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
+              borderRadius: 8, padding: "0 24px", fontSize: 15, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
               {loading ? "Searching…" : "Search"}
             </button>
           </div>

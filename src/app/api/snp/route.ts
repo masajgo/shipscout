@@ -7,9 +7,6 @@ import pool              from "@/lib/db";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const API_KEY = process.env.DATALASTIC_API_KEY;
-const BASE    = "https://api.datalastic.com/api/v0";
-
 const TRACKED_IMOS = [
   "9038828", "9038749", "9248904", "9065572", "9074705", "9200811",
   "9038880", "8912522", "9108128", "9015101", "9083940", "9040089",
@@ -44,18 +41,6 @@ function tagsFromVessel(age: number, score: number): { label: string; type: stri
   ];
   if (score >= 85) tags.push({ label: "Survey Due", type: "idle" });
   return tags;
-}
-
-async function fetchVessel(imo: string) {
-  try {
-    const res = await fetch(`${BASE}/vessel_info?imo=${imo}`, {
-      next: { revalidate: 3600 },
-      headers: { "X-Api-Key": API_KEY! },
-    });
-    if (!res.ok) return null;
-    const json = await res.json();
-    return json?.data ?? null;
-  } catch { return null; }
 }
 
 async function fetchGRSVessels(): Promise<any[]> {
@@ -172,52 +157,13 @@ export async function GET() {
     };
   });
 
-  // Datalastic listings
-  let datalasticListings: any[] = [];
-  if (API_KEY) {
-    let results: any[] = [];
-    try {
-      results = await Promise.all(TRACKED_IMOS.map(fetchVessel));
-    } catch (e: unknown) {
-      console.error("[snp] datalastic fetch failed", e);
-    }
-    datalasticListings = results
-      .map((d, i) => {
-        if (!d) return null;
-        const imo    = TRACKED_IMOS[i];
-        const built  = parseInt(d.year_built) || 2000;
-        const age    = year - built;
-        const dwt    = d.deadweight || 0;
-        const ldt    = d.lightship  || Math.round(dwt * 0.17);
-        const type   = typeLabel(d.type_specific);
-        const market = bestMarket(d.type_specific);
-        const price  = MARKET_PRICES[market] ?? 500;
-        const estUSD = ldt * price;
-        const score  = Math.min(99, scoreFromAge(age));
-        return {
-          id: parseInt(imo), imo, name: d.name || `Vessel ${imo}`,
-          flag: d.country_name || "Unknown", type,
-          group: type.includes("Tanker") ? "Tankers" : "Dry Cargo",
-          built, dwt, ldt, age, score,
-          length: d.length || null, beam: d.breadth || null,
-          speed: d.speed_avg || null,
-          location: d.last_port || d.home_port || "—",
-          price: `$${(estUSD / 1_000_000).toFixed(1)}M`,
-          priceType: "Est. scrap value",
-          saleType: age >= 28 ? "distressed" : "voluntary",
-          tags: tagsFromVessel(age, score),
-          urgent: score >= 88, source: "datalastic",
-          images: [], description: null,
-        };
-      })
-      .filter(Boolean);
-  }
-
-    // Featured vessels — query live from vessels + owners tables (zero Datalastic credits)
+  // Tracked + featured vessels from DB
   const FEATURED_IMOS = ["7625811", "5073234"];
-  const alreadyShown  = new Set([...datalasticListings, ...grsListings].map((l: any) => l?.imo));
+  const allTracked    = [...new Set([...TRACKED_IMOS, ...FEATURED_IMOS])];
+  const alreadyShown  = new Set(grsListings.map((l: any) => l?.imo));
   const featuredIMOs  = FEATURED_IMOS.filter(imo => !alreadyShown.has(imo));
 
+  const featuredIMOs = allTracked.filter(imo => !alreadyShown.has(imo));
   const hardcoded: any[] = [];
   if (featuredIMOs.length > 0) {
     try {
@@ -335,7 +281,7 @@ export async function GET() {
     };
   });
 
-  const listings = [...datalasticListings, ...grsListings, ...mappedUserListings, ...hardcoded]
+  const listings = [...grsListings, ...mappedUserListings, ...hardcoded]
     .sort((a, b) => (b?.score ?? 0) - (a?.score ?? 0));
 
   if (listings.length === 0) {

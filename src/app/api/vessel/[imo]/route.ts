@@ -1,26 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { computeScrapScore } from "@/lib/scoring";
 import pool from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const API_KEY = process.env.DATALASTIC_API_KEY;
-const BASE    = "https://api.datalastic.com/api/v0";
-const REPORTS = "https://api.datalastic.com/api/maritime_reports";
-
-async function dl(url: string) {
-  try {
-    const res = await fetch(url, {
-      next: { revalidate: 3600 },
-      headers: { "X-Api-Key": API_KEY! },
-    });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
-}
 
 export async function GET(
   req: NextRequest,
@@ -33,84 +15,77 @@ export async function GET(
     return NextResponse.json({ error: "Invalid params" }, { status: 400 });
   }
   if (!imo) return NextResponse.json({ error: "IMO required" }, { status: 400 });
-  if (!API_KEY) return NextResponse.json({ error: "API key missing" }, { status: 500 });
 
   try {
-  const [info, ownership, dryDock, inspections, dbRow] = await Promise.allSettled([
-    dl(`${BASE}/vessel_info?imo=${imo}`),
-    dl(`${REPORTS}/ownership?imo=${imo}`),
-    dl(`${REPORTS}/dry_dock?imo=${imo}`),
-    dl(`${REPORTS}/inspections?imo=${imo}`),
-    pool.query(`SELECT photo_url FROM vessels WHERE imo = $1::bigint LIMIT 1`, [imo])
-      .then(r => r.rows[0] ?? null).catch(() => null),
-  ]);
+    const { rows } = await pool.query(`
+      SELECT
+        v.imo::text, v.mmsi::text, v.name, v.flag, v.type_specific, v.type,
+        v.built_year, v.age, v.deadweight, v.gross_tonnage, v.ldt, v.ldt_estimated,
+        v.length, v.beam, v.draught, v.callsign, v.home_port,
+        v.scrap_score, v.scrap_category,
+        v.inspection_count, v.detention_count, v.deficiency_count,
+        v.special_survey_date::text, v.dry_dock_date::text,
+        v.last_dry_dock_date::text, v.last_inspection_date::text,
+        v.photo_url, v.nav_status, v.speed,
+        o.owner_name, o.manager_name, o.ism_manager,
+        o.best_email AS owner_email, o.phone AS owner_phone,
+        o.address AS owner_address, o.country AS owner_country,
+        o.website AS owner_website
+      FROM vessels v
+      LEFT JOIN owners o ON o.imo = v.imo
+      WHERE v.imo = $1::bigint
+      LIMIT 1
+    `, [imo]);
 
-  const vessel   = info.status        === "fulfilled" ? info.value        : null;
-  const owner    = ownership.status   === "fulfilled" ? ownership.value   : null;
-  const drydock  = dryDock.status     === "fulfilled" ? dryDock.value     : null;
-  const inspect  = inspections.status === "fulfilled" ? inspections.value : null;
-  const photoUrl = dbRow.status       === "fulfilled" ? (dbRow.value as any)?.photo_url ?? null : null;
+    if (!rows.length) {
+      return NextResponse.json({ error: "Vessel not found" }, { status: 404 });
+    }
 
-  const builtYear = vessel?.data?.year_built;
-  const age = builtYear ? new Date().getFullYear() - builtYear : null;
-  const dwt = vessel?.data?.deadweight || 0;
-  const ldtRaw = vessel?.data?.lightship;
-  const vesselType = (vessel?.data?.type_specific || "").toLowerCase();
-  // DWT-to-LDT ratio by vessel type
-  const ldtRatio = vesselType.includes("passenger") || vesselType.includes("cruise") ? 0.20
-    : vesselType.includes("tanker") ? 0.18
-    : 0.17; // bulk, general cargo, container default
-  const ldtFromDwt = dwt ? Math.round(dwt * ldtRatio) : 0;
-  // Use raw LDT only if plausible (>= 500); otherwise estimate from DWT
-  const ldt = (ldtRaw && ldtRaw >= 500) ? ldtRaw : ldtFromDwt;
-  const ldt_estimated = !(ldtRaw && ldtRaw >= 500) && !!ldt;
+    const v = rows[0];
+    const age = v.age ?? (v.built_year ? new Date().getFullYear() - v.built_year : null);
 
-  const scrapScore = computeScrapScore(
-    age,
-    inspect?.data?.length ?? 0,
-    drydock?.data?.next_dry_dock ?? null,
-  );
-
-  return NextResponse.json({
-    imo,
-    age,
-    scrapScore,
-    photoUrl,
-    particulars: {
-      name:         vessel?.data?.name,
-      flag:         vessel?.data?.country_name,
-      type:         vessel?.data?.type_specific,
-      builtYear:    vessel?.data?.year_built,
-      builtAt:      vessel?.data?.place_of_build,
-      dwt,
-      grt:          vessel?.data?.gross_tonnage,
-      nrt:          vessel?.data?.net_tonnage,
-      ldt,
-      ldt_estimated,
-      loa:          vessel?.data?.length,
-      beam:         vessel?.data?.breadth,
-      draft:        vessel?.data?.draught,
-      callSign:     vessel?.data?.callsign,
-      mmsi:         vessel?.data?.mmsi,
-      classSociety: vessel?.data?.class_society,
-      status:       vessel?.data?.vessel_status,
-    },
-    owner: {
-      name:         owner?.data?.owner_name,
-      email:        owner?.data?.owner_email,
-      phone:        owner?.data?.owner_phone,
-      address:      owner?.data?.owner_address,
-      country:      owner?.data?.owner_country,
-      managerName:  owner?.data?.manager_name,
-      managerEmail: owner?.data?.manager_email,
-    },
-    surveys: {
-      lastDryDock: drydock?.data?.last_dry_dock,
-      nextDryDock: drydock?.data?.next_dry_dock,
-      classExpiry: drydock?.data?.class_expiry,
-    },
-    detentions: inspect?.data ?? [],
-  });
+    return NextResponse.json({
+      imo,
+      age,
+      scrapScore: v.scrap_score ?? 0,
+      photoUrl:   v.photo_url,
+      particulars: {
+        name:         v.name,
+        flag:         v.flag,
+        type:         v.type_specific ?? v.type,
+        builtYear:    v.built_year,
+        builtAt:      null,
+        dwt:          v.deadweight ? Number(v.deadweight) : 0,
+        grt:          v.gross_tonnage ? Number(v.gross_tonnage) : null,
+        nrt:          null,
+        ldt:          v.ldt ? Number(v.ldt) : null,
+        ldt_estimated: v.ldt_estimated ?? false,
+        loa:          v.length ? Number(v.length) : null,
+        beam:         v.beam ? Number(v.beam) : null,
+        draft:        v.draught ? Number(v.draught) : null,
+        callSign:     v.callsign,
+        mmsi:         v.mmsi,
+        classSociety: null,
+        status:       v.nav_status != null ? String(v.nav_status) : null,
+        homePort:     v.home_port,
+      },
+      owner: {
+        name:         v.owner_name,
+        email:        v.owner_email,
+        phone:        v.owner_phone,
+        address:      v.owner_address,
+        country:      v.owner_country,
+        managerName:  v.manager_name,
+        managerEmail: null,
+        website:      v.owner_website,
+      },
+      surveys: {
+        lastDryDock: v.last_dry_dock_date,
+        nextDryDock: v.dry_dock_date,
+        classExpiry: v.special_survey_date,
+      },
+      detentions: v.detention_count > 0 ? [{ count: v.detention_count, deficiencies: v.deficiency_count }] : [],
+    });
   } catch (e: unknown) {
     console.error(`[vessel/${imo}]`, e);
     return NextResponse.json({ error: "Vessel data unavailable" }, { status: 503 });

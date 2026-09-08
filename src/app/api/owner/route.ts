@@ -1,21 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
+import pool from "@/lib/db";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const imo = req.nextUrl.searchParams.get("imo");
   if (!imo) return NextResponse.json({ error: "IMO required" }, { status: 400 });
 
-  const apiKey = process.env.DATALASTIC_API_KEY;
-  if (!apiKey) return NextResponse.json({ error: "API key missing" }, { status: 500 });
-
   try {
-    const res = await fetch(
-      `https://api.datalastic.com/api/maritime_reports/ownership?imo=${imo}`,
-      { next: { revalidate: 3600 }, headers: { "X-Api-Key": apiKey } }
-    );
-    const data = await res.json();
-    return NextResponse.json(data);
+    const { rows } = await pool.query(`
+      SELECT o.owner_name, o.manager_name, o.ism_manager,
+             o.best_email, o.phone, o.address, o.country, o.website,
+             o.emails, o.phones
+      FROM owners o
+      WHERE o.imo = $1::bigint
+      LIMIT 1
+    `, [imo]);
+
+    if (!rows.length) return NextResponse.json({ data: null });
+    const o = rows[0];
+
+    return NextResponse.json({
+      data: [{
+        owner_name:    o.owner_name,
+        manager_name:  o.manager_name,
+        owner_email:   o.best_email,
+        owner_phone:   o.phone,
+        owner_address: o.address,
+        owner_country: o.country,
+        manager_email: null,
+      }]
+    });
   } catch (err) {
-    void err;
+    console.error("[owner]", err);
     return NextResponse.json({ error: "Lookup failed" }, { status: 500 });
   }
 }

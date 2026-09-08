@@ -102,7 +102,7 @@ export default async function VesselPublicPage(
           </span>
         </Link>
         <a
-          href={`mailto:hello@shipscout.io?subject=${contactSubject}&body=${contactBody}`}
+          href={`mailto:info@turqomarine.com?subject=${contactSubject}&body=${contactBody}`}
           style={{
             background: "#C9A84C", color: "#07122E", padding: "6px 16px",
             borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: "none",
@@ -223,7 +223,7 @@ export default async function VesselPublicPage(
             in Aliağa, Bangladesh, and India — no intermediary fees.
           </p>
           <a
-            href={`mailto:hello@shipscout.io?subject=${contactSubject}&body=${contactBody}`}
+            href={`mailto:info@turqomarine.com?subject=${contactSubject}&body=${contactBody}`}
             style={{
               background: "#C9A84C", color: "#07122E", padding: "13px 28px",
               borderRadius: 8, fontWeight: 700, fontSize: 15, textDecoration: "none",
@@ -243,7 +243,7 @@ export default async function VesselPublicPage(
           Data sourced from AIS, Equasis, and port state control records.
           {" · "}
           <a
-            href={`mailto:hello@shipscout.io?subject=${unsubSubject}`}
+            href={`mailto:info@turqomarine.com?subject=${unsubSubject}`}
             style={{ color: "#CBD5E1" }}
           >
             Unsubscribe

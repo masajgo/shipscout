@@ -242,7 +242,7 @@ export default function HomePage() {
               ["Weekly", "/weekly"],
               ["Vessels", "/vessels"],
               ["Shipowners", "/shipowners"],
-              ["Contact", "mailto:hello@shipscout.io"],
+              ["Contact", "mailto:info@turqomarine.com"],
             ] as [string, string][]).map(([label, href]) => (
               <Link key={label} href={href} style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", textDecoration: "none" }}>
                 {label}

@@ -209,8 +209,8 @@ export default function BuyersPage() {
             <div style={{ fontSize: 13, fontWeight: 700, color: "#065F46", marginBottom: 8 }}>Questions?</div>
             <p style={{ fontSize: 13, color: "#047857", margin: 0, lineHeight: 1.6 }}>
               Contact us directly at{" "}
-              <a href="mailto:hello@shipscout.io" style={{ color: "#047857", fontWeight: 600 }}>
-                hello@shipscout.io
+              <a href="mailto:info@turqomarine.com" style={{ color: "#047857", fontWeight: 600 }}>
+                info@turqomarine.com
               </a>
             </p>
           </div>

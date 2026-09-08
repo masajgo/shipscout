@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef } from "react";
+import { flagEmoji } from "@/lib/flagEmoji";
 
 type Contact = {
   name: string | null; title: string | null; email: string | null;
@@ -272,10 +273,11 @@ export default function VesselsPage() {
                       onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
                       onMouseLeave={e => (e.currentTarget.style.background = "none")}
                     >
+                      <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>{flagEmoji(s.flag)}</span>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>{s.name}</div>
                         <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", marginTop: 1 }}>
-                          IMO {s.imo} · {s.type} · {s.flag} · {s.builtYear}
+                          IMO {s.imo} · {s.type} · {s.builtYear}
                         </div>
                       </div>
                     </button>

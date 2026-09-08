@@ -1,6 +1,7 @@
 "use client";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { flagEmoji } from "@/lib/flagEmoji";
 
 type VesselInfo = {
   imo: string; name: string; type: string; flag: string;
@@ -228,10 +229,11 @@ export default function NewListingPage() {
                         onMouseEnter={e => (e.currentTarget.style.background = "#F9FAFB")}
                         onMouseLeave={e => (e.currentTarget.style.background = "none")}
                       >
-                        <div style={{ flex: 1 }}>
+                        <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>{flagEmoji(s.flag)}</span>
+                      <div style={{ flex: 1 }}>
                           <div style={{ fontSize: 13, fontWeight: 600, color: "#101828" }}>{s.name}</div>
                           <div style={{ fontSize: 11, color: "#98A2B3", marginTop: 1 }}>
-                            IMO {s.imo} · {s.type} · {s.flag} · {s.builtYear}
+                            IMO {s.imo} · {s.type} · {s.builtYear}
                           </div>
                         </div>
                       </button>

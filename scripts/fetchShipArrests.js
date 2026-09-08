@@ -1,12 +1,18 @@
 'use strict';
 
 /**
- * fetchShipArrests.js — Scrape shipunderarrest.com and populate radar_events
+ * fetchShipArrests.js — Monitor maritime news RSS feeds for vessel arrests/seizures
+ * and auto-populate radar_events using Claude Haiku for extraction.
+ *
+ * Sources:
+ *   - Hellenic Shipping News (RSS)
+ *   - Splash247 (RSS)
+ *   - Google News RSS (targeted arrest/seizure queries)
  *
  * Usage:
- *   node scripts/fetchShipArrests.js          # scrape & insert new events
- *   node scripts/fetchShipArrests.js --dry-run # parse only, no DB writes
- *   node scripts/fetchShipArrests.js --pages 3 # scrape first N pages (default: 5)
+ *   node scripts/fetchShipArrests.js             # run normally
+ *   node scripts/fetchShipArrests.js --dry-run   # parse only, no DB writes
+ *   node scripts/fetchShipArrests.js --verbose   # log full Haiku responses
  */
 
 const path = require('path');
@@ -18,196 +24,146 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 
-const BASE_URL = 'https://www.shipunderarrest.com';
+const DRY_RUN = process.argv.includes('--dry-run');
+const VERBOSE  = process.argv.includes('--verbose');
 
-// ── Arg parsing ───────────────────────────────────────────────────────────────
+// ── RSS sources ───────────────────────────────────────────────────────────────
 
-const args = process.argv.slice(2).reduce((acc, a, i, arr) => {
-  if (a.startsWith('--')) {
-    const key = a.slice(2);
-    const next = arr[i + 1];
-    acc[key] = (!next || next.startsWith('--')) ? true : next;
-  }
-  return acc;
-}, {});
+const RSS_FEEDS = [
+  {
+    name: 'Hellenic Shipping News',
+    url:  'https://www.hellenicshippingnews.com/feed/',
+  },
+  {
+    name: 'Splash247',
+    url:  'https://splash247.com/feed/',
+  },
+  {
+    name: 'gCaptain',
+    url:  'https://gcaptain.com/feed/',
+  },
+  // Targeted Google News: admiralty/court/creditor arrests only (excludes piracy, military)
+  {
+    name: 'Google News — admiralty arrest',
+    url:  'https://news.google.com/rss/search?q=%22admiralty+arrest%22+ship+OR+vessel&hl=en-US&gl=US&ceid=US:en',
+  },
+  {
+    name: 'Google News — ship arrested court',
+    url:  'https://news.google.com/rss/search?q=%22ship+arrested%22+court+OR+creditor+OR+mortgage+OR+bank&hl=en-US&gl=US&ceid=US:en',
+  },
+  {
+    name: 'Google News — judicial ship sale',
+    url:  'https://news.google.com/rss/search?q=%22judicial+sale%22+ship+OR+vessel+OR+%22judicial+auction%22+vessel&hl=en-US&gl=US&ceid=US:en',
+  },
+  {
+    name: 'Google News — vessel arrested port',
+    url:  'https://news.google.com/rss/search?q=%22vessel+arrested%22+port+OR+%22ship+arrested%22+port+OR+mortgagee+vessel&hl=en-US&gl=US&ceid=US:en',
+  },
+];
 
-const DRY_RUN  = !!args['dry-run'];
-const MAX_PAGES = parseInt(args.pages || '5', 10);
+// Keywords that must appear in title or description to be considered relevant
+const ARREST_KEYWORDS = [
+  'arrest', 'seized', 'seizure', 'detained', 'judicial auction',
+  'court order', 'bank seizure', 'creditor', 'admiralty', 'impounded',
+  'el koyma', 'haciz',  // Turkish equivalents
+];
 
-// ── Fetch helpers ─────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-async function fetchPage(url) {
+async function httpGet(url, timeoutMs = 15_000) {
   const res = await fetch(url, {
     headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; ShipScout/1.0; +https://shipscout.io)',
-      'Accept': 'text/html',
+      'User-Agent': 'Mozilla/5.0 (compatible; ShipScout-ArrestMonitor/1.0; +https://shipscout.io)',
+      'Accept': 'text/html,application/xhtml+xml,application/xml,application/rss+xml',
     },
-    signal: AbortSignal.timeout(20_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.text();
 }
 
-// ── Minimal HTML parser (no dependencies) ────────────────────────────────────
-
 function extractText(html) {
-  return html.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ')
-             .replace(/&#\d+;/g, '').replace(/\s+/g, ' ').trim();
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').replace(/&#\d+;/g, '')
+    .replace(/\s+/g, ' ').trim();
 }
 
-function findAll(html, tagOrPattern) {
-  const results = [];
-  const re = typeof tagOrPattern === 'string'
-    ? new RegExp(`<${tagOrPattern}[^>]*>([\\s\\S]*?)<\\/${tagOrPattern}>`, 'gi')
-    : tagOrPattern;
+function isRelevant(title, description) {
+  const haystack = `${title} ${description}`.toLowerCase();
+  return ARREST_KEYWORDS.some(kw => haystack.includes(kw));
+}
+
+// ── RSS parser ────────────────────────────────────────────────────────────────
+
+function parseRSS(xml) {
+  const items = [];
+  const itemRe = /<item>([\s\S]*?)<\/item>/gi;
   let m;
-  while ((m = re.exec(html)) !== null) results.push(m);
-  return results;
+  while ((m = itemRe.exec(xml)) !== null) {
+    const block = m[1];
+    const get = (tag) => {
+      const r = new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`, 'i');
+      const mm = r.exec(block);
+      return mm ? mm[1].trim() : '';
+    };
+    items.push({
+      title:       get('title'),
+      link:        get('link'),
+      description: get('description'),
+      pubDate:     get('pubDate'),
+    });
+  }
+  return items;
 }
 
-function attr(tag, name) {
-  const m = new RegExp(`${name}="([^"]*)"`, 'i').exec(tag);
-  return m ? m[1].trim() : null;
+function parsePubDate(dateStr) {
+  if (!dateStr) return null;
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d)) return null;
+    return d.toISOString().slice(0, 10);
+  } catch { return null; }
 }
 
-// ── Parse listing page ────────────────────────────────────────────────────────
+// ── Claude Haiku extraction ───────────────────────────────────────────────────
 
-function parseListingPage(html) {
-  const entries = [];
+async function extractWithHaiku(article) {
+  if (!ANTHROPIC_API_KEY) throw new Error('No ANTHROPIC_API_KEY');
 
-  // shipunderarrest.com lists vessels in table rows or article divs
-  // Try to find rows in the main table
-  const tableRe = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
-  let tableMatch;
-  while ((tableMatch = tableRe.exec(html)) !== null) {
-    const row = tableMatch[1];
-    const cells = [];
-    const tdRe = /<td[^>]*>([\s\S]*?)<\/td>/gi;
-    let td;
-    while ((td = tdRe.exec(row)) !== null) {
-      cells.push(extractText(td[1]));
-    }
-    if (cells.length >= 3) {
-      entries.push({ cells, rawRow: row });
-    }
-  }
+  const prompt = `You are a maritime intelligence data extractor. Read the following news article and extract vessel arrest/seizure information.
 
-  // Also try article/div based layout (newer site designs)
-  const articleRe = /<article[^>]*>([\s\S]*?)<\/article>/gi;
-  let artMatch;
-  while ((artMatch = articleRe.exec(html)) !== null) {
-    const art = artMatch[1];
-    const linkMatch = /href="([^"]*\/vessel[^"]*)"/.exec(art);
-    const nameMatch = /<h[2-4][^>]*>([\s\S]*?)<\/h[2-4]>/i.exec(art);
-    if (linkMatch || nameMatch) {
-      entries.push({
-        href: linkMatch ? linkMatch[1] : null,
-        rawText: extractText(art),
-        rawHtml: art,
-      });
-    }
-  }
+Article title: ${article.title}
+Article URL: ${article.url}
+Published: ${article.pubDate || 'unknown'}
+Content:
+${article.content.slice(0, 3000)}
 
-  // Fallback: find all links that look like vessel detail pages
-  const linkRe = /href="(\/[^"]*(?:arrest|vessel|ship)[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi;
-  let linkMatch;
-  while ((linkMatch = linkRe.exec(html)) !== null) {
-    const href = linkMatch[1];
-    const text = extractText(linkMatch[2]);
-    if (text.length > 3 && text.length < 100) {
-      entries.push({ href, linkText: text });
-    }
-  }
-
-  return entries;
+Extract and return ONLY a JSON object (no markdown, no explanation) with these fields:
+{
+  "relevant": true/false,
+  "vessel_name": "string or null",
+  "imo": "string or null",
+  "event_type": "arrest|bank_seizure|judicial_auction|detention",
+  "event_date": "YYYY-MM-DD or null",
+  "location": "string or null",
+  "summary": "string",
+  "creditor": "string or null"
 }
 
-// ── Parse individual vessel arrest page ──────────────────────────────────────
+Set relevant: TRUE only when ALL of these apply:
+  1. A specific, named commercial vessel is arrested/seized
+  2. The arrest is by a COURT, bank, creditor, mortgagee, or port authority for FINANCIAL/LEGAL reasons
+  3. There is enough detail to identify the vessel
 
-function parseVesselPage(html, url) {
-  const text = extractText(html);
-
-  // Extract IMO number
-  const imoMatch = /IMO[:\s#]*(\d{7})/i.exec(text) || /imo[:\s]*(\d{7})/i.exec(html);
-  const imo = imoMatch ? imoMatch[1] : null;
-
-  // Extract vessel name — look for title or h1
-  const titleMatch = /<title>([^<]+)<\/title>/i.exec(html);
-  const h1Match    = /<h1[^>]*>([^<]+)<\/h1>/i.exec(html);
-  let vesselName = null;
-  if (h1Match)    vesselName = extractText(h1Match[1]);
-  else if (titleMatch) vesselName = extractText(titleMatch[1]).replace(/\s*[\-|].*$/, '').trim();
-
-  // Extract location
-  const locationPatterns = [
-    /Port(?:\s+of)?:\s*([A-Za-z\s,]+)/i,
-    /Location:\s*([A-Za-z\s,]+)/i,
-    /arrested?\s+(?:in|at)\s+([A-Za-z\s,]+)/i,
-    /detained?\s+(?:in|at)\s+([A-Za-z\s,]+)/i,
-  ];
-  let location = null;
-  for (const p of locationPatterns) {
-    const m = p.exec(text);
-    if (m) { location = m[1].trim().replace(/[.,]+$/, ''); break; }
-  }
-
-  // Extract event date
-  const datePatterns = [
-    /(?:arrested?|seized?|detain|order).*?(\d{1,2}[\s\/\-]\w+[\s\/\-]\d{4})/i,
-    /(\d{4}-\d{2}-\d{2})/,
-    /(\d{1,2}\s+\w+\s+\d{4})/,
-  ];
-  let eventDate = null;
-  for (const p of datePatterns) {
-    const m = p.exec(text);
-    if (m) {
-      try {
-        const d = new Date(m[1]);
-        if (!isNaN(d)) { eventDate = d.toISOString().slice(0, 10); break; }
-      } catch {}
-    }
-  }
-
-  // Determine event type from text
-  let eventType = 'arrest';
-  if (/bank|creditor|mortgag|lien|financ/i.test(text))           eventType = 'bank_seizure';
-  else if (/auction|judicial\s+sale|court\s+sale/i.test(text))   eventType = 'judicial_auction';
-
-  // Extract source clues
-  const courtMatch  = /(\w[\w\s]*Court)/i.exec(text);
-  const sourceName  = courtMatch ? `shipunderarrest.com / ${courtMatch[1]}` : 'shipunderarrest.com';
-
-  // Build a raw summary from the most informative paragraph
-  const paraRe = /<p[^>]*>([\s\S]*?)<\/p>/gi;
-  const paras  = [];
-  let pm;
-  while ((pm = paraRe.exec(html)) !== null) {
-    const t = extractText(pm[1]);
-    if (t.length > 60) paras.push(t);
-  }
-  // Pick the paragraph most likely to describe the arrest
-  const arrestPara = paras.find(p =>
-    /arrest|seiz|detain|court|order|lien/i.test(p)
-  ) || paras[0] || text.slice(0, 500);
-
-  return { imo, vesselName, eventType, eventDate, location, sourceName, rawSummary: arrestPara.slice(0, 600), url };
-}
-
-// ── Haiku summary refinement ──────────────────────────────────────────────────
-
-async function refineSummary(vessel) {
-  if (!ANTHROPIC_API_KEY) return vessel.rawSummary;
-  const prompt = [
-    `Write a 2-sentence factual summary for a maritime intelligence report about a vessel arrest or seizure.`,
-    vessel.vesselName  ? `Vessel: ${vessel.vesselName}` : '',
-    vessel.imo         ? `IMO: ${vessel.imo}` : '',
-    vessel.location    ? `Location: ${vessel.location}` : '',
-    vessel.eventDate   ? `Date: ${vessel.eventDate}` : '',
-    vessel.eventType   ? `Event type: ${vessel.eventType.replace(/_/g, ' ')}` : '',
-    `Raw info: ${vessel.rawSummary}`,
-    ``,
-    `Rules: professional tone, factual only, no markdown, no headers, no speculation. Two sentences, one paragraph. Return only the paragraph.`,
-  ].filter(Boolean).join('\n');
+Set relevant: FALSE for:
+  - Military seizures (Iran, Houthis, US Navy, etc.)
+  - Piracy or criminal drug/weapons seizures
+  - General legal commentary, Q&A articles, legislation
+  - No specific vessel name mentioned
+  - Geopolitical incidents`;
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -218,37 +174,44 @@ async function refineSummary(vessel) {
     },
     body: JSON.stringify({
       model: HAIKU_MODEL,
-      max_tokens: 180,
+      max_tokens: 400,
       messages: [{ role: 'user', content: prompt }],
     }),
-    signal: AbortSignal.timeout(25_000),
+    signal: AbortSignal.timeout(30_000),
   });
-  if (!res.ok) { console.warn(`[WARN] Haiku ${res.status}`); return vessel.rawSummary; }
+
+  if (!res.ok) throw new Error(`Anthropic ${res.status}`);
   const data = await res.json();
-  return (data.content?.[0]?.text ?? vessel.rawSummary).trim();
+  const text = (data.content?.[0]?.text ?? '').trim();
+
+  if (VERBOSE) console.log(`  [HAIKU] ${text}`);
+
+  // Parse JSON — handle potential markdown wrapping
+  const jsonStr = text.replace(/^```json?\s*/i, '').replace(/\s*```$/, '').trim();
+  return JSON.parse(jsonStr);
 }
 
 // ── DB helpers ────────────────────────────────────────────────────────────────
 
-async function isDuplicate(imo, vesselName, eventType) {
-  // Check by IMO first (most reliable)
+async function isDuplicate(imo, vesselName, eventType, eventDate) {
   if (imo) {
     const { rows } = await pool.query(
       `SELECT id FROM radar_events
-       WHERE imo = $1 AND event_type = $2 AND status != 'resolved'
+       WHERE imo = $1 AND event_type = $2 AND (status IS NULL OR status != 'resolved')
        LIMIT 1`,
       [imo, eventType]
     );
     if (rows.length) return rows[0].id;
   }
-  // Fallback: check by vessel name (case-insensitive) within last 90 days
   if (vesselName) {
+    // Same vessel name + same event type within 30 days of the event date
     const { rows } = await pool.query(
       `SELECT id FROM radar_events
-       WHERE UPPER(vessel_name) = UPPER($1) AND event_type = $2
-         AND created_at > now() - interval '90 days'
+       WHERE UPPER(vessel_name) = UPPER($1)
+         AND event_type = $2
+         AND ($3::date IS NULL OR event_date BETWEEN ($3::date - interval '30 days') AND ($3::date + interval '30 days'))
        LIMIT 1`,
-      [vesselName, eventType]
+      [vesselName, eventType, eventDate || null]
     );
     if (rows.length) return rows[0].id;
   }
@@ -274,139 +237,147 @@ async function insertEvent(ev) {
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'active')
      RETURNING id`,
     [
-      ev.imo         || null,
-      ev.vesselName  || null,
-      ev.eventType,
-      ev.eventDate   || null,
-      ev.location    || null,
-      ev.sourceName,
+      ev.imo              || null,
+      ev.vessel_name      || null,
+      ev.event_type,
+      ev.event_date       || null,
+      ev.location         || null,
+      ev.source_name,
       ev.summary,
-      ev.matchedVesselId || null,
-      ev.rawHeadline || null,
+      ev.matched_vessel_id || null,
+      ev.raw_headline     || null,
     ]
   );
   return rows[0].id;
 }
 
-// ── Scrape one page of listings ───────────────────────────────────────────────
-
-async function scrapeListingPage(pageNum) {
-  const url = pageNum === 1
-    ? `${BASE_URL}/`
-    : `${BASE_URL}/page/${pageNum}/`;
-
-  console.log(`[FETCH] ${url}`);
-  const html = await fetchPage(url);
-
-  // Extract links to vessel detail pages
-  const detailLinks = new Set();
-  const hrefRe = /href="(https?:\/\/(?:www\.)?shipunderarrest\.com\/[^"#?]+)"/gi;
-  let m;
-  while ((m = hrefRe.exec(html)) !== null) {
-    const href = m[1];
-    // Skip pagination, category, tag pages
-    if (/\/(page|tag|category|author)\//i.test(href)) continue;
-    if (/\.(jpg|png|pdf|css|js)$/i.test(href)) continue;
-    if (href === BASE_URL + '/') continue;
-    detailLinks.add(href);
-  }
-
-  // Also try relative links
-  const relHrefRe = /href="(\/[^"#?]+)"/gi;
-  while ((m = relHrefRe.exec(html)) !== null) {
-    const href = m[1];
-    if (/\/(page|tag|category|author|feed|wp-)\//i.test(href)) continue;
-    if (/\.(jpg|png|pdf|css|js)$/i.test(href)) continue;
-    if (href === '/') continue;
-    detailLinks.add(BASE_URL + href);
-  }
-
-  return [...detailLinks];
-}
-
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-async function main() {
-  console.log(`[START] fetchShipArrests — pages=${MAX_PAGES}, dry-run=${DRY_RUN}`);
-
-  const allDetailLinks = new Set();
-
-  for (let p = 1; p <= MAX_PAGES; p++) {
-    try {
-      const links = await scrapeListingPage(p);
-      links.forEach(l => allDetailLinks.add(l));
-      console.log(`[PAGE ${p}] Found ${links.length} detail links (total unique: ${allDetailLinks.size})`);
-      // Polite delay between listing pages
-      if (p < MAX_PAGES) await new Promise(r => setTimeout(r, 1500));
-    } catch (e) {
-      console.warn(`[WARN] Page ${p} failed: ${e.message}`);
-      break; // Stop if we hit a 404 (no more pages)
-    }
+async function processFeed(feed) {
+  console.log(`\n[FEED] ${feed.name}`);
+  let xml;
+  try {
+    xml = await httpGet(feed.url);
+  } catch (e) {
+    console.warn(`  [ERR] Could not fetch feed: ${e.message}`);
+    return { inserted: 0, skipped: 0, errors: 1 };
   }
 
-  console.log(`\n[SCRAPE] Processing ${allDetailLinks.size} vessel pages…\n`);
+  const items = parseRSS(xml);
+  console.log(`  [PARSE] ${items.length} items`);
 
-  let inserted = 0;
-  let skipped  = 0;
-  let errors   = 0;
+  let inserted = 0, skipped = 0, errors = 0;
 
-  for (const url of allDetailLinks) {
-    try {
-      await new Promise(r => setTimeout(r, 1200)); // polite delay
+  for (const item of items) {
+    const title = extractText(item.title);
+    const desc  = extractText(item.description);
 
-      const html   = await fetchPage(url);
-      const parsed = parseVesselPage(html, url);
+    if (!isRelevant(title, desc)) continue;
 
-      if (!parsed.vesselName && !parsed.imo) {
-        console.log(`[SKIP] No vessel name or IMO at ${url}`);
-        skipped++;
-        continue;
+    console.log(`  [MATCH] "${title.slice(0, 80)}"`);
+
+    // Fetch full article
+    let content = desc;
+    if (item.link && !item.link.includes('news.google.com')) {
+      try {
+        await new Promise(r => setTimeout(r, 800));
+        const html = await httpGet(item.link, 12_000);
+        const full = extractText(html);
+        content = full.length > 200 ? full : desc;
+      } catch (e) {
+        console.warn(`    [WARN] Could not fetch article body: ${e.message}`);
       }
+    }
 
-      console.log(`[PARSE] ${parsed.vesselName || '?'} IMO=${parsed.imo || '?'} type=${parsed.eventType} date=${parsed.eventDate || '?'}`);
+    // Haiku extraction
+    let extracted;
+    try {
+      extracted = await extractWithHaiku({
+        title,
+        url:     item.link,
+        pubDate: item.pubDate,
+        content,
+      });
+    } catch (e) {
+      console.warn(`    [ERR] Haiku extraction failed: ${e.message}`);
+      errors++;
+      continue;
+    }
 
-      if (!DRY_RUN) {
-        const dupId = await isDuplicate(parsed.imo, parsed.vesselName, parsed.eventType);
+    if (!extracted.relevant) {
+      console.log(`    [SKIP] Haiku: not a specific vessel arrest`);
+      skipped++;
+      continue;
+    }
+
+    if (!extracted.vessel_name && !extracted.imo) {
+      console.log(`    [SKIP] No vessel name or IMO extracted`);
+      skipped++;
+      continue;
+    }
+
+    console.log(`    [EXTRACT] ${extracted.vessel_name || '?'} IMO=${extracted.imo || '?'} type=${extracted.event_type} loc=${extracted.location || '?'}`);
+
+    if (!DRY_RUN) {
+      try {
+        const dupId = await isDuplicate(extracted.imo, extracted.vessel_name, extracted.event_type, extracted.event_date);
         if (dupId) {
-          console.log(`  [SKIP] Duplicate — existing id=${dupId}`);
+          console.log(`    [SKIP] Duplicate — existing id=${dupId}`);
           skipped++;
           continue;
         }
 
-        const matchedVesselId = await matchVessel(parsed.imo, parsed.vesselName);
-        if (matchedVesselId) {
-          console.log(`  [MATCH] Matched vessel MMSI=${matchedVesselId}`);
-        }
+        const matchedVesselId = await matchVessel(extracted.imo, extracted.vessel_name);
+        if (matchedVesselId) console.log(`    [MATCH] Vessel MMSI=${matchedVesselId}`);
 
-        const summary = await refineSummary(parsed);
-
-        const rawHeadline = [
-          parsed.eventType.replace(/_/g, ' '),
-          parsed.vesselName ? `— ${parsed.vesselName}` : '',
-          parsed.imo        ? `(IMO ${parsed.imo})`    : '',
-          parsed.location   ? `@ ${parsed.location}`   : '',
-          parsed.eventDate  ? `[${parsed.eventDate}]`  : '',
-        ].filter(Boolean).join(' ');
+        const sourceLine = feed.name !== 'Google News — ship arrest' && feed.name.startsWith('Google')
+          ? `Google News / ${feed.name.replace('Google News — ', '')}`
+          : feed.name;
 
         const id = await insertEvent({
-          ...parsed,
-          summary,
-          rawHeadline,
-          matchedVesselId,
+          imo:              extracted.imo,
+          vessel_name:      extracted.vessel_name,
+          event_type:       extracted.event_type || 'arrest',
+          event_date:       extracted.event_date || parsePubDate(item.pubDate),
+          location:         extracted.location,
+          source_name:      sourceLine,
+          summary:          extracted.summary,
+          matched_vessel_id: matchedVesselId,
+          raw_headline:     `${title} — ${item.link}`,
         });
-        console.log(`  [OK] Inserted id=${id}`);
+
+        console.log(`    [OK] Inserted radar_events.id=${id}`);
         inserted++;
-      } else {
-        console.log(`  [DRY] Would insert: ${parsed.eventType} — ${parsed.vesselName} IMO=${parsed.imo}`);
-        inserted++;
+      } catch (e) {
+        console.warn(`    [ERR] DB insert failed: ${e.message}`);
+        errors++;
       }
-    } catch (e) {
-      console.warn(`  [ERR] ${url}: ${e.message}`);
-      errors++;
+    } else {
+      console.log(`    [DRY] Would insert: ${extracted.event_type} — ${extracted.vessel_name} IMO=${extracted.imo}`);
+      inserted++;
     }
+
+    await new Promise(r => setTimeout(r, 500)); // rate limit Haiku
   }
 
-  console.log(`\n[DONE] inserted=${inserted} skipped=${skipped} errors=${errors}`);
+  return { inserted, skipped, errors };
+}
+
+async function main() {
+  console.log(`[START] fetchShipArrests — dry-run=${DRY_RUN} sources=${RSS_FEEDS.length}`);
+
+  let totalInserted = 0, totalSkipped = 0, totalErrors = 0;
+
+  for (const feed of RSS_FEEDS) {
+    const { inserted, skipped, errors } = await processFeed(feed);
+    totalInserted += inserted;
+    totalSkipped  += skipped;
+    totalErrors   += errors;
+    // Brief pause between feeds
+    await new Promise(r => setTimeout(r, 2000));
+  }
+
+  console.log(`\n[DONE] inserted=${totalInserted} skipped=${totalSkipped} errors=${totalErrors}`);
 }
 
 main()

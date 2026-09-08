@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: { Authorization: `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: "ShipScout <onboarding@resend.dev>",
+        from: "ShipScout <noreply@turqomarine.com>",
         to: ["info@turqomarine.com"],
         subject: `New vessel submission — ${vessel_name ?? imo} (${ref})`,
         text: [

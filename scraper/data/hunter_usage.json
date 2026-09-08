@@ -259,11 +259,584 @@
     ]
   },
   "2026-08-27": {
-    "count": 1,
+    "count": 22,
     "calls": [
       {
         "domain": "fesco.com",
         "at": "2026-08-27T06:13:03.594Z"
+      },
+      {
+        "domain": "britishmarine.com",
+        "at": "2026-08-27T07:40:25.884Z"
+      },
+      {
+        "domain": "classicgroup.com",
+        "at": "2026-08-27T07:40:48.862Z"
+      },
+      {
+        "domain": "interlakesteamship.com",
+        "at": "2026-08-27T07:41:05.627Z"
+      },
+      {
+        "domain": "schwarze.com",
+        "at": "2026-08-27T07:41:25.692Z"
+      },
+      {
+        "domain": "seashipping.com",
+        "at": "2026-08-27T07:42:01.159Z"
+      },
+      {
+        "domain": "janus-andersen.com",
+        "at": "2026-08-27T07:42:42.513Z"
+      },
+      {
+        "domain": "aegeanshipping.com",
+        "at": "2026-08-27T07:43:54.399Z"
+      },
+      {
+        "domain": "trondsmarine.com",
+        "at": "2026-08-27T07:44:14.590Z"
+      },
+      {
+        "domain": "britishmarine.com",
+        "at": "2026-08-27T07:44:34.083Z"
+      },
+      {
+        "domain": "tidewater.com",
+        "at": "2026-08-27T07:44:55.938Z"
+      },
+      {
+        "domain": "sc-shipping.com",
+        "at": "2026-08-27T07:45:24.654Z"
+      },
+      {
+        "domain": "ishipping.com",
+        "at": "2026-08-27T07:46:00.558Z"
+      },
+      {
+        "domain": "okshipping.com",
+        "at": "2026-08-27T07:46:20.534Z"
+      },
+      {
+        "domain": "vpshipping.com",
+        "at": "2026-08-27T07:46:42.543Z"
+      },
+      {
+        "domain": "roodbovengroen.com",
+        "at": "2026-08-27T07:47:06.090Z"
+      },
+      {
+        "domain": "ormarine.com",
+        "at": "2026-08-27T07:47:35.854Z"
+      },
+      {
+        "domain": "banshipping.com",
+        "at": "2026-08-27T07:47:44.470Z"
+      },
+      {
+        "domain": "kships.com",
+        "at": "2026-08-27T07:47:53.510Z"
+      },
+      {
+        "domain": "vfships.com",
+        "at": "2026-08-27T07:49:18.515Z"
+      },
+      {
+        "domain": "hillmarine.com",
+        "at": "2026-08-27T07:49:36.862Z"
+      },
+      {
+        "domain": "gmzshipping.com",
+        "at": "2026-08-27T07:49:49.566Z"
+      }
+    ]
+  },
+  "2026-08-28": {
+    "count": 121,
+    "calls": [
+      {
+        "domain": "balticshipping.com",
+        "at": "2026-08-28T09:15:10.058Z"
+      },
+      {
+        "domain": "wilhelmsen.com",
+        "at": "2026-08-28T09:15:23.285Z"
+      },
+      {
+        "domain": "vrsmaritime.com",
+        "at": "2026-08-28T09:15:50.209Z"
+      },
+      {
+        "domain": "karllagerfeld.com",
+        "at": "2026-08-28T09:16:08.114Z"
+      },
+      {
+        "domain": "tlgshipping.com",
+        "at": "2026-08-28T09:16:25.053Z"
+      },
+      {
+        "domain": "northstar-ship-management.com",
+        "at": "2026-08-28T09:16:34.759Z"
+      },
+      {
+        "domain": "ishipping.com",
+        "at": "2026-08-28T09:16:53.732Z"
+      },
+      {
+        "domain": "synergy.com",
+        "at": "2026-08-28T09:17:26.089Z"
+      },
+      {
+        "domain": "hammonia-reederei.de",
+        "at": "2026-08-28T09:17:48.629Z"
+      },
+      {
+        "domain": "rwr.com",
+        "at": "2026-08-28T09:18:12.555Z"
+      },
+      {
+        "domain": "cashipping.com",
+        "at": "2026-08-28T09:19:01.866Z"
+      },
+      {
+        "domain": "cmacgm-group.com",
+        "at": "2026-08-28T09:19:22.372Z"
+      },
+      {
+        "domain": "amships.com",
+        "at": "2026-08-28T09:19:46.780Z"
+      },
+      {
+        "domain": "panjiva.com",
+        "at": "2026-08-28T09:20:05.813Z"
+      },
+      {
+        "domain": "eastaway.com",
+        "at": "2026-08-28T09:20:18.911Z"
+      },
+      {
+        "domain": "tidewater.com",
+        "at": "2026-08-28T09:21:33.154Z"
+      },
+      {
+        "domain": "stena.com",
+        "at": "2026-08-28T09:21:57.087Z"
+      },
+      {
+        "domain": "mmships.com",
+        "at": "2026-08-28T09:22:54.942Z"
+      },
+      {
+        "domain": "mediterranean.com",
+        "at": "2026-08-28T09:23:18.226Z"
+      },
+      {
+        "domain": "beacon.com",
+        "at": "2026-08-28T09:23:46.290Z"
+      },
+      {
+        "domain": "ad-shipping.com",
+        "at": "2026-08-28T09:24:44.193Z"
+      },
+      {
+        "domain": "dfds.com",
+        "at": "2026-08-28T09:25:02.186Z"
+      },
+      {
+        "domain": "elines.coscoshipping.com",
+        "at": "2026-08-28T09:25:19.988Z"
+      },
+      {
+        "domain": "sbp.com",
+        "at": "2026-08-28T09:25:42.338Z"
+      },
+      {
+        "domain": "skyshipping.com",
+        "at": "2026-08-28T09:27:24.047Z"
+      },
+      {
+        "domain": "sdmmarine.com",
+        "at": "2026-08-28T09:28:36.437Z"
+      },
+      {
+        "domain": "nordships.com",
+        "at": "2026-08-28T09:28:48.745Z"
+      },
+      {
+        "domain": "rainbowforest.org",
+        "at": "2026-08-28T09:30:33.242Z"
+      },
+      {
+        "domain": "clshipping.com",
+        "at": "2026-08-28T09:30:44.867Z"
+      },
+      {
+        "domain": "aggregateindustries.com",
+        "at": "2026-08-28T09:31:51.483Z"
+      },
+      {
+        "domain": "hyundai-lng-shipping.com",
+        "at": "2026-08-28T09:32:19.824Z"
+      },
+      {
+        "domain": "aegeanshipping.com",
+        "at": "2026-08-28T09:32:20.972Z"
+      },
+      {
+        "domain": "aegeanshipping.com",
+        "at": "2026-08-28T09:33:18.207Z"
+      },
+      {
+        "domain": "almshipping.com",
+        "at": "2026-08-28T09:34:07.247Z"
+      },
+      {
+        "domain": "h-lineshipping.com",
+        "at": "2026-08-28T09:35:13.483Z"
+      },
+      {
+        "domain": "hsmshipping.com",
+        "at": "2026-08-28T09:36:19.652Z"
+      },
+      {
+        "domain": "siemshipping.com",
+        "at": "2026-08-28T09:36:26.696Z"
+      },
+      {
+        "domain": "fairplayshipping.com",
+        "at": "2026-08-28T09:38:14.699Z"
+      },
+      {
+        "domain": "easternshipping.com",
+        "at": "2026-08-28T09:38:43.130Z"
+      },
+      {
+        "domain": "apmarine.com",
+        "at": "2026-08-28T09:39:52.233Z"
+      },
+      {
+        "domain": "iskeleshipping.com",
+        "at": "2026-08-28T09:40:15.840Z"
+      },
+      {
+        "domain": "bluewater.com",
+        "at": "2026-08-28T09:40:28.964Z"
+      },
+      {
+        "domain": "boskalis.com",
+        "at": "2026-08-28T09:42:22.192Z"
+      },
+      {
+        "domain": "cmmarine.com",
+        "at": "2026-08-28T09:43:04.395Z"
+      },
+      {
+        "domain": "mr-shipping.com",
+        "at": "2026-08-28T09:43:25.529Z"
+      },
+      {
+        "domain": "easternshipping.com",
+        "at": "2026-08-28T09:43:53.678Z"
+      },
+      {
+        "domain": "mscshipmanagement.com",
+        "at": "2026-08-28T09:44:25.481Z"
+      },
+      {
+        "domain": "atlanticshipping.biz",
+        "at": "2026-08-28T09:44:47.446Z"
+      },
+      {
+        "domain": "mediterranean.com",
+        "at": "2026-08-28T09:45:03.736Z"
+      },
+      {
+        "domain": "burgessyachts.com",
+        "at": "2026-08-28T09:45:13.439Z"
+      },
+      {
+        "domain": "livestock-express.com",
+        "at": "2026-08-28T09:46:13.139Z"
+      },
+      {
+        "domain": "mscshipmanagement.com",
+        "at": "2026-08-28T09:46:28.115Z"
+      },
+      {
+        "domain": "danaosshipping.gr",
+        "at": "2026-08-28T09:46:45.259Z"
+      },
+      {
+        "domain": "ctmarine.com",
+        "at": "2026-08-28T09:47:09.850Z"
+      },
+      {
+        "domain": "solstad.com",
+        "at": "2026-08-28T09:47:17.987Z"
+      },
+      {
+        "domain": "knotshipping.com",
+        "at": "2026-08-28T09:47:33.318Z"
+      },
+      {
+        "domain": "oceanmarine.com",
+        "at": "2026-08-28T09:48:13.239Z"
+      },
+      {
+        "domain": "veloramarinefz.com",
+        "at": "2026-08-28T09:48:33.127Z"
+      },
+      {
+        "domain": "oocl.shipscanner.co",
+        "at": "2026-08-28T09:50:45.602Z"
+      },
+      {
+        "domain": "amarine.com",
+        "at": "2026-08-28T09:51:11.577Z"
+      },
+      {
+        "domain": "msc.com",
+        "at": "2026-08-28T09:51:36.943Z"
+      },
+      {
+        "domain": "icechem-tankers.com",
+        "at": "2026-08-28T09:52:36.220Z"
+      },
+      {
+        "domain": "eaglemaritime.com",
+        "at": "2026-08-28T09:52:54.883Z"
+      },
+      {
+        "domain": "unitedshipping.com",
+        "at": "2026-08-28T09:53:48.302Z"
+      },
+      {
+        "domain": "wships.com",
+        "at": "2026-08-28T09:54:04.970Z"
+      },
+      {
+        "domain": "vertom.com",
+        "at": "2026-08-28T09:54:15.420Z"
+      },
+      {
+        "domain": "rixship.com",
+        "at": "2026-08-28T09:54:28.921Z"
+      },
+      {
+        "domain": "nhshipping.com",
+        "at": "2026-08-28T09:54:44.963Z"
+      },
+      {
+        "domain": "blshipping.com",
+        "at": "2026-08-28T09:56:22.963Z"
+      },
+      {
+        "domain": "peakgroup.no",
+        "at": "2026-08-28T09:57:16.655Z"
+      },
+      {
+        "domain": "ch-shipping.com",
+        "at": "2026-08-28T09:57:57.026Z"
+      },
+      {
+        "domain": "ch-shipping.com",
+        "at": "2026-08-28T09:58:16.440Z"
+      },
+      {
+        "domain": "msc.com",
+        "at": "2026-08-28T09:59:07.278Z"
+      },
+      {
+        "domain": "ccshipping.com",
+        "at": "2026-08-28T10:00:18.050Z"
+      },
+      {
+        "domain": "sunberry.gr",
+        "at": "2026-08-28T10:01:18.308Z"
+      },
+      {
+        "domain": "hdships.com",
+        "at": "2026-08-28T10:01:18.981Z"
+      },
+      {
+        "domain": "condor.com",
+        "at": "2026-08-28T10:01:34.843Z"
+      },
+      {
+        "domain": "wsmarine.com",
+        "at": "2026-08-28T10:02:13.080Z"
+      },
+      {
+        "domain": "gloryshipping.com",
+        "at": "2026-08-28T10:03:03.114Z"
+      },
+      {
+        "domain": "grimaldi.co.uk",
+        "at": "2026-08-28T10:03:27.332Z"
+      },
+      {
+        "domain": "stena.com",
+        "at": "2026-08-28T10:03:42.854Z"
+      },
+      {
+        "domain": "svitzer.com",
+        "at": "2026-08-28T10:06:12.400Z"
+      },
+      {
+        "domain": "mediterranean.com",
+        "at": "2026-08-28T10:06:26.867Z"
+      },
+      {
+        "domain": "mamarine.com",
+        "at": "2026-08-28T10:06:58.545Z"
+      },
+      {
+        "domain": "eu-shipping.com",
+        "at": "2026-08-28T10:08:25.097Z"
+      },
+      {
+        "domain": "kleshipping.com",
+        "at": "2026-08-28T10:08:40.495Z"
+      },
+      {
+        "domain": "aaships.com",
+        "at": "2026-08-28T10:09:01.326Z"
+      },
+      {
+        "domain": "gremex.com.mx",
+        "at": "2026-08-28T10:09:18.325Z"
+      },
+      {
+        "domain": "borealisdenizcilik.com.tr",
+        "at": "2026-08-28T10:09:26.884Z"
+      },
+      {
+        "domain": "mamarine.com",
+        "at": "2026-08-28T10:09:47.021Z"
+      },
+      {
+        "domain": "mediterranean.com",
+        "at": "2026-08-28T10:10:35.247Z"
+      },
+      {
+        "domain": "thenamaris.com",
+        "at": "2026-08-28T10:11:03.705Z"
+      },
+      {
+        "domain": "sc-shipping.com",
+        "at": "2026-08-28T10:11:51.791Z"
+      },
+      {
+        "domain": "group.com",
+        "at": "2026-08-28T10:13:07.454Z"
+      },
+      {
+        "domain": "ncl.com",
+        "at": "2026-08-28T10:13:32.768Z"
+      },
+      {
+        "domain": "ylshipping.com",
+        "at": "2026-08-28T10:14:13.859Z"
+      },
+      {
+        "domain": "ismarine.com",
+        "at": "2026-08-28T10:15:29.837Z"
+      },
+      {
+        "domain": "froy.com",
+        "at": "2026-08-28T10:15:36.054Z"
+      },
+      {
+        "domain": "container-transportation.com",
+        "at": "2026-08-28T10:16:25.462Z"
+      },
+      {
+        "domain": "uecc.com",
+        "at": "2026-08-28T10:16:34.174Z"
+      },
+      {
+        "domain": "sunship.de",
+        "at": "2026-08-28T10:17:01.648Z"
+      },
+      {
+        "domain": "molship-singapore.com",
+        "at": "2026-08-28T10:17:10.637Z"
+      },
+      {
+        "domain": "rnshipping.com",
+        "at": "2026-08-28T10:17:35.492Z"
+      },
+      {
+        "domain": "clearlakeshipping.com",
+        "at": "2026-08-28T10:17:47.802Z"
+      },
+      {
+        "domain": "sparshipping.com",
+        "at": "2026-08-28T10:17:59.238Z"
+      },
+      {
+        "domain": "mediterranean.com",
+        "at": "2026-08-28T10:18:15.339Z"
+      },
+      {
+        "domain": "morashipping.com",
+        "at": "2026-08-28T10:18:22.703Z"
+      },
+      {
+        "domain": "wships.com",
+        "at": "2026-08-28T10:18:32.950Z"
+      },
+      {
+        "domain": "mamarine.com",
+        "at": "2026-08-28T10:19:02.022Z"
+      },
+      {
+        "domain": "scotline.co.uk",
+        "at": "2026-08-28T10:19:43.717Z"
+      },
+      {
+        "domain": "mediterranean.com",
+        "at": "2026-08-28T10:19:54.091Z"
+      },
+      {
+        "domain": "paradisegascarriers.com",
+        "at": "2026-08-28T10:20:03.494Z"
+      },
+      {
+        "domain": "jw.com",
+        "at": "2026-08-28T10:20:28.486Z"
+      },
+      {
+        "domain": "tantonet.com",
+        "at": "2026-08-28T10:21:00.983Z"
+      },
+      {
+        "domain": "uni-tankers.com",
+        "at": "2026-08-28T10:21:15.071Z"
+      },
+      {
+        "domain": "kingocean.com",
+        "at": "2026-08-28T10:21:28.326Z"
+      },
+      {
+        "domain": "optimalshipping.com",
+        "at": "2026-08-28T10:21:49.234Z"
+      },
+      {
+        "domain": "dp-shipmanagement.com",
+        "at": "2026-08-28T10:22:18.252Z"
+      },
+      {
+        "domain": "feyzgroup.com",
+        "at": "2026-08-28T10:22:49.595Z"
+      },
+      {
+        "domain": "beyazfleet.com",
+        "at": "2026-08-28T10:23:51.742Z"
+      },
+      {
+        "domain": "kmpshipping.com",
+        "at": "2026-08-28T10:24:15.349Z"
       }
     ]
   }

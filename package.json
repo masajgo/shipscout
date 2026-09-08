@@ -10,6 +10,7 @@
     "worker:ais": "node worker/aisWorker.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.124.0",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.110.1",
     "@vercel/blob": "^2.4.0",

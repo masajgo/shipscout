@@ -24,6 +24,13 @@ export default function NewListingPage() {
   const [imoError, setImoError]     = useState("");
   const [imoLoading, setImoLoading] = useState(false);
 
+  type Suggestion = { imo: string; name: string; type: string; flag: string; builtYear: number };
+  const [nameQuery, setNameQuery]           = useState("");
+  const [suggestions, setSuggestions]       = useState<Suggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const suggestTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [listingType, setListingType] = useState<"sale"|"charter"|"scrap">("sale");
   const [priceUsd, setPriceUsd]       = useState("");
   const [currency, setCurrency]       = useState("USD");
@@ -38,8 +45,48 @@ export default function NewListingPage() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError]     = useState("");
+
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+
+  function handleNameChange(val: string) {
+    setNameQuery(val);
+    setSuggestions([]);
+    setShowSuggestions(false);
+    if (suggestTimer.current) clearTimeout(suggestTimer.current);
+    if (val.trim().length < 2) return;
+    suggestTimer.current = setTimeout(async () => {
+      setSuggestLoading(true);
+      try {
+        const res = await fetch(`/api/listings/vessel-search?q=${encodeURIComponent(val.trim())}`);
+        if (res.ok) {
+          const data: Suggestion[] = await res.json();
+          setSuggestions(data);
+          setShowSuggestions(data.length > 0);
+        }
+      } finally {
+        setSuggestLoading(false);
+      }
+    }, 300);
+  }
+
+  async function selectSuggestion(imo: string) {
+    setShowSuggestions(false);
+    setSuggestions([]);
+    setNameQuery("");
+    setImoInput(imo);
+    setImoError("");
+    setImoLoading(true);
+    const res = await fetch(`/api/listings/imo-lookup?imo=${imo}`);
+    if (res.ok) {
+      setVessel(await res.json());
+    } else {
+      setImoError("Vessel lookup failed");
+    }
+    setImoLoading(false);
+  }
 
   async function lookupIMO() {
     const imo = imoInput.trim();
@@ -66,6 +113,23 @@ export default function NewListingPage() {
       setPhotos(p => [...p, url]);
     }
     setUploadingPhoto(false);
+  }
+
+  async function generateDescription() {
+    if (!vessel) return;
+    setAiError(""); setAiLoading(true);
+    const res = await fetch("/api/listings/ai-assist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vessel, listingType, draft: description }),
+    });
+    if (res.ok) {
+      const { description: text } = await res.json();
+      setDescription(text);
+    } else {
+      setAiError("Could not generate description — try again");
+    }
+    setAiLoading(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -121,6 +185,63 @@ export default function NewListingPage() {
             </button>
           </div>
           {imoError && <div style={{ fontSize: 12, color: "#B42318", marginBottom: 8 }}>{imoError}</div>}
+
+          {/* Name search with autocomplete */}
+          {!vessel && (
+            <div style={{ marginTop: 4 }}>
+              <div style={{ fontSize: 11, color: "#98A2B3", textAlign: "center" as const, marginBottom: 8 }}>
+                — ya da gemi adıyla ara —
+              </div>
+              <div style={{ position: "relative" as const }}>
+                <input
+                  style={{ ...INPUT }}
+                  type="text"
+                  placeholder="e.g. Maersk Alberta, Atlantic Star…"
+                  value={nameQuery}
+                  onChange={e => handleNameChange(e.target.value)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                  onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                  autoComplete="off"
+                />
+                {suggestLoading && (
+                  <div style={{ position: "absolute" as const, right: 12, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#98A2B3" }}>
+                    …
+                  </div>
+                )}
+                {showSuggestions && (
+                  <div style={{
+                    position: "absolute" as const, top: "calc(100% + 4px)", left: 0, right: 0,
+                    background: "#fff", border: "1px solid #EAECF0", borderRadius: 8,
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.08)", zIndex: 50, overflow: "hidden",
+                  }}>
+                    {suggestions.map((s, i) => (
+                      <button
+                        key={s.imo}
+                        type="button"
+                        onMouseDown={() => selectSuggestion(s.imo)}
+                        style={{
+                          display: "flex", alignItems: "center", width: "100%",
+                          padding: "10px 14px", background: "none", border: "none",
+                          borderBottom: i < suggestions.length - 1 ? "1px solid #F2F4F7" : "none",
+                          cursor: "pointer", textAlign: "left" as const, gap: 10,
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = "#F9FAFB")}
+                        onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                      >
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "#101828" }}>{s.name}</div>
+                          <div style={{ fontSize: 11, color: "#98A2B3", marginTop: 1 }}>
+                            IMO {s.imo} · {s.type} · {s.flag} · {s.builtYear}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {vessel && (
             <div style={{ background: "#F9FAFB", border: "1px solid #EAECF0", borderRadius: 8, padding: "12px 14px" }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#101828", marginBottom: 6 }}>{vessel.name}</div>
@@ -178,9 +299,16 @@ export default function NewListingPage() {
           <textarea style={{ ...INPUT, height: 120, resize: "vertical" as const }}
             placeholder="Describe the vessel condition, history, reason for sale, charter terms, or any relevant details..."
             value={description} onChange={e => setDescription(e.target.value)} required minLength={20} />
-          <div style={{ fontSize: 11, color: description.length < 20 ? "#B42318" : "#98A2B3", marginTop: 4 }}>
-            {description.length} / 20 minimum
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+            <div style={{ fontSize: 11, color: description.length < 20 ? "#B42318" : "#98A2B3" }}>
+              {description.length} / 20 minimum
+            </div>
+            <button type="button" onClick={generateDescription} disabled={!vessel || aiLoading}
+              style={{ fontSize: 11, fontWeight: 600, color: vessel ? "#1D9E75" : "#98A2B3", background: "none", border: "none", cursor: vessel ? "pointer" : "default", padding: 0 }}>
+              {aiLoading ? "Writing…" : "✦ Write with AI"}
+            </button>
           </div>
+          {aiError && <div style={{ fontSize: 11, color: "#B42318", marginTop: 2 }}>{aiError}</div>}
         </div>
 
         {/* 3. Photos */}

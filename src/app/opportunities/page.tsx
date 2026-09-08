@@ -12,6 +12,7 @@ const SIGNAL_LABELS: Record<SignalType, string> = {
   scrap_proximity:  "Near Scrap Yard",
   layup:            "Lay-up",
   age_threshold:    "25+ Years",
+  bank_arrest:      "Under Arrest",
 };
 
 const VESSEL_TYPES = ["Bulk Carrier", "General Cargo", "Container", "Tanker", "Ro-Ro", "Reefer", "Vehicles Carrier"];

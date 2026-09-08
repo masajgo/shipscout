@@ -161,9 +161,7 @@ export async function GET() {
   const FEATURED_IMOS = ["7625811", "5073234"];
   const allTracked    = [...new Set([...TRACKED_IMOS, ...FEATURED_IMOS])];
   const alreadyShown  = new Set(grsListings.map((l: any) => l?.imo));
-  const featuredIMOs  = FEATURED_IMOS.filter(imo => !alreadyShown.has(imo));
-
-  const featuredIMOs = allTracked.filter(imo => !alreadyShown.has(imo));
+  const featuredIMOs  = allTracked.filter(imo => !alreadyShown.has(imo));
   const hardcoded: any[] = [];
   if (featuredIMOs.length > 0) {
     try {

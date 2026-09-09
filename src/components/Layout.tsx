@@ -82,17 +82,21 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           {[
             { href: "/how-it-works", label: "How It Works" },
-            { href: "/buyers",       label: "Buyers" },
+            { href: "/shipowners",   label: "For Owners" },
+            { href: "/buyers",       label: "For Buyers" },
           ].map(({ href, label }) => (
             <Link key={href} href={href} style={{
-              fontSize: 13, color: "rgba(255,255,255,0.7)", textDecoration: "none",
+              fontSize: 13,
+              color: label === "For Owners" ? "#fff" : "rgba(255,255,255,0.6)",
+              fontWeight: label === "For Owners" ? 600 : 400,
+              textDecoration: "none",
               padding: "6px 12px", borderRadius: 6,
             }}>
               {label}
             </Link>
           ))}
           <Link href="/opportunities" style={{
-            fontSize: 13, color: "rgba(255,255,255,0.7)", textDecoration: "none",
+            fontSize: 13, color: "rgba(255,255,255,0.5)", textDecoration: "none",
             padding: "6px 12px", borderRadius: 6,
           }}>
             Sign In
@@ -102,7 +106,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             fontWeight: 700, padding: "8px 16px", borderRadius: 6,
             textDecoration: "none", marginLeft: 4,
           }}>
-            Submit a Vessel
+            Estimate my vessel →
           </Link>
         </div>
       </nav>

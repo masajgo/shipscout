@@ -1,20 +1,20 @@
 "use client";
 import Link from "next/link";
+import { useState } from "react";
 
 const NAVY  = "#07122E";
 const GOLD  = "#C9A84C";
-const GREEN = "#0D6E54";
 const SERIF = "var(--font-serif), Georgia, serif";
 
 const TICKER = [
-  { flag: "PA", vessel: "MV OCEAN PIONEER",  signal: "DETENTION", color: "#F97316", location: "Rotterdam"      },
-  { flag: "MH", vessel: "MT SILVER STRAIT",   signal: "ARREST",    color: "#EF4444", location: "Singapore"      },
-  { flag: "CY", vessel: "MV EASTERN WIND",    signal: "LAYUP",     color: "#60A5FA", location: "Fujairah"       },
-  { flag: "GR", vessel: "MV ATHENA GLORY",    signal: "DETENTION", color: "#F97316", location: "Hamburg"        },
-  { flag: "LR", vessel: "MT BLACK SEA STAR",  signal: "SANCTION",  color: "#A78BFA", location: "OFAC SDN"       },
-  { flag: "BZ", vessel: "MV PACIFIC TRADER",  signal: "AUCTION",   color: "#FBBF24", location: "Admiralty Court"},
-  { flag: "TR", vessel: "MV BOSPHORUS ACE",   signal: "ARREST",    color: "#EF4444", location: "Istanbul"       },
-  { flag: "SG", vessel: "MT CORAL SEA",       signal: "DETENTION", color: "#F97316", location: "Port Klang"     },
+  { flag: "PA", vessel: "MV OCEAN PIONEER",  signal: "DETENTION", color: "#F97316", location: "Rotterdam"       },
+  { flag: "MH", vessel: "MT SILVER STRAIT",   signal: "ARREST",    color: "#EF4444", location: "Singapore"       },
+  { flag: "CY", vessel: "MV EASTERN WIND",    signal: "LAYUP",     color: "#60A5FA", location: "Fujairah"        },
+  { flag: "GR", vessel: "MV ATHENA GLORY",    signal: "DETENTION", color: "#F97316", location: "Hamburg"         },
+  { flag: "LR", vessel: "MT BLACK SEA STAR",  signal: "SANCTION",  color: "#A78BFA", location: "OFAC SDN"        },
+  { flag: "BZ", vessel: "MV PACIFIC TRADER",  signal: "AUCTION",   color: "#FBBF24", location: "Admiralty Court" },
+  { flag: "TR", vessel: "MV BOSPHORUS ACE",   signal: "ARREST",    color: "#EF4444", location: "Istanbul"        },
+  { flag: "SG", vessel: "MT CORAL SEA",       signal: "DETENTION", color: "#F97316", location: "Port Klang"      },
 ];
 
 const RADAR_ROWS = [
@@ -24,11 +24,103 @@ const RADAR_ROWS = [
   { flag: "GR", name: "MV ATHENA GLORY",   imo: "9345678", type: "Tanker",        signal: "DETENTION", sColor: "#FED7AA", sBg: "rgba(146,64,14,0.4)",  score: 731, days: 8  },
 ];
 
-const HOW = [
-  { n: "01", title: "AI detects",  body: "Machine learning flags idle vessels from AIS. AI extracts arrest and detention events from court records within hours of the event." },
-  { n: "02", title: "We trace",    body: "Equasis ownership chain resolved to ISM manager. Email enriched via Hunter.io and SMTP-verified — ready to send." },
-  { n: "03", title: "You contact", body: "Full owner details delivered to your dashboard. You reach the owner days before the vessel appears on any public market." },
+const STEPS = [
+  {
+    n: "01", title: "Find",
+    body: "Our AI monitors 81,000+ vessels around the clock. Arrests, detentions, layups, sanctions — flagged within hours, long before they appear on any public market.",
+  },
+  {
+    n: "02", title: "Negotiate",
+    body: "We reach verified owners directly. Represent you in price negotiation backed by live scrap benchmarks and market data. No middlemen, no guesswork.",
+  },
+  {
+    n: "03", title: "Escrow",
+    body: "Funds held securely before title transfer. Full documentation and legal compliance handled end-to-end. Zero exposure for buyer or seller.",
+  },
+  {
+    n: "04", title: "Close",
+    body: "Deal done. Title transferred. No upfront fees — we earn only when you do. Every incentive aligned from first contact to final handshake.",
+  },
 ];
+
+function ContactForm() {
+  const [form, setForm]   = useState({ name: "", company: "", email: "", intent: "Buy", message: "" });
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setStatus("sending");
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      setStatus(res.ok ? "sent" : "error");
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  if (status === "sent") {
+    return (
+      <div style={{ textAlign: "center", padding: "48px 0" }}>
+        <div style={{ fontFamily: SERIF, fontSize: 28, fontWeight: 700, color: NAVY, marginBottom: 12 }}>
+          Message received.
+        </div>
+        <p style={{ fontSize: 15, color: "#64748B" }}>We'll be in touch within one business day.</p>
+      </div>
+    );
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", padding: "11px 14px", fontSize: 14,
+    border: "1px solid #E2E8F0", borderRadius: 7, outline: "none",
+    color: "#0F172A", background: "#fff", boxSizing: "border-box",
+  };
+
+  return (
+    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <input required placeholder="Your name" value={form.name}
+          onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+          style={inputStyle} />
+        <input placeholder="Company" value={form.company}
+          onChange={e => setForm(f => ({ ...f, company: e.target.value }))}
+          style={inputStyle} />
+      </div>
+      <input required type="email" placeholder="Email address" value={form.email}
+        onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+        style={inputStyle} />
+      <select value={form.intent}
+        onChange={e => setForm(f => ({ ...f, intent: e.target.value }))}
+        style={{ ...inputStyle, color: form.intent ? "#0F172A" : "#94A3B8" }}>
+        <option value="Buy">I want to buy a vessel</option>
+        <option value="Sell">I want to sell a vessel</option>
+        <option value="Both">Buy and sell</option>
+        <option value="General">General inquiry</option>
+      </select>
+      <textarea placeholder="Tell us about your deal — vessel type, size, timeline, budget…"
+        value={form.message} rows={4}
+        onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
+        style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }} />
+      <button type="submit" disabled={status === "sending"} style={{
+        background: NAVY, color: "#fff", border: "none",
+        padding: "13px 28px", borderRadius: 7, fontSize: 15, fontWeight: 700,
+        cursor: status === "sending" ? "not-allowed" : "pointer",
+        opacity: status === "sending" ? 0.7 : 1,
+        alignSelf: "flex-start",
+      }}>
+        {status === "sending" ? "Sending…" : "Start a deal →"}
+      </button>
+      {status === "error" && (
+        <p style={{ fontSize: 13, color: "#EF4444", margin: 0 }}>
+          Something went wrong — email us directly at info@turqomarine.com
+        </p>
+      )}
+    </form>
+  );
+}
 
 export default function HomePage() {
   const tickerItems = [...TICKER, ...TICKER];
@@ -46,7 +138,7 @@ export default function HomePage() {
 
       <div style={{ fontFamily: "system-ui, -apple-system, sans-serif", color: "#0F172A" }}>
 
-        {/* ── HERO ──────────────────────────────────────────────────────────── */}
+        {/* ── HERO ─────────────────────────────────────────────────────────────── */}
         <section style={{
           background: `radial-gradient(ellipse at 25% 60%, #0d1f4a 0%, ${NAVY} 65%)`,
           padding: "80px 40px 72px",
@@ -61,7 +153,7 @@ export default function HomePage() {
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 40 }}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: GOLD }} />
                 <span style={{ fontSize: 11, fontWeight: 600, color: "rgba(201,168,76,0.75)", letterSpacing: "0.12em", textTransform: "uppercase" }}>
-                  Live · 1,843 active distress signals
+                  Full-service maritime brokerage
                 </span>
               </div>
 
@@ -69,39 +161,35 @@ export default function HomePage() {
                 fontFamily: SERIF,
                 fontSize: "clamp(38px, 5vw, 64px)",
                 fontWeight: 700, color: "#fff",
-                lineHeight: 1.07, margin: "0 0 16px",
+                lineHeight: 1.07, margin: "0 0 24px",
                 letterSpacing: -1.5,
               }}>
-                Maritime intelligence.<br />
-                <span style={{ color: GOLD }}>Before anyone else.</span>
+                We find it.<br />
+                <span style={{ color: GOLD }}>We close it.</span>
               </h1>
 
-              <p style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.32)", margin: "0 0 24px", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                Buy first. Sell on your terms.
-              </p>
-
               <p style={{ fontSize: 16, color: "rgba(255,255,255,0.55)", lineHeight: 1.8, marginBottom: 40, maxWidth: 420 }}>
-                AI monitors 81,000+ vessels around the clock for PSC detentions, court arrests,
-                layups, and sanctions — with verified owner contacts delivered before anyone else moves.
+                AI-powered vessel sourcing, direct owner negotiation, and escrow — handled
+                start to finish. No upfront fees. We earn when you close.
               </p>
 
               <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap", marginBottom: 36 }}>
-                <Link href="/opportunities" style={{
+                <a href="#contact" style={{
                   display: "inline-block", background: GOLD, color: NAVY,
                   padding: "14px 30px", borderRadius: 8, fontWeight: 700, fontSize: 15, textDecoration: "none",
                 }}>
-                  Access the Radar →
-                </Link>
+                  Start a deal →
+                </a>
                 <Link href="/shipowners" style={{
                   fontSize: 14, color: "rgba(255,255,255,0.42)", textDecoration: "none",
                   borderBottom: "1px solid rgba(255,255,255,0.15)", paddingBottom: 2,
                 }}>
-                  I'm selling a vessel
+                  Estimate my vessel
                 </Link>
               </div>
 
               <p style={{ fontSize: 13, color: "rgba(255,255,255,0.28)", lineHeight: 1.6 }}>
-                Used by recycling yards in Aliağa, cash buyers in Piraeus, Singapore, and across Asia.
+                Trusted by recycling yards in Aliağa, cash buyers in Piraeus, Singapore, and Dubai.
               </p>
             </div>
 
@@ -114,7 +202,6 @@ export default function HomePage() {
                 boxShadow: "0 40px 100px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06)",
                 transform: "perspective(1400px) rotateY(-6deg) rotateX(2deg)",
               }}>
-                {/* Browser chrome */}
                 <div style={{
                   background: "#05090F",
                   padding: "10px 14px",
@@ -139,7 +226,6 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Table header */}
                 <div style={{
                   display: "grid", gridTemplateColumns: "48px 1fr 110px 72px 60px",
                   padding: "8px 16px", borderBottom: "1px solid rgba(255,255,255,0.04)",
@@ -150,7 +236,6 @@ export default function HomePage() {
                   ))}
                 </div>
 
-                {/* Rows */}
                 {RADAR_ROWS.map((row, i) => (
                   <div key={row.imo} style={{
                     display: "grid", gridTemplateColumns: "48px 1fr 110px 72px 60px",
@@ -170,8 +255,7 @@ export default function HomePage() {
                     <span style={{
                       fontSize: 9, fontWeight: 700, letterSpacing: "0.07em",
                       background: row.sBg, color: row.sColor,
-                      padding: "3px 7px", borderRadius: 3,
-                      display: "inline-block",
+                      padding: "3px 7px", borderRadius: 3, display: "inline-block",
                     }}>{row.signal}</span>
                     <span style={{ fontFamily: SERIF, fontSize: 20, fontWeight: 700, color: GOLD }}>{row.score}</span>
                     <span style={{ fontSize: 11, color: "rgba(255,255,255,0.28)" }}>{row.days}d</span>
@@ -192,7 +276,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── TICKER ──────────────────────────────────────────────────────────── */}
+        {/* ── TICKER ───────────────────────────────────────────────────────────── */}
         <div style={{
           background: "#050C1A",
           borderTop: "1px solid rgba(255,255,255,0.05)",
@@ -212,52 +296,26 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* ── SOCIAL PROOF ────────────────────────────────────────────────────── */}
-        <section style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", padding: "18px 40px" }}>
-          <div style={{ maxWidth: 1140, margin: "0 auto", display: "flex", alignItems: "center", gap: 32, flexWrap: "wrap", justifyContent: "center" }}>
-            <span style={{ fontSize: 12, color: "#94A3B8", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-              Trusted by maritime professionals in
-            </span>
-            {["Aliağa", "Piraeus", "Singapore", "Istanbul", "Hamburg"].map((city, i, arr) => (
-              <span key={city} style={{ display: "flex", alignItems: "center", gap: 32 }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#475569" }}>{city}</span>
-                {i < arr.length - 1 && <span style={{ color: "#E2E8F0" }}>·</span>}
-              </span>
-            ))}
-          </div>
-        </section>
-
-        {/* ── STATS ───────────────────────────────────────────────────────────── */}
-        <section style={{ background: "#fff", padding: "52px 40px", borderBottom: "1px solid #E2E8F0" }}>
-          <div style={{ maxWidth: 900, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(4, 1fr)" }}>
-            {[
-              { value: "81,000+", label: "Vessels tracked" },
-              { value: "1,843+",  label: "Radar events" },
-              { value: "$420",    label: "Aliağa $/LDT" },
-              { value: "6",       label: "Data sources" },
-            ].map((s, i) => (
-              <div key={s.label} style={{
-                textAlign: "center", padding: "0 24px",
-                borderRight: i < 3 ? "1px solid #E2E8F0" : "none",
-              }}>
-                <div style={{ fontFamily: SERIF, fontSize: "clamp(32px, 4vw, 48px)", fontWeight: 700, color: NAVY, lineHeight: 1 }}>{s.value}</div>
-                <div style={{ fontSize: 13, color: "#94A3B8", marginTop: 8 }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── HOW IT WORKS ────────────────────────────────────────────────────── */}
-        <section style={{ background: "#F8FAFC", padding: "88px 40px", borderBottom: "1px solid #E2E8F0" }}>
-          <div style={{ maxWidth: 960, margin: "0 auto" }}>
-            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GOLD, textTransform: "uppercase", marginBottom: 52 }}>
-              How It Works
+        {/* ── 4 STEPS ──────────────────────────────────────────────────────────── */}
+        <section style={{ background: "#F8FAFC", padding: "96px 40px", borderBottom: "1px solid #E2E8F0" }}>
+          <div style={{ maxWidth: 1060, margin: "0 auto" }}>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GOLD, textTransform: "uppercase", marginBottom: 16 }}>
+              How We Work
             </p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 56 }}>
-              {HOW.map(s => (
-                <div key={s.n}>
-                  <div style={{ fontFamily: SERIF, fontSize: 56, fontWeight: 700, color: "#E2E8F0", lineHeight: 1, marginBottom: 20, userSelect: "none" }}>{s.n}</div>
-                  <div style={{ fontSize: 17, fontWeight: 700, color: NAVY, marginBottom: 10 }}>{s.title}</div>
+            <h2 style={{ fontFamily: SERIF, fontSize: "clamp(26px, 3vw, 40px)", fontWeight: 700, color: NAVY, margin: "0 0 64px", lineHeight: 1.2 }}>
+              One team. Start to close.
+            </h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 40 }}>
+              {STEPS.map((s, i) => (
+                <div key={s.n} style={{ position: "relative" }}>
+                  {i < STEPS.length - 1 && (
+                    <div style={{
+                      position: "absolute", top: 28, left: "calc(100% - 20px)", width: 40,
+                      height: 1, background: "#E2E8F0", zIndex: 0,
+                    }} />
+                  )}
+                  <div style={{ fontFamily: SERIF, fontSize: 48, fontWeight: 700, color: "#E2E8F0", lineHeight: 1, marginBottom: 16, userSelect: "none" }}>{s.n}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: NAVY, marginBottom: 12 }}>{s.title}</div>
                   <div style={{ fontSize: 14, color: "#64748B", lineHeight: 1.75 }}>{s.body}</div>
                 </div>
               ))}
@@ -265,7 +323,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── COMPARISON ──────────────────────────────────────────────────────── */}
+        {/* ── COMPARISON ───────────────────────────────────────────────────────── */}
         <section style={{ background: NAVY, padding: "88px 40px" }}>
           <div style={{ maxWidth: 860, margin: "0 auto" }}>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GOLD, textTransform: "uppercase", marginBottom: 16 }}>
@@ -275,7 +333,6 @@ export default function HomePage() {
               The old way leaves money on the table.
             </h2>
 
-            {/* Column headers */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 0, marginBottom: 0 }}>
               <div />
               <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "0.12em", textTransform: "uppercase", paddingBottom: 16, borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
@@ -311,45 +368,36 @@ export default function HomePage() {
                 </div>
               </div>
             ))}
-
-            <div style={{ marginTop: 48 }}>
-              <Link href="/shipowners" style={{
-                display: "inline-block", background: GOLD, color: NAVY,
-                padding: "13px 28px", borderRadius: 8, fontSize: 14, fontWeight: 700, textDecoration: "none",
-              }}>
-                Start a deal →
-              </Link>
-            </div>
           </div>
         </section>
 
-        {/* ── PHOTO BREAK ─────────────────────────────────────────────────────── */}
+        {/* ── PHOTO BREAK ──────────────────────────────────────────────────────── */}
         <div style={{
           height: 380,
-          backgroundImage: `linear-gradient(to bottom, #F8FAFC 0%, transparent 18%, transparent 78%, ${NAVY} 100%), url(/hero-ship.jpg)`,
+          backgroundImage: `linear-gradient(to bottom, ${NAVY} 0%, transparent 18%, transparent 78%, #F8FAFC 100%), url(/hero-ship.jpg)`,
           backgroundSize: "cover",
           backgroundPosition: "center 40%",
         }} />
 
-        {/* ── BUYER / SELLER SPLIT ────────────────────────────────────────────── */}
+        {/* ── BUYER / SELLER SPLIT ─────────────────────────────────────────────── */}
         <section style={{ display: "flex", flexWrap: "wrap" }}>
           <div style={{ flex: "1 1 300px", background: NAVY, padding: "72px 56px", borderRight: "1px solid rgba(255,255,255,0.05)" }}>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GOLD, textTransform: "uppercase", marginBottom: 20 }}>
               For Cash Buyers & Recycling Yards
             </p>
             <h2 style={{ fontFamily: SERIF, fontSize: "clamp(22px, 2.5vw, 32px)", fontWeight: 700, color: "#fff", margin: "0 0 20px", lineHeight: 1.25 }}>
-              The intelligence edge for distressed vessel transactions.
+              Buy before the market does.
             </h2>
             <p style={{ fontSize: 15, color: "rgba(255,255,255,0.5)", lineHeight: 1.8, marginBottom: 36 }}>
-              1,843+ live signals filtered by type, age, flag, and proximity to scrap yards.
-              Full Equasis ownership chain — manager email, phone, LinkedIn — verified and ready.
+              We monitor 1,800+ live distress signals — arrests, detentions, layups, sanctions.
+              When a vessel is ready to move, we bring it to you before it reaches any public listing.
             </p>
-            <Link href="/opportunities" style={{
+            <a href="#contact" style={{
               display: "inline-block", background: GOLD, color: NAVY,
               padding: "13px 26px", borderRadius: 8, fontSize: 14, fontWeight: 700, textDecoration: "none",
             }}>
-              See Live Opportunities →
-            </Link>
+              Start buying →
+            </a>
           </div>
 
           <div style={{ flex: "1 1 300px", background: "#071E14", padding: "72px 56px" }}>
@@ -357,49 +405,86 @@ export default function HomePage() {
               For Shipowners
             </p>
             <h2 style={{ fontFamily: SERIF, fontSize: "clamp(22px, 2.5vw, 32px)", fontWeight: 700, color: "#fff", margin: "0 0 20px", lineHeight: 1.25 }}>
-              Your vessel. Your terms.<br />No public exposure.
+              Sell on your terms.<br />No public exposure.
             </h2>
             <p style={{ fontSize: 15, color: "rgba(255,255,255,0.5)", lineHeight: 1.8, marginBottom: 36 }}>
-              Enter your IMO for a free indicative estimate based on current Aliağa benchmarks.
-              Confidential — nothing is listed or disclosed without your explicit approval.
+              We find the right buyer from our network, negotiate the best price, and manage
+              escrow. Confidential from start to close — nothing disclosed without your approval.
             </p>
             <Link href="/shipowners" style={{
               display: "inline-block", background: "rgba(255,255,255,0.09)", color: "#fff",
               border: "1px solid rgba(255,255,255,0.18)",
               padding: "13px 26px", borderRadius: 8, fontSize: 14, fontWeight: 700, textDecoration: "none",
             }}>
-              Estimate my vessel →
+              Get a free estimate →
             </Link>
           </div>
         </section>
 
-        {/* ── WEEKLY INTEL ────────────────────────────────────────────────────── */}
-        <section style={{ background: "#fff", padding: "80px 40px", borderTop: "1px solid #E2E8F0" }}>
-          <div style={{ maxWidth: 640, margin: "0 auto" }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 14, marginBottom: 20 }}>
-              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.16em", color: GOLD, textTransform: "uppercase", margin: 0 }}>
-                ShipScout Weekly
+        {/* ── NO UPFRONT FEES ──────────────────────────────────────────────────── */}
+        <section style={{ background: "#F8FAFC", padding: "88px 40px", borderTop: "1px solid #E2E8F0" }}>
+          <div style={{ maxWidth: 860, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 80, alignItems: "center" }}>
+            <div>
+              <h2 style={{ fontFamily: SERIF, fontSize: "clamp(30px, 3.5vw, 48px)", fontWeight: 700, color: NAVY, margin: "0 0 20px", lineHeight: 1.1 }}>
+                No upfront fees.<br />Ever.
+              </h2>
+              <p style={{ fontSize: 16, color: "#64748B", lineHeight: 1.8, margin: "0 0 32px" }}>
+                We earn when you close. That means every call we make, every owner we track down,
+                every negotiation we run — is on us until you have a signed deal.
               </p>
-              <span style={{ fontSize: 12, color: "#CBD5E1" }}>Every Monday</span>
+              <a href="#contact" style={{
+                display: "inline-block", background: NAVY, color: "#fff",
+                padding: "13px 28px", borderRadius: 8, fontSize: 14, fontWeight: 700, textDecoration: "none",
+              }}>
+                Talk to us →
+              </a>
             </div>
-            <h2 style={{ fontFamily: SERIF, fontSize: "clamp(22px, 2.8vw, 34px)", fontWeight: 700, color: NAVY, margin: "0 0 16px", lineHeight: 1.25 }}>
-              Maritime intelligence for people who need to act on it.
-            </h2>
-            <p style={{ fontSize: 15, color: "#64748B", margin: "0 0 32px", lineHeight: 1.8 }}>
-              Arrests, detentions, sanctions, and auctions — AI-curated, classified, and matched
-              to vessel records. AI-written lead story with vessel photos and owner context.
-              Delivered every Monday morning.
-            </p>
-            <Link href="/weekly" style={{
-              fontSize: 15, fontWeight: 700, color: NAVY, textDecoration: "none",
-              borderBottom: `1px solid ${NAVY}`, paddingBottom: 2,
-            }}>
-              Read latest issue →
-            </Link>
+            <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+              {[
+                { label: "Confidential",    desc: "Nothing shared or disclosed without your explicit approval." },
+                { label: "Verified",        desc: "Every owner contact is SMTP-verified and Equasis-sourced." },
+                { label: "End-to-end",      desc: "We stay in the deal from first signal to final transfer." },
+              ].map(({ label, desc }) => (
+                <div key={label} style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
+                  <div style={{ width: 3, height: 44, background: GOLD, borderRadius: 2, flexShrink: 0, marginTop: 2 }} />
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: NAVY, marginBottom: 4 }}>{label}</div>
+                    <div style={{ fontSize: 14, color: "#64748B", lineHeight: 1.6 }}>{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
-        {/* ── FOOTER ──────────────────────────────────────────────────────────── */}
+        {/* ── CONTACT FORM ─────────────────────────────────────────────────────── */}
+        <section id="contact" style={{ background: "#fff", padding: "88px 40px", borderTop: "1px solid #E2E8F0" }}>
+          <div style={{ maxWidth: 860, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 80, alignItems: "flex-start" }}>
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GOLD, textTransform: "uppercase", marginBottom: 16 }}>
+                Start a Deal
+              </p>
+              <h2 style={{ fontFamily: SERIF, fontSize: "clamp(26px, 3vw, 38px)", fontWeight: 700, color: NAVY, margin: "0 0 20px", lineHeight: 1.2 }}>
+                Tell us what you're looking for.
+              </h2>
+              <p style={{ fontSize: 15, color: "#64748B", lineHeight: 1.8, margin: "0 0 32px" }}>
+                Bulk carrier, tanker, general cargo — any vessel type, any size.
+                We'll come back to you within one business day with a plan.
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {[
+                  "info@turqomarine.com",
+                  "+90 (232) — Aliağa office",
+                ].map(line => (
+                  <span key={line} style={{ fontSize: 14, color: "#94A3B8" }}>{line}</span>
+                ))}
+              </div>
+            </div>
+            <ContactForm />
+          </div>
+        </section>
+
+        {/* ── FOOTER ───────────────────────────────────────────────────────────── */}
         <footer style={{ background: NAVY, borderTop: "1px solid rgba(255,255,255,0.06)", padding: "32px 40px" }}>
           <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
             <span style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 700, color: "#fff" }}>
@@ -408,9 +493,8 @@ export default function HomePage() {
             <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
               {([
                 ["Opportunities", "/opportunities"],
-                ["Weekly",        "/weekly"],
-                ["Vessels",       "/vessels"],
                 ["Shipowners",    "/shipowners"],
+                ["How It Works",  "/how-it-works"],
                 ["Contact",       "mailto:info@turqomarine.com"],
               ] as [string, string][]).map(([label, href]) => (
                 <Link key={label} href={href} style={{ fontSize: 13, color: "rgba(255,255,255,0.32)", textDecoration: "none" }}>

@@ -265,6 +265,64 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ── COMPARISON ──────────────────────────────────────────────────────── */}
+        <section style={{ background: NAVY, padding: "88px 40px" }}>
+          <div style={{ maxWidth: 860, margin: "0 auto" }}>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GOLD, textTransform: "uppercase", marginBottom: 16 }}>
+              Why ShipScout
+            </p>
+            <h2 style={{ fontFamily: SERIF, fontSize: "clamp(26px, 3vw, 40px)", fontWeight: 700, color: "#fff", margin: "0 0 56px", lineHeight: 1.2 }}>
+              The old way leaves money on the table.
+            </h2>
+
+            {/* Column headers */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 0, marginBottom: 0 }}>
+              <div />
+              <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "0.12em", textTransform: "uppercase", paddingBottom: 16, borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                Traditional Broker
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: GOLD, letterSpacing: "0.12em", textTransform: "uppercase", paddingBottom: 16, paddingLeft: 24, borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                ShipScout
+              </div>
+            </div>
+
+            {[
+              { cat: "Market reach",   old: "Own network & public listings",       neo: "81,000+ vessels monitored globally" },
+              { cat: "Speed",          old: "Weeks to find a suitable vessel",     neo: "Signals within hours of the incident" },
+              { cat: "Intelligence",   old: "Phone calls and industry gut feel",   neo: "AI + Equasis ownership chain, verified" },
+              { cat: "Timing",         old: "After it hits the public market",     neo: "Before anyone else knows it's available" },
+              { cat: "Fees",           old: "Commission both sides, no clarity",   neo: "No upfront fees — we earn when you close" },
+              { cat: "Deal support",   old: "Introduce parties and step away",     neo: "Find → Negotiate → Escrow → Close" },
+            ].map(({ cat, old, neo }) => (
+              <div key={cat} style={{
+                display: "grid", gridTemplateColumns: "1fr 1fr 1fr",
+                gap: 0, padding: "20px 0",
+                borderBottom: "1px solid rgba(255,255,255,0.05)",
+                alignItems: "center",
+              }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.35)", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                  {cat}
+                </div>
+                <div style={{ fontSize: 14, color: "rgba(255,255,255,0.28)", lineHeight: 1.5 }}>
+                  {old}
+                </div>
+                <div style={{ fontSize: 14, color: "#fff", lineHeight: 1.5, paddingLeft: 24, borderLeft: `2px solid ${GOLD}` }}>
+                  {neo}
+                </div>
+              </div>
+            ))}
+
+            <div style={{ marginTop: 48 }}>
+              <Link href="/shipowners" style={{
+                display: "inline-block", background: GOLD, color: NAVY,
+                padding: "13px 28px", borderRadius: 8, fontSize: 14, fontWeight: 700, textDecoration: "none",
+              }}>
+                Start a deal →
+              </Link>
+            </div>
+          </div>
+        </section>
+
         {/* ── PHOTO BREAK ─────────────────────────────────────────────────────── */}
         <div style={{
           height: 380,

@@ -323,6 +323,137 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ── CHAIN VISUAL ─────────────────────────────────────────────────────── */}
+        <section style={{ background: "#fff", padding: "88px 40px", borderBottom: "1px solid #E2E8F0" }}>
+          <div style={{ maxWidth: 980, margin: "0 auto" }}>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GOLD, textTransform: "uppercase", marginBottom: 16 }}>
+              The difference
+            </p>
+            <h2 style={{ fontFamily: SERIF, fontSize: "clamp(26px, 3vw, 40px)", fontWeight: 700, color: NAVY, margin: "0 0 72px", lineHeight: 1.2 }}>
+              We cut out the chain.
+            </h2>
+
+            {/* OLD WAY */}
+            <div style={{ marginBottom: 64 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 28 }}>
+                The old way — 3 to 4 commissions
+              </div>
+              <div style={{ display: "flex", alignItems: "center", overflowX: "auto", paddingBottom: 8 }}>
+                {/* Seller */}
+                <div style={{ flexShrink: 0, border: "1.5px solid #CBD5E1", borderRadius: 10, padding: "12px 20px", background: "#F8FAFC", textAlign: "center", minWidth: 90 }}>
+                  <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Seller</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>Shipowner</div>
+                </div>
+
+                {/* Arrow 1 */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0, margin: "0 2px" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", marginBottom: 4 }}>1%</div>
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <div style={{ width: 32, height: 1.5, background: "#E2E8F0" }} />
+                    <div style={{ width: 0, height: 0, borderTop: "5px solid transparent", borderBottom: "5px solid transparent", borderLeft: "7px solid #E2E8F0" }} />
+                  </div>
+                </div>
+
+                {/* Broker 1 */}
+                <div style={{ flexShrink: 0, border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "12px 20px", background: "#FAFAFA", textAlign: "center", minWidth: 110 }}>
+                  <div style={{ fontSize: 10, color: "#CBD5E1", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Selling broker</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#9CA3AF" }}>Commission</div>
+                </div>
+
+                {/* Arrow 2 */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0, margin: "0 2px" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", marginBottom: 4 }}>1%</div>
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <div style={{ width: 32, height: 1.5, background: "#E2E8F0" }} />
+                    <div style={{ width: 0, height: 0, borderTop: "5px solid transparent", borderBottom: "5px solid transparent", borderLeft: "7px solid #E2E8F0" }} />
+                  </div>
+                </div>
+
+                {/* Broker 2 */}
+                <div style={{ flexShrink: 0, border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "12px 20px", background: "#FAFAFA", textAlign: "center", minWidth: 110 }}>
+                  <div style={{ fontSize: 10, color: "#CBD5E1", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Sub-broker</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#9CA3AF" }}>Commission</div>
+                </div>
+
+                {/* Arrow 3 */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0, margin: "0 2px" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", marginBottom: 4 }}>1%</div>
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <div style={{ width: 32, height: 1.5, background: "#E2E8F0" }} />
+                    <div style={{ width: 0, height: 0, borderTop: "5px solid transparent", borderBottom: "5px solid transparent", borderLeft: "7px solid #E2E8F0" }} />
+                  </div>
+                </div>
+
+                {/* Broker 3 */}
+                <div style={{ flexShrink: 0, border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "12px 20px", background: "#FAFAFA", textAlign: "center", minWidth: 110 }}>
+                  <div style={{ fontSize: 10, color: "#CBD5E1", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Buying broker</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#9CA3AF" }}>Commission</div>
+                </div>
+
+                {/* Arrow 4 */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0, margin: "0 2px" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", marginBottom: 4 }}>0.5%</div>
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <div style={{ width: 32, height: 1.5, background: "#E2E8F0" }} />
+                    <div style={{ width: 0, height: 0, borderTop: "5px solid transparent", borderBottom: "5px solid transparent", borderLeft: "7px solid #E2E8F0" }} />
+                  </div>
+                </div>
+
+                {/* Buyer */}
+                <div style={{ flexShrink: 0, border: "1.5px solid #CBD5E1", borderRadius: 10, padding: "12px 20px", background: "#F8FAFC", textAlign: "center", minWidth: 90 }}>
+                  <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Buyer</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>Cash buyer</div>
+                </div>
+              </div>
+              <div style={{ marginTop: 20, display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#EF4444", flexShrink: 0 }} />
+                <span style={{ fontSize: 13, color: "#EF4444", fontWeight: 600 }}>
+                  3.5%+ total commission lost across the chain — on a $10M vessel, that's $350,000.
+                </span>
+              </div>
+            </div>
+
+            {/* SHIPSCOUT WAY */}
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: GOLD, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 28 }}>
+                ShipScout — direct
+              </div>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                {/* Seller */}
+                <div style={{ flexShrink: 0, border: `2px solid ${NAVY}`, borderRadius: 10, padding: "12px 20px", background: "#fff", textAlign: "center", minWidth: 90 }}>
+                  <div style={{ fontSize: 10, color: "#64748B", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Seller</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: NAVY }}>Shipowner</div>
+                </div>
+
+                {/* Line left */}
+                <div style={{ flex: 1, height: 2, background: `linear-gradient(to right, ${NAVY}, ${GOLD})`, maxWidth: 120 }} />
+
+                {/* ShipScout node */}
+                <div style={{ flexShrink: 0, border: `2px solid ${GOLD}`, borderRadius: 10, padding: "14px 28px", background: NAVY, textAlign: "center" }}>
+                  <div style={{ fontSize: 10, color: "rgba(201,168,76,0.7)", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>Direct broker</div>
+                  <div style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 700, color: GOLD }}>ShipScout</div>
+                </div>
+
+                {/* Line right */}
+                <div style={{ flex: 1, height: 2, background: `linear-gradient(to right, ${GOLD}, ${NAVY})`, maxWidth: 120 }} />
+
+                {/* Buyer */}
+                <div style={{ flexShrink: 0, border: `2px solid ${NAVY}`, borderRadius: 10, padding: "12px 20px", background: "#fff", textAlign: "center", minWidth: 90 }}>
+                  <div style={{ fontSize: 10, color: "#64748B", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Buyer</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: NAVY }}>Cash buyer</div>
+                </div>
+              </div>
+              <div style={{ marginTop: 20, display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#059669", flexShrink: 0 }} />
+                <span style={{ fontSize: 13, color: "#059669", fontWeight: 600 }}>
+                  One party. One fee. Full deal support from first signal to final transfer.
+                </span>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
         {/* ── COMPARISON ───────────────────────────────────────────────────────── */}
         <section style={{ background: NAVY, padding: "88px 40px" }}>
           <div style={{ maxWidth: 860, margin: "0 auto" }}>

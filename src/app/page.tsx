@@ -58,12 +58,12 @@ export default function HomePage() {
             </h1>
 
             <p style={{
-              fontFamily: SERIF,
-              fontSize: "clamp(18px, 2vw, 24px)",
-              fontWeight: 700,
-              color: "rgba(255,255,255,0.9)",
+              fontSize: 14,
+              fontWeight: 500,
+              color: "rgba(255,255,255,0.38)",
               margin: "0 0 28px",
-              letterSpacing: 0.2,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
             }}>
               Buy first. Sell on your terms.
             </p>
@@ -279,7 +279,7 @@ export default function HomePage() {
                 borderBottom: i < 3 ? "1px solid rgba(255,255,255,0.05)" : "none",
               }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 5 }}>{title}</div>
-                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.38)", lineHeight: 1.65 }}>{body}</div>
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", lineHeight: 1.65 }}>{body}</div>
               </div>
             ))}
           </div>
@@ -289,23 +289,6 @@ export default function HomePage() {
       {/* ── FOR SELLERS ──────────────────────────────────────────────────────── */}
       <section style={{ background: "#fff", padding: "88px 24px", borderTop: "1px solid #E2E8F0" }}>
         <div style={{ maxWidth: 860, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 72, alignItems: "start" }}>
-          <div style={{ paddingTop: 4 }}>
-            {[
-              ["Confidential by design",    "No public listing is ever created. Your vessel and identity stay private throughout."],
-              ["Real market pricing",        "Estimates based on live Aliağa $/LDT benchmarks, not broker guesswork."],
-              ["Verified buyers in Turkey",  "Active recycling yards in Aliağa with capital ready to deploy on the right vessel."],
-              ["No obligation at any stage", "Review indicative offers, decide to proceed or not. No commitment required."],
-            ].map(([title, body], i) => (
-              <div key={title} style={{
-                paddingBottom: 22, marginBottom: 22,
-                borderBottom: i < 3 ? "1px solid #F1F5F9" : "none",
-              }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: NAVY, marginBottom: 5 }}>{title}</div>
-                <div style={{ fontSize: 13, color: "#94A3B8", lineHeight: 1.65 }}>{body}</div>
-              </div>
-            ))}
-          </div>
-
           <div>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GREEN, textTransform: "uppercase", marginBottom: 20 }}>
               For Shipowners
@@ -325,62 +308,48 @@ export default function HomePage() {
               Estimate my vessel →
             </Link>
           </div>
+
+          <div style={{ paddingTop: 4 }}>
+            {[
+              ["Confidential by design",    "No public listing is ever created. Your vessel and identity stay private throughout."],
+              ["Real market pricing",        "Estimates based on live Aliağa $/LDT benchmarks, not broker guesswork."],
+              ["Verified buyers in Turkey",  "Active recycling yards in Aliağa with capital ready to deploy on the right vessel."],
+              ["No obligation at any stage", "Review indicative offers, decide to proceed or not. No commitment required."],
+            ].map(([title, body], i) => (
+              <div key={title} style={{
+                paddingBottom: 22, marginBottom: 22,
+                borderBottom: i < 3 ? "1px solid #F1F5F9" : "none",
+              }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: NAVY, marginBottom: 5 }}>{title}</div>
+                <div style={{ fontSize: 13, color: "#64748B", lineHeight: 1.65 }}>{body}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* ── WEEKLY INTEL ─────────────────────────────────────────────────────── */}
-      <section style={{ background: NAVY, padding: "80px 24px" }}>
+      <section style={{ background: "#fff", padding: "80px 24px", borderTop: "1px solid #E2E8F0" }}>
         <div style={{ maxWidth: 680, margin: "0 auto" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 14, marginBottom: 20 }}>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.16em", color: GOLD, textTransform: "uppercase", margin: 0 }}>
               ShipScout Weekly
             </p>
-            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.2)" }}>Every Monday</span>
+            <span style={{ fontSize: 12, color: "#CBD5E1" }}>Every Monday</span>
           </div>
-          <h2 style={{ fontFamily: SERIF, fontSize: "clamp(22px, 2.8vw, 34px)", fontWeight: 700, color: "#fff", margin: "0 0 16px", fontStyle: "italic", lineHeight: 1.25 }}>
+          <h2 style={{ fontFamily: SERIF, fontSize: "clamp(22px, 2.8vw, 34px)", fontWeight: 700, color: NAVY, margin: "0 0 16px", fontStyle: "italic", lineHeight: 1.25 }}>
             Maritime intelligence for people who need to act on it.
           </h2>
-          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.45)", margin: "0 0 32px", lineHeight: 1.8 }}>
+          <p style={{ fontSize: 15, color: "#64748B", margin: "0 0 32px", lineHeight: 1.8 }}>
             Arrests, detentions, sanctions, and auctions — curated, classified, and matched
             to vessel records. AI-written lead story with vessel data and owner context.
           </p>
           <Link href="/weekly" style={{
-            fontSize: 15, fontWeight: 700, color: GOLD, textDecoration: "none",
-            borderBottom: "1px solid rgba(201,168,76,0.35)", paddingBottom: 2,
+            fontSize: 15, fontWeight: 700, color: NAVY, textDecoration: "none",
+            borderBottom: `1px solid ${NAVY}`, paddingBottom: 2,
           }}>
             Read latest issue →
           </Link>
-        </div>
-      </section>
-
-      {/* ── FINAL CTA ────────────────────────────────────────────────────────── */}
-      <section style={{
-        backgroundImage: `linear-gradient(to right, rgba(7,18,46,0.97) 0%, rgba(7,18,46,0.97) 52%, rgba(7,18,46,0.45) 100%), url(/hero-ship.jpg)`,
-        backgroundSize: "cover", backgroundPosition: "center",
-        padding: "96px 24px",
-      }}>
-        <div style={{ maxWidth: 1040, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: SERIF, fontSize: "clamp(28px, 4vw, 52px)", fontWeight: 700, color: "#fff", margin: "0 0 16px", fontStyle: "italic", maxWidth: 540, lineHeight: 1.1 }}>
-            Ready to move before the market does?
-          </h2>
-          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.4)", maxWidth: 400, margin: "0 0 44px", lineHeight: 1.8 }}>
-            Whether you're buying or selling, ShipScout gives you the intelligence edge.
-          </p>
-          <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-            <Link href="/opportunities" style={{
-              display: "inline-block", background: GOLD, color: NAVY,
-              padding: "14px 30px", borderRadius: 8, fontWeight: 700, fontSize: 15, textDecoration: "none",
-            }}>
-              See Opportunities →
-            </Link>
-            <Link href="/shipowners" style={{
-              display: "inline-block", color: "rgba(255,255,255,0.6)",
-              border: "1px solid rgba(255,255,255,0.18)",
-              padding: "14px 30px", borderRadius: 8, fontWeight: 600, fontSize: 15, textDecoration: "none",
-            }}>
-              Estimate my vessel →
-            </Link>
-          </div>
         </div>
       </section>
 

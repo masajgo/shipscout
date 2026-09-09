@@ -296,45 +296,32 @@ function ContactCell({ vessel }: { vessel: OpportunityVessel }) {
             {vessel.website.replace(/^https?:\/\//, "")}
           </a>
         )}
-        <div style={{ fontSize: 11, color: "#D1D5DB", fontStyle: "italic" }}>No contact yet</div>
+        <div style={{ fontSize: 11, color: "#D1D5DB" }}>No contact yet</div>
       </div>
     );
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
       {ownerLabel && (
         <div style={{ fontSize: 12, fontWeight: 600, color: "#111827", whiteSpace: "nowrap",
-          overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>
+          overflow: "hidden", textOverflow: "ellipsis", maxWidth: 200 }}>
           {ownerLabel}
         </div>
       )}
-      <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-        {emails[0] && (
-          <a href={`mailto:${emails[0]}`} title={emails[0]} onClick={e => e.stopPropagation()}
-            style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, padding: "3px 8px",
-              borderRadius: 5, background: "#EFF6FF", border: "1px solid #BFDBFE", color: "#1D4ED8",
-              textDecoration: "none", whiteSpace: "nowrap", fontWeight: 600 }}>
-            ✉ Email
-          </a>
-        )}
-        {phones[0] && (
-          <a href={`tel:${phones[0]}`} title={phones[0]} onClick={e => e.stopPropagation()}
-            style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, padding: "3px 8px",
-              borderRadius: 5, background: "#F0FDF4", border: "1px solid #BBF7D0", color: "#15803D",
-              textDecoration: "none", whiteSpace: "nowrap", fontWeight: 600 }}>
-            ☎ Call
-          </a>
-        )}
-        {vessel.linkedin_url && (
-          <a href={vessel.linkedin_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-            style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, padding: "3px 8px",
-              borderRadius: 5, background: "#F0F9FF", border: "1px solid #BAE6FD", color: "#0369A1",
-              textDecoration: "none", whiteSpace: "nowrap" }}>
-            in LinkedIn
-          </a>
-        )}
-      </div>
+      {emails[0] && (
+        <a href={`mailto:${emails[0]}`} title={emails[0]} onClick={e => e.stopPropagation()}
+          style={{ fontSize: 11, color: "#2563EB", textDecoration: "none",
+            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 200 }}>
+          {emails[0]}
+        </a>
+      )}
+      {!emails[0] && phones[0] && (
+        <a href={`tel:${phones[0]}`} title={phones[0]} onClick={e => e.stopPropagation()}
+          style={{ fontSize: 11, color: "#15803D", textDecoration: "none", whiteSpace: "nowrap" }}>
+          {phones[0]}
+        </a>
+      )}
     </div>
   );
 }
@@ -1082,12 +1069,7 @@ export default function OpportunitiesPage() {
                         {v.ldt ? (
                           <div style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>{v.ldt.toLocaleString()} t</div>
                         ) : (
-                          <a href={`/vessel/${v.imo}`} onClick={e => e.stopPropagation()}
-                            style={{ fontSize: 12, color: "#2563EB", fontWeight: 600,
-                              textDecoration: "none", padding: "2px 8px", borderRadius: 4,
-                              background: "#EFF6FF", border: "1px solid #BFDBFE" }}>
-                            Contact →
-                          </a>
+                          <span style={{ fontSize: 12, color: "#D1D5DB" }}>—</span>
                         )}
                       </td>
 

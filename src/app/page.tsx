@@ -70,7 +70,7 @@ export default function HomePage() {
                 fontSize: "clamp(38px, 5vw, 64px)",
                 fontWeight: 700, color: "#fff",
                 lineHeight: 1.07, margin: "0 0 16px",
-                fontStyle: "italic", letterSpacing: -1.5,
+                letterSpacing: -1.5,
               }}>
                 Maritime intelligence.<br />
                 <span style={{ color: GOLD }}>Before anyone else.</span>
@@ -265,13 +265,21 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ── PHOTO BREAK ─────────────────────────────────────────────────────── */}
+        <div style={{
+          height: 380,
+          backgroundImage: `linear-gradient(to bottom, #F8FAFC 0%, transparent 18%, transparent 78%, ${NAVY} 100%), url(/hero-ship.jpg)`,
+          backgroundSize: "cover",
+          backgroundPosition: "center 40%",
+        }} />
+
         {/* ── BUYER / SELLER SPLIT ────────────────────────────────────────────── */}
         <section style={{ display: "flex", flexWrap: "wrap" }}>
           <div style={{ flex: "1 1 300px", background: NAVY, padding: "72px 56px", borderRight: "1px solid rgba(255,255,255,0.05)" }}>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GOLD, textTransform: "uppercase", marginBottom: 20 }}>
               For Cash Buyers & Recycling Yards
             </p>
-            <h2 style={{ fontFamily: SERIF, fontSize: "clamp(22px, 2.5vw, 32px)", fontWeight: 700, color: "#fff", margin: "0 0 20px", fontStyle: "italic", lineHeight: 1.25 }}>
+            <h2 style={{ fontFamily: SERIF, fontSize: "clamp(22px, 2.5vw, 32px)", fontWeight: 700, color: "#fff", margin: "0 0 20px", lineHeight: 1.25 }}>
               The intelligence edge for distressed vessel transactions.
             </h2>
             <p style={{ fontSize: 15, color: "rgba(255,255,255,0.5)", lineHeight: 1.8, marginBottom: 36 }}>
@@ -290,7 +298,7 @@ export default function HomePage() {
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "#4ade80", textTransform: "uppercase", marginBottom: 20 }}>
               For Shipowners
             </p>
-            <h2 style={{ fontFamily: SERIF, fontSize: "clamp(22px, 2.5vw, 32px)", fontWeight: 700, color: "#fff", margin: "0 0 20px", fontStyle: "italic", lineHeight: 1.25 }}>
+            <h2 style={{ fontFamily: SERIF, fontSize: "clamp(22px, 2.5vw, 32px)", fontWeight: 700, color: "#fff", margin: "0 0 20px", lineHeight: 1.25 }}>
               Your vessel. Your terms.<br />No public exposure.
             </h2>
             <p style={{ fontSize: 15, color: "rgba(255,255,255,0.5)", lineHeight: 1.8, marginBottom: 36 }}>
@@ -316,7 +324,7 @@ export default function HomePage() {
               </p>
               <span style={{ fontSize: 12, color: "#CBD5E1" }}>Every Monday</span>
             </div>
-            <h2 style={{ fontFamily: SERIF, fontSize: "clamp(22px, 2.8vw, 34px)", fontWeight: 700, color: NAVY, margin: "0 0 16px", fontStyle: "italic", lineHeight: 1.25 }}>
+            <h2 style={{ fontFamily: SERIF, fontSize: "clamp(22px, 2.8vw, 34px)", fontWeight: 700, color: NAVY, margin: "0 0 16px", lineHeight: 1.25 }}>
               Maritime intelligence for people who need to act on it.
             </h2>
             <p style={{ fontSize: 15, color: "#64748B", margin: "0 0 32px", lineHeight: 1.8 }}>

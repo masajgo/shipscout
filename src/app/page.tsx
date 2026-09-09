@@ -19,6 +19,12 @@ const DATA_SOURCES = [
   "UK Admiralty Court", "AIS Stream", "Lloyd's MIU",
 ];
 
+const RADAR_PREVIEW = [
+  { flag: "PA", name: "MV OCEAN PIONEER", imo: "9234567", type: "Bulk Carrier",   signal: "DETENTION", signalColor: "#FED7AA", signalBg: "rgba(146,64,14,0.35)",  score: 847, days: 14 },
+  { flag: "MH", name: "MT SILVER STRAIT",  imo: "9456789", type: "Tanker",         signal: "ARREST",    signalColor: "#FECACA", signalBg: "rgba(153,27,27,0.35)",  score: 923, days: 3  },
+  { flag: "CY", name: "MV EASTERN WIND",   imo: "9123456", type: "General Cargo",  signal: "LAYUP",     signalColor: "#BFDBFE", signalBg: "rgba(30,58,95,0.35)",   score: 612, days: 47 },
+];
+
 export default function HomePage() {
   return (
     <div style={{ fontFamily: "system-ui, -apple-system, sans-serif", color: "#0F172A" }}>
@@ -75,9 +81,9 @@ export default function HomePage() {
               marginBottom: 48,
               maxWidth: 460,
             }}>
-              We monitor 81,000+ vessels for PSC detentions, court arrests, layups, and
-              sanctions — and deliver verified owner contacts to cash buyers and recycling
-              yards before anyone else moves.
+              AI monitors 81,000+ vessels around the clock for PSC detentions, court arrests,
+              layups, and sanctions — and delivers verified owner contacts to cash buyers
+              and recycling yards before anyone else moves.
             </p>
 
             <div style={{ display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap" }}>
@@ -144,6 +150,119 @@ export default function HomePage() {
           }}>
             Estimate my vessel →
           </Link>
+        </div>
+      </section>
+
+      {/* ── PRODUCT PREVIEW ─────────────────────────────────────────────────── */}
+      <section style={{ background: "#F8FAFC", padding: "80px 24px", borderTop: "1px solid #E2E8F0" }}>
+        <div style={{ maxWidth: 900, margin: "0 auto" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 40, flexWrap: "wrap", gap: 12 }}>
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GOLD, textTransform: "uppercase", marginBottom: 10 }}>
+                Live Radar
+              </p>
+              <h2 style={{ fontFamily: SERIF, fontSize: "clamp(20px, 2.5vw, 30px)", fontWeight: 700, color: NAVY, margin: 0, fontStyle: "italic" }}>
+                This is what your competitors are missing.
+              </h2>
+            </div>
+            <Link href="/opportunities" style={{ fontSize: 13, fontWeight: 600, color: NAVY, textDecoration: "none", borderBottom: `1px solid ${NAVY}`, paddingBottom: 1, whiteSpace: "nowrap" }}>
+              See all signals →
+            </Link>
+          </div>
+
+          {/* Dashboard mockup */}
+          <div style={{
+            background: "#0A1628",
+            borderRadius: 10,
+            overflow: "hidden",
+            boxShadow: "0 32px 80px rgba(7,18,46,0.22)",
+          }}>
+            {/* Browser bar */}
+            <div style={{
+              background: "#07122E",
+              padding: "11px 16px",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              borderBottom: "1px solid rgba(255,255,255,0.05)",
+            }}>
+              <div style={{ display: "flex", gap: 6 }}>
+                {["#FF5F57","#FFBD2E","#28C840"].map(c => (
+                  <div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c }} />
+                ))}
+              </div>
+              <div style={{
+                flex: 1, background: "rgba(255,255,255,0.04)",
+                borderRadius: 5, padding: "4px 12px",
+                fontSize: 11, color: "rgba(255,255,255,0.25)", fontFamily: "monospace",
+              }}>
+                shipscout.io/opportunities
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: GOLD, display: "inline-block" }} />
+                <span style={{ fontSize: 10, color: "rgba(201,168,76,0.7)", fontWeight: 600, letterSpacing: "0.08em" }}>LIVE</span>
+              </div>
+            </div>
+
+            {/* Table header */}
+            <div style={{
+              display: "grid", gridTemplateColumns: "60px 1fr 130px 90px 80px",
+              padding: "10px 24px",
+              borderBottom: "1px solid rgba(255,255,255,0.04)",
+            }}>
+              {["Flag", "Vessel", "Signal", "Score", "Age"].map(h => (
+                <span key={h} style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,0.22)", letterSpacing: "0.1em", textTransform: "uppercase" }}>{h}</span>
+              ))}
+            </div>
+
+            {/* Rows */}
+            {RADAR_PREVIEW.map((row, i) => (
+              <div key={row.imo} style={{
+                display: "grid", gridTemplateColumns: "60px 1fr 130px 90px 80px",
+                padding: "16px 24px", alignItems: "center",
+                borderBottom: i < RADAR_PREVIEW.length - 1 ? "1px solid rgba(255,255,255,0.035)" : "none",
+                background: i % 2 === 1 ? "rgba(255,255,255,0.015)" : "transparent",
+                cursor: "default",
+              }}>
+                <span style={{
+                  fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)",
+                  background: "rgba(255,255,255,0.06)", borderRadius: 4,
+                  padding: "3px 7px", display: "inline-block", letterSpacing: "0.06em",
+                }}>
+                  {row.flag}
+                </span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", marginBottom: 2 }}>{row.name}</div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,0.28)" }}>{row.type} · IMO {row.imo}</div>
+                </div>
+                <span style={{
+                  display: "inline-block",
+                  background: row.signalBg, color: row.signalColor,
+                  fontSize: 10, fontWeight: 700,
+                  padding: "4px 9px", borderRadius: 4,
+                  letterSpacing: "0.07em",
+                }}>
+                  {row.signal}
+                </span>
+                <div style={{ fontFamily: SERIF, fontSize: 22, fontWeight: 700, color: GOLD }}>{row.score}</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.32)" }}>{row.days}d ago</div>
+              </div>
+            ))}
+
+            {/* Footer */}
+            <div style={{
+              padding: "10px 24px",
+              borderTop: "1px solid rgba(255,255,255,0.04)",
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+            }}>
+              <span style={{ fontSize: 11, color: "rgba(255,255,255,0.18)" }}>
+                Showing 3 of 1,843 active signals
+              </span>
+              <span style={{ fontSize: 11, color: "rgba(201,168,76,0.5)", fontWeight: 600 }}>
+                AI-updated · 2 hours ago
+              </span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -229,9 +348,9 @@ export default function HomePage() {
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 56 }}>
             {[
-              { n: "01", title: "Detect",  body: "Signal picked up within hours — detention, arrest, layup, or sanction — before public announcement." },
-              { n: "02", title: "Trace",   body: "Equasis ownership chain resolved to ISM manager level. Email enriched and SMTP-verified." },
-              { n: "03", title: "Contact", body: "You reach the owner directly, with full contact details, before the vessel reaches the open market." },
+              { n: "01", title: "AI detects",  body: "Machine learning flags idle vessels from AIS data. AI extracts arrest and detention events from court records and news within hours." },
+              { n: "02", title: "We trace",    body: "Equasis ownership chain resolved to ISM manager level. Email enriched via Hunter.io and SMTP-verified." },
+              { n: "03", title: "You contact", body: "Full owner contact details delivered to your dashboard before the vessel reaches the open market." },
             ].map(s => (
               <div key={s.n}>
                 <div style={{ fontFamily: SERIF, fontSize: 56, fontWeight: 700, color: "#E8EDF5", lineHeight: 1, marginBottom: 20, userSelect: "none" }}>
@@ -342,7 +461,8 @@ export default function HomePage() {
           </h2>
           <p style={{ fontSize: 15, color: "#64748B", margin: "0 0 32px", lineHeight: 1.8 }}>
             Arrests, detentions, sanctions, and auctions — curated, classified, and matched
-            to vessel records. AI-written lead story with vessel data and owner context.
+            to vessel records. AI-written lead story with vessel photos and owner context.
+            Delivered every Monday morning.
           </p>
           <Link href="/weekly" style={{
             fontSize: 15, fontWeight: 700, color: NAVY, textDecoration: "none",

@@ -49,13 +49,24 @@ export default function HomePage() {
               fontWeight: 700,
               color: "#fff",
               lineHeight: 1.06,
-              margin: "0 0 28px",
+              margin: "0 0 20px",
               fontStyle: "italic",
               letterSpacing: -1.5,
             }}>
               The vessels your competitors<br />
               <span style={{ color: GOLD }}>don't know about yet.</span>
             </h1>
+
+            <p style={{
+              fontFamily: SERIF,
+              fontSize: "clamp(18px, 2vw, 24px)",
+              fontWeight: 700,
+              color: "rgba(255,255,255,0.9)",
+              margin: "0 0 28px",
+              letterSpacing: 0.2,
+            }}>
+              Buy first. Sell on your terms.
+            </p>
 
             <p style={{
               fontSize: 17,

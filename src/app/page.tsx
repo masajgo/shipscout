@@ -6,43 +6,47 @@ const GOLD = "#C9A84C";
 const GREEN = "#0D6E54";
 const SERIF = "var(--font-serif), Georgia, serif";
 
-const STATIC_STATS = [
+const STATS = [
   { value: "81,000+", label: "Vessels tracked" },
+  { value: "1,843+",  label: "Radar events" },
   { value: "$420",    label: "Aliağa $/LDT" },
-  { value: "1,843+", label: "Radar events" },
-  { value: "Weekly", label: "Intelligence digest" },
+  { value: "Weekly",  label: "Intelligence digest" },
 ];
 
-const DATA_SOURCES = [
-  "Paris MOU / THETIS",
-  "Equasis",
-  "OFAC SDN",
-  "UK Admiralty Court",
-  "AIS Stream",
-  "Lloyd's MIU",
+const HOW_IT_WORKS = [
+  {
+    n: "01", icon: "📡",
+    title: "We detect the signal",
+    body: "AIS idle detection, Paris MOU detentions, court arrests, OFAC sanctions — picked up within hours of the event, before public announcement.",
+  },
+  {
+    n: "02", icon: "🔍",
+    title: "We find the owner",
+    body: "Equasis ownership chain traced to ISM manager level. Emails enriched via Hunter.io and SMTP-verified — ready to contact.",
+  },
+  {
+    n: "03", icon: "⚡",
+    title: "You move first",
+    body: "Access the live radar, read Monday's intelligence digest, contact the owner directly — before the vessel reaches the open market.",
+  },
 ];
 
 const EVENT_TYPES = [
-  { key: "detention",       label: "Detention", color: "#92400E", bg: "#FFF7ED", border: "#FED7AA" },
-  { key: "arrest",          label: "Arrest",    color: "#991B1B", bg: "#FEF2F2", border: "#FECACA" },
-  { key: "judicial_auction",label: "Auction",   color: "#78350F", bg: "#FFFBEB", border: "#FDE68A" },
-  { key: "sanction",        label: "Sanction",  color: "#4C1D95", bg: "#F5F3FF", border: "#DDD6FE" },
-  { key: "layup",           label: "Layup",     color: "#1E3A5F", bg: "#EFF6FF", border: "#BFDBFE" },
+  { key: "detention",        label: "Detention",       sub: "Paris MOU / THETIS",   color: "#92400E", bg: "#FFF7ED", border: "#FED7AA" },
+  { key: "arrest",           label: "Arrest",          sub: "Court & bank seizure", color: "#991B1B", bg: "#FEF2F2", border: "#FECACA" },
+  { key: "judicial_auction", label: "Auction",         sub: "Court-ordered sale",   color: "#78350F", bg: "#FFFBEB", border: "#FDE68A" },
+  { key: "sanction",         label: "Sanction",        sub: "OFAC SDN list",        color: "#4C1D95", bg: "#F5F3FF", border: "#DDD6FE" },
+  { key: "layup",            label: "Layup",           sub: "AIS idle >30 days",    color: "#1E3A5F", bg: "#EFF6FF", border: "#BFDBFE" },
 ];
 
-const HOW_BUYER = [
-  { n: "01", title: "Access the radar", body: "Browse live distressed vessel signals — detentions, layups, arrests, auctions — filtered by type, age, and proximity to scrap yards." },
-  { n: "02", title: "Read weekly intelligence", body: "Every Monday: a curated digest of the week's highest-signal events with editorial context and vessel data." },
-  { n: "03", title: "Find the owner", body: "Click any vessel to see owner chain, manager contacts, emails, and LinkedIn — sourced from Equasis and verified." },
-  { n: "04", title: "Move first", body: "With early signals from AIS, PSC, and court records, you reach distressed owners before competitors do." },
+const BUYER_STEPS = [
+  { n: "01", title: "Access the radar",        body: "Browse 1,843+ distressed vessel signals filtered by type, age, flag, and proximity to scrap yards." },
+  { n: "02", title: "Read the weekly brief",   body: "Every Monday: curated digest of the week's highest-signal events with editorial context and vessel photos." },
+  { n: "03", title: "Get the owner's contact", body: "Click any vessel for the full ownership chain, manager email, and LinkedIn — sourced from Equasis." },
+  { n: "04", title: "Move before the market",  body: "AIS, PSC, and court data means you reach distressed owners days before they list anywhere." },
 ];
 
-const TRUST = [
-  { icon: "📡", accent: GOLD,  title: "Live AIS + PSC data",     body: "81,000+ vessels updated in real time. Paris MOU detentions, OFAC sanctions, and layup detection from AIS position data." },
-  { icon: "⚖",  accent: "#991B1B", title: "Court & auction alerts", body: "UK Admiralty Marshal arrests, Singapore judicial sales, and bank seizure news — classified and matched to vessel records." },
-  { icon: "📋", accent: GREEN, title: "Owner chain to contact",   body: "Equasis owner → manager → ISM hierarchy with scraped emails, Hunter.io enrichment and SMTP verification." },
-  { icon: "📰", accent: NAVY,  title: "Weekly digest",            body: "ShipScout Weekly: AI-written maritime intelligence report with lead story, vessel photos, and event breakdown — every Monday." },
-];
+const DATA_SOURCES = ["Paris MOU / THETIS", "Equasis", "OFAC SDN", "UK Admiralty Court", "AIS Stream", "Lloyd's MIU"];
 
 export default function HomePage() {
   return (
@@ -50,105 +54,180 @@ export default function HomePage() {
 
       {/* ── HERO ─────────────────────────────────────────────────────────────── */}
       <section style={{
-        backgroundImage: `linear-gradient(to right, rgba(7,18,46,0.88) 0%, rgba(7,18,46,0.72) 100%), url(/hero-ship.jpg)`,
+        backgroundImage: `linear-gradient(to bottom, rgba(7,18,46,0.82) 0%, rgba(7,18,46,0.72) 55%, rgba(7,18,46,0.92) 100%), url(/hero-ship.jpg)`,
         backgroundSize: "cover",
         backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        padding: "80px 24px 96px",
+        padding: "100px 24px 88px",
+        minHeight: "82vh",
+        display: "flex",
+        alignItems: "center",
       }}>
-        <div style={{ maxWidth: 1020, margin: "0 auto" }}>
-          <p style={{ textAlign: "center", fontSize: 11, fontWeight: 700, letterSpacing: "0.18em", color: GOLD, textTransform: "uppercase", marginBottom: 52 }}>
-            Maritime Distressed Intelligence
+        <div style={{ maxWidth: 1040, margin: "0 auto", width: "100%" }}>
+
+          {/* Live badge */}
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 44 }}>
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              background: "rgba(201,168,76,0.12)", border: "1px solid rgba(201,168,76,0.32)",
+              borderRadius: 20, padding: "7px 18px",
+              fontSize: 12, fontWeight: 600, color: GOLD, letterSpacing: "0.06em",
+            }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: GOLD, display: "inline-block" }} />
+              Live · 1,843 active distress signals
+            </span>
+          </div>
+
+          {/* Main headline */}
+          <h1 style={{
+            fontFamily: SERIF,
+            fontSize: "clamp(38px, 5.8vw, 70px)",
+            fontWeight: 700,
+            color: "#fff",
+            lineHeight: 1.07,
+            textAlign: "center",
+            margin: "0 auto 24px",
+            maxWidth: 840,
+            fontStyle: "italic",
+            letterSpacing: -1.5,
+          }}>
+            Find distressed vessels<br />
+            <span style={{ color: GOLD, fontStyle: "normal" }}>before your competition does.</span>
+          </h1>
+
+          {/* Sub */}
+          <p style={{
+            fontSize: "clamp(15px, 1.8vw, 18px)",
+            color: "rgba(255,255,255,0.62)",
+            textAlign: "center",
+            maxWidth: 580,
+            margin: "0 auto 60px",
+            lineHeight: 1.8,
+          }}>
+            We monitor 81,000+ vessels for PSC detentions, court arrests, layups, and sanctions —
+            and deliver verified owner contacts to cash buyers and recycling yards worldwide.
           </p>
 
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 0 }}>
-            {/* ── Left: Buyers ── */}
-            <div style={{ flex: "1 1 300px", paddingRight: 56, borderRight: "1px solid rgba(255,255,255,0.12)" }}>
-              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", marginBottom: 18 }}>
-                For Cash Buyers &amp; Recycling Yards
+          {/* Two audience cards */}
+          <div style={{ display: "flex", gap: 20, flexWrap: "wrap", justifyContent: "center" }}>
+
+            <div style={{
+              flex: "1 1 280px", maxWidth: 380,
+              background: "rgba(10,20,50,0.65)",
+              backdropFilter: "blur(16px)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderTop: `3px solid ${GOLD}`,
+              borderRadius: 12, padding: "28px 28px 26px",
+            }}>
+              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GOLD, textTransform: "uppercase", marginBottom: 12 }}>
+                For Cash Buyers & Recycling Yards
               </p>
-              <h1 style={{ fontFamily: SERIF, fontSize: "clamp(28px, 3.4vw, 46px)", fontWeight: 700, color: "#fff", lineHeight: 1.12, margin: "0 0 18px", fontStyle: "italic" }}>
-                Distressed vessels.<br />
-                <span style={{ color: GOLD, fontStyle: "normal" }}>Before the market knows.</span>
-              </h1>
-              <p style={{ fontSize: 15, color: "rgba(255,255,255,0.62)", lineHeight: 1.75, marginBottom: 36 }}>
-                AIS layup detection, PSC detentions, judicial auctions and sanctions —
-                scrap candidates identified and owner contacts enriched before they hit
-                the open market.
+              <p style={{ fontSize: 15, color: "rgba(255,255,255,0.68)", lineHeight: 1.7, marginBottom: 24 }}>
+                Access the live distressed vessel radar with owner contacts,
+                PSC history, and weekly intelligence briefings.
               </p>
               <Link href="/opportunities" style={{
-                display: "inline-block",
-                background: GOLD, color: NAVY, padding: "14px 28px",
-                borderRadius: 8, fontWeight: 700, fontSize: 15, textDecoration: "none",
+                display: "block", textAlign: "center",
+                background: GOLD, color: NAVY,
+                padding: "13px 20px", borderRadius: 8,
+                fontWeight: 700, fontSize: 14, textDecoration: "none",
               }}>
-                See Opportunities →
+                See Live Opportunities →
               </Link>
             </div>
 
-            {/* ── Right: Sellers ── */}
-            <div style={{ flex: "1 1 300px", paddingLeft: 56 }}>
-              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", marginBottom: 18 }}>
+            <div style={{
+              flex: "1 1 280px", maxWidth: 380,
+              background: "rgba(10,20,50,0.65)",
+              backdropFilter: "blur(16px)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderTop: `3px solid ${GREEN}`,
+              borderRadius: 12, padding: "28px 28px 26px",
+            }}>
+              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "#4ade80", textTransform: "uppercase", marginBottom: 12 }}>
                 For Shipowners
               </p>
-              <h2 style={{ fontFamily: SERIF, fontSize: "clamp(28px, 3.4vw, 46px)", fontWeight: 700, color: "#fff", lineHeight: 1.12, margin: "0 0 18px", fontStyle: "italic" }}>
-                Sell confidentially.<br />
-                <span style={{ color: GREEN, fontStyle: "normal" }}>Get real value.</span>
-              </h2>
-              <p style={{ fontSize: 15, color: "rgba(255,255,255,0.62)", lineHeight: 1.75, marginBottom: 28 }}>
-                Enter your IMO for a free indicative estimate. No public listing,
-                no obligation. Verified buyers ready to move.
+              <p style={{ fontSize: 15, color: "rgba(255,255,255,0.68)", lineHeight: 1.7, marginBottom: 24 }}>
+                Get a free indicative estimate based on live Aliağa prices.
+                Confidential — no public listing, no obligation.
               </p>
-              {/* Trust badges */}
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 32 }}>
-                {[
-                  { icon: "🔒", label: "Confidential by design" },
-                  { icon: "🇹🇷", label: "Active buyers in Turkey" },
-                ].map(b => (
-                  <span key={b.label} style={{
-                    display: "inline-flex", alignItems: "center", gap: 6,
-                    background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)",
-                    borderRadius: 20, padding: "5px 12px",
-                    fontSize: 12, color: "rgba(255,255,255,0.75)", fontWeight: 500,
-                  }}>
-                    {b.icon} {b.label}
-                  </span>
-                ))}
-              </div>
               <Link href="/shipowners" style={{
-                display: "inline-block",
+                display: "block", textAlign: "center",
                 background: "rgba(255,255,255,0.1)", color: "#fff",
-                border: "1px solid rgba(255,255,255,0.28)",
-                padding: "14px 28px", borderRadius: 8,
-                fontWeight: 700, fontSize: 15, textDecoration: "none",
+                border: "1px solid rgba(255,255,255,0.25)",
+                padding: "13px 20px", borderRadius: 8,
+                fontWeight: 700, fontSize: 14, textDecoration: "none",
               }}>
                 Estimate my vessel →
               </Link>
             </div>
+
+          </div>
+
+          <p style={{ textAlign: "center", marginTop: 28, fontSize: 12, color: "rgba(255,255,255,0.25)" }}>
+            🔒 Confidential · Paris MOU · Equasis · OFAC · UK Admiralty Court · AIS Stream
+          </p>
+        </div>
+      </section>
+
+      {/* ── HOW IT WORKS ─────────────────────────────────────────────────────── */}
+      <section style={{ background: "#fff", padding: "88px 24px", borderBottom: "1px solid #E2E8F0" }}>
+        <div style={{ maxWidth: 960, margin: "0 auto" }}>
+          <p style={{ textAlign: "center", fontSize: 11, fontWeight: 700, letterSpacing: "0.16em", color: GOLD, textTransform: "uppercase", marginBottom: 14 }}>
+            How It Works
+          </p>
+          <h2 style={{ fontFamily: SERIF, textAlign: "center", fontSize: "clamp(26px, 3.2vw, 40px)", fontWeight: 700, color: NAVY, margin: "0 0 64px", fontStyle: "italic" }}>
+            From signal to contact in hours, not weeks.
+          </h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 48, position: "relative" }}>
+            {HOW_IT_WORKS.map((s, i) => (
+              <div key={s.n} style={{ textAlign: "center", position: "relative" }}>
+                {i < 2 && (
+                  <div style={{
+                    position: "absolute", top: 31, left: "calc(50% + 44px)",
+                    width: "calc(100% - 44px)", height: 1,
+                    background: "#E2E8F0",
+                  }} />
+                )}
+                <div style={{
+                  width: 64, height: 64, borderRadius: "50%",
+                  background: "#F8FAFC", border: "2px solid #E2E8F0",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  margin: "0 auto 20px", fontSize: 26, position: "relative", zIndex: 1,
+                }}>
+                  {s.icon}
+                </div>
+                <div style={{ fontFamily: SERIF, fontSize: 12, fontWeight: 700, color: GOLD, letterSpacing: "0.1em", marginBottom: 10 }}>
+                  {s.n}
+                </div>
+                <h3 style={{ fontSize: 17, fontWeight: 700, color: NAVY, marginBottom: 10 }}>{s.title}</h3>
+                <p style={{ fontSize: 14, color: "#64748B", lineHeight: 1.7 }}>{s.body}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* ── STATS ────────────────────────────────────────────────────────────── */}
-      <section style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", padding: "28px 24px" }}>
-        <div style={{ maxWidth: 820, margin: "0 auto", display: "flex", justifyContent: "space-around", flexWrap: "wrap", gap: 20 }}>
-          {STATIC_STATS.map(s => (
+      <section style={{ background: NAVY, padding: "60px 24px" }}>
+        <div style={{ maxWidth: 860, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24 }}>
+          {STATS.map(s => (
             <div key={s.label} style={{ textAlign: "center" }}>
-              <div style={{ fontFamily: SERIF, fontSize: 30, fontWeight: 700, color: NAVY }}>{s.value}</div>
-              <div style={{ fontSize: 13, color: "#64748B", marginTop: 2 }}>{s.label}</div>
+              <div style={{ fontFamily: SERIF, fontSize: "clamp(38px, 4vw, 56px)", fontWeight: 700, color: GOLD, lineHeight: 1 }}>{s.value}</div>
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", marginTop: 10, letterSpacing: "0.04em" }}>{s.label}</div>
             </div>
           ))}
         </div>
       </section>
 
       {/* ── AUTHORITY STRIP ──────────────────────────────────────────────────── */}
-      <section style={{ background: "#fff", borderBottom: "1px solid #E2E8F0", padding: "16px 24px" }}>
+      <section style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", padding: "16px 24px" }}>
         <div style={{ maxWidth: 860, margin: "0 auto", display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap", justifyContent: "center" }}>
           <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "#94A3B8", textTransform: "uppercase", whiteSpace: "nowrap" }}>
             Data sourced from
           </span>
           {DATA_SOURCES.map((s, i) => (
             <span key={s} style={{ display: "flex", alignItems: "center", gap: 24 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "#475569", letterSpacing: "0.02em" }}>{s}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#475569" }}>{s}</span>
               {i < DATA_SOURCES.length - 1 && (
                 <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#CBD5E1", display: "inline-block" }} />
               )}
@@ -158,39 +237,29 @@ export default function HomePage() {
       </section>
 
       {/* ── SIGNAL TYPES ─────────────────────────────────────────────────────── */}
-      <section style={{ background: "#fff", padding: "72px 24px" }}>
+      <section style={{ background: "#fff", padding: "80px 24px" }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
-          <p style={{ textAlign: "center", fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GOLD, textTransform: "uppercase", marginBottom: 12 }}>
-            What We Track
+          <p style={{ textAlign: "center", fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GOLD, textTransform: "uppercase", marginBottom: 14 }}>
+            Signal Types
           </p>
-          <h2 style={{ fontFamily: SERIF, textAlign: "center", fontSize: 34, fontWeight: 700, color: NAVY, margin: "0 0 48px", fontStyle: "italic" }}>
+          <h2 style={{ fontFamily: SERIF, textAlign: "center", fontSize: "clamp(26px, 3vw, 38px)", fontWeight: 700, color: NAVY, margin: "0 0 52px", fontStyle: "italic" }}>
             Five distress signals. One dashboard.
           </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(168px, 1fr))", gap: 14 }}>
             {EVENT_TYPES.map(e => (
               <div key={e.key} style={{
                 background: e.bg, border: `1px solid ${e.border}`,
-                borderRadius: 10, padding: "18px 16px", textAlign: "center",
+                borderRadius: 12, padding: "20px 18px",
               }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: e.color, marginBottom: 6 }}>{e.label}</div>
-                <div style={{ fontSize: 11, color: e.color, opacity: 0.7 }}>
-                  {{
-                    detention: "Paris MOU / THETIS",
-                    arrest: "Port authority seizure",
-                    judicial_auction: "Court-ordered sale",
-                    sanction: "OFAC SDN list",
-                    layup: "AIS idle >30 days",
-                  }[e.key]}
-                </div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: e.color, marginBottom: 6 }}>{e.label}</div>
+                <div style={{ fontSize: 12, color: e.color, opacity: 0.75, lineHeight: 1.5 }}>{e.sub}</div>
               </div>
             ))}
           </div>
-          <div style={{ textAlign: "center", marginTop: 32 }}>
+          <div style={{ textAlign: "center", marginTop: 36 }}>
             <Link href="/opportunities" style={{
-              display: "inline-block",
-              background: NAVY, color: "#fff",
-              padding: "12px 28px", borderRadius: 8,
-              fontSize: 14, fontWeight: 600, textDecoration: "none",
+              display: "inline-block", background: NAVY, color: "#fff",
+              padding: "13px 28px", borderRadius: 8, fontSize: 14, fontWeight: 600, textDecoration: "none",
             }}>
               Open Opportunity Radar →
             </Link>
@@ -198,131 +267,140 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── HOW IT WORKS FOR BUYERS ──────────────────────────────────────────── */}
-      <section style={{ background: "#F8FAFC", padding: "72px 24px", borderTop: "1px solid #E2E8F0" }}>
-        <div style={{ maxWidth: 820, margin: "0 auto" }}>
-          <p style={{ textAlign: "center", fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GREEN, textTransform: "uppercase", marginBottom: 12 }}>
+      {/* ── FOR BUYERS ───────────────────────────────────────────────────────── */}
+      <section style={{ background: NAVY, padding: "88px 24px" }}>
+        <div style={{ maxWidth: 860, margin: "0 auto" }}>
+          <p style={{ textAlign: "center", fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GOLD, textTransform: "uppercase", marginBottom: 14 }}>
             For Cash Buyers & Recycling Yards
           </p>
-          <h2 style={{ fontFamily: SERIF, textAlign: "center", fontSize: 32, fontWeight: 700, color: NAVY, margin: "0 0 48px", fontStyle: "italic" }}>
-            Find distressed tonnage before your competition.
+          <h2 style={{ fontFamily: SERIF, textAlign: "center", fontSize: "clamp(26px, 3.2vw, 40px)", fontWeight: 700, color: "#fff", margin: "0 0 52px", fontStyle: "italic" }}>
+            Reach distressed owners before your competition.
           </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }}>
-            {HOW_BUYER.map(s => (
-              <div key={s.n} style={{ display: "flex", gap: 16 }}>
-                <div style={{ fontFamily: SERIF, fontSize: 15, fontWeight: 700, color: GOLD, minWidth: 28, paddingTop: 1 }}>{s.n}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 48 }}>
+            {BUYER_STEPS.map(s => (
+              <div key={s.n} style={{
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 12, padding: "24px",
+                display: "flex", gap: 16,
+              }}>
+                <div style={{ fontFamily: SERIF, fontSize: 13, fontWeight: 700, color: GOLD, minWidth: 28, paddingTop: 2 }}>{s.n}</div>
                 <div>
-                  <div style={{ fontWeight: 600, color: "#0F172A", marginBottom: 4 }}>{s.title}</div>
-                  <div style={{ fontSize: 14, color: "#64748B", lineHeight: 1.6 }}>{s.body}</div>
+                  <div style={{ fontWeight: 600, color: "#fff", marginBottom: 6 }}>{s.title}</div>
+                  <div style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", lineHeight: 1.65 }}>{s.body}</div>
                 </div>
               </div>
             ))}
           </div>
-          <div style={{ textAlign: "center", marginTop: 44 }}>
+          <div style={{ textAlign: "center" }}>
             <Link href="/opportunities" style={{
-              display: "inline-block",
-              background: GREEN, color: "#fff",
-              padding: "13px 28px", borderRadius: 8,
-              fontSize: 15, fontWeight: 700, textDecoration: "none",
+              display: "inline-block", background: GOLD, color: NAVY,
+              padding: "14px 32px", borderRadius: 8, fontSize: 15, fontWeight: 700, textDecoration: "none",
             }}>
-              Open the Radar →
+              See Live Opportunities →
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ── WEEKLY INTEL PREVIEW ─────────────────────────────────────────────── */}
-      <section style={{ background: NAVY, padding: "72px 24px" }}>
-        <div style={{ maxWidth: 680, margin: "0 auto", textAlign: "center" }}>
-          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.16em", color: GOLD, textTransform: "uppercase", marginBottom: 12 }}>
+      {/* ── FOR SELLERS ──────────────────────────────────────────────────────── */}
+      <section style={{ background: "#F0FDF4", padding: "88px 24px", borderTop: "4px solid #BBF7D0" }}>
+        <div style={{ maxWidth: 860, margin: "0 auto", display: "flex", gap: 64, flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ flex: "1 1 300px" }}>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GREEN, textTransform: "uppercase", marginBottom: 14 }}>
+              For Shipowners
+            </p>
+            <h2 style={{ fontFamily: SERIF, fontSize: "clamp(26px, 3.2vw, 40px)", fontWeight: 700, color: NAVY, margin: "0 0 20px", fontStyle: "italic", lineHeight: 1.15 }}>
+              Sell confidentially.<br />Get real value.
+            </h2>
+            <p style={{ fontSize: 15, color: "#475569", lineHeight: 1.8, marginBottom: 32 }}>
+              Enter your IMO and get a free indicative estimate based on current Aliağa
+              benchmark prices — in under a minute. No public listing, no obligation.
+            </p>
+            <Link href="/shipowners" style={{
+              display: "inline-block", background: GREEN, color: "#fff",
+              padding: "14px 28px", borderRadius: 8, fontSize: 15, fontWeight: 700, textDecoration: "none",
+            }}>
+              Estimate my vessel →
+            </Link>
+          </div>
+          <div style={{ flex: "1 1 260px" }}>
+            {[
+              { icon: "🔒", title: "Confidential by design",   body: "No public listing is ever created. Your vessel and identity stay private throughout." },
+              { icon: "📊", title: "Real market pricing",      body: "Estimates based on live Aliağa $/LDT benchmarks, not guesswork." },
+              { icon: "🇹🇷", title: "Verified buyers in Turkey", body: "Active recycling yards in Aliağa ready to move on the right vessel." },
+              { icon: "📋", title: "No obligation",            body: "Estimate, submit details, review offers — only proceed when you're ready." },
+            ].map(item => (
+              <div key={item.title} style={{ display: "flex", gap: 14, marginBottom: 24 }}>
+                <span style={{ fontSize: 20, minWidth: 28, paddingTop: 2 }}>{item.icon}</span>
+                <div>
+                  <div style={{ fontWeight: 600, color: NAVY, marginBottom: 4 }}>{item.title}</div>
+                  <div style={{ fontSize: 13, color: "#64748B", lineHeight: 1.6 }}>{item.body}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── WEEKLY INTEL ─────────────────────────────────────────────────────── */}
+      <section style={{ background: "#fff", padding: "80px 24px", borderTop: "1px solid #E2E8F0" }}>
+        <div style={{ maxWidth: 640, margin: "0 auto", textAlign: "center" }}>
+          <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.16em", color: GOLD, textTransform: "uppercase", marginBottom: 14 }}>
             ShipScout Weekly
           </p>
-          <h2 style={{ fontFamily: SERIF, fontSize: 32, fontWeight: 700, color: "#fff", margin: "0 0 14px", fontStyle: "italic" }}>
+          <h2 style={{ fontFamily: SERIF, fontSize: "clamp(26px, 3vw, 38px)", fontWeight: 700, color: NAVY, margin: "0 0 16px", fontStyle: "italic" }}>
             Maritime intelligence. Every Monday.
           </h2>
-          <p style={{ fontSize: 15, color: "rgba(255,255,255,0.55)", margin: "0 0 36px", lineHeight: 1.7 }}>
+          <p style={{ fontSize: 15, color: "#64748B", margin: "0 0 36px", lineHeight: 1.8 }}>
             Arrests, detentions, sanctions, and auctions — curated, classified, and matched
             to vessel records. AI-written lead story with vessel data and owner context.
           </p>
           <Link href="/weekly" style={{
-            display: "inline-block",
-            background: GOLD, color: NAVY,
-            padding: "13px 28px", borderRadius: 8,
-            fontSize: 15, fontWeight: 700, textDecoration: "none",
+            display: "inline-block", background: NAVY, color: "#fff",
+            padding: "13px 28px", borderRadius: 8, fontSize: 15, fontWeight: 700, textDecoration: "none",
           }}>
             Read Latest Issue →
           </Link>
         </div>
       </section>
 
-      {/* ── DATA SOURCES ─────────────────────────────────────────────────────── */}
-      <section style={{ background: "#fff", padding: "72px 24px", borderTop: "1px solid #E2E8F0" }}>
-        <div style={{ maxWidth: 860, margin: "0 auto" }}>
-          <p style={{ textAlign: "center", fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: "#64748B", textTransform: "uppercase", marginBottom: 12 }}>
-            Why ShipScout
-          </p>
-          <h2 style={{ fontFamily: SERIF, textAlign: "center", fontSize: 30, fontWeight: 700, color: NAVY, margin: "0 0 44px", fontStyle: "italic" }}>
-            Proprietary data. Actionable intelligence.
-          </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-            {TRUST.map(t => (
-              <div key={t.title} style={{
-                border: "1px solid #E2E8F0", borderRadius: 12, padding: "22px",
-                borderLeft: `4px solid ${t.accent}`,
-              }}>
-                <div style={{ fontSize: 22, marginBottom: 10 }}>{t.icon}</div>
-                <div style={{ fontWeight: 600, color: NAVY, marginBottom: 6 }}>{t.title}</div>
-                <div style={{ fontSize: 14, color: "#64748B", lineHeight: 1.65 }}>{t.body}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── SHIPOWNER CTA ─────────────────────────────────────────────────────── */}
+      {/* ── FINAL CTA ────────────────────────────────────────────────────────── */}
       <section style={{
-        backgroundImage: `linear-gradient(135deg, rgba(7,18,46,0.94) 0%, rgba(13,31,74,0.96) 100%), url(/hero-ship.jpg)`,
+        backgroundImage: `linear-gradient(135deg, rgba(7,18,46,0.95) 0%, rgba(13,31,74,0.95) 100%), url(/hero-ship.jpg)`,
         backgroundSize: "cover", backgroundPosition: "center",
-        padding: "80px 24px", textAlign: "center",
+        padding: "96px 24px", textAlign: "center",
       }}>
-        <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GOLD, textTransform: "uppercase", marginBottom: 16 }}>
-          For Shipowners
-        </p>
-        <h2 style={{ fontFamily: SERIF, fontSize: 36, fontWeight: 700, color: "#fff", margin: "0 0 14px", fontStyle: "italic" }}>
-          Considering recycling or a sale?
+        <h2 style={{ fontFamily: SERIF, fontSize: "clamp(28px, 3.8vw, 48px)", fontWeight: 700, color: "#fff", margin: "0 0 16px", fontStyle: "italic" }}>
+          Ready to move before the market?
         </h2>
-        <p style={{ fontSize: 16, color: "rgba(255,255,255,0.6)", margin: "0 auto 32px", maxWidth: 480, lineHeight: 1.7 }}>
-          Get a free indicative value estimate based on current Aliağa benchmark prices.
-          Confidential — no listing, no obligation.
+        <p style={{ fontSize: 16, color: "rgba(255,255,255,0.5)", maxWidth: 460, margin: "0 auto 44px", lineHeight: 1.75 }}>
+          Whether you're buying or selling, ShipScout gives you the intelligence edge.
         </p>
-        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
+          <Link href="/opportunities" style={{
+            display: "inline-block", background: GOLD, color: NAVY,
+            padding: "15px 32px", borderRadius: 8, fontWeight: 700, fontSize: 16, textDecoration: "none",
+          }}>
+            See Opportunities →
+          </Link>
           <Link href="/shipowners" style={{
-            display: "inline-block",
-            background: GOLD, color: NAVY,
-            padding: "14px 32px", borderRadius: 8,
-            fontWeight: 700, fontSize: 16, textDecoration: "none",
+            display: "inline-block", background: "rgba(255,255,255,0.09)", color: "#fff",
+            border: "1px solid rgba(255,255,255,0.22)",
+            padding: "15px 32px", borderRadius: 8, fontWeight: 700, fontSize: 16, textDecoration: "none",
           }}>
             Estimate my vessel →
           </Link>
-          <Link href="/how-it-works" style={{
-            display: "inline-block",
-            background: "rgba(255,255,255,0.08)", color: "#fff",
-            border: "1px solid rgba(255,255,255,0.2)",
-            padding: "14px 32px", borderRadius: 8,
-            fontWeight: 600, fontSize: 16, textDecoration: "none",
-          }}>
-            How it works
-          </Link>
         </div>
-        <p style={{ fontSize: 12, color: "rgba(255,255,255,0.3)" }}>
-          🔒 Confidential by design · No public listing · No obligation
+        <p style={{ marginTop: 28, fontSize: 12, color: "rgba(255,255,255,0.22)" }}>
+          🔒 Confidential · No obligation · Updated daily
         </p>
       </section>
 
-      {/* ── FOOTER ────────────────────────────────────────────────────────────── */}
-      <footer style={{ background: NAVY, borderTop: "1px solid rgba(255,255,255,0.08)", padding: "28px 24px" }}>
+      {/* ── FOOTER ───────────────────────────────────────────────────────────── */}
+      <footer style={{ background: NAVY, borderTop: "1px solid rgba(255,255,255,0.08)", padding: "32px 24px" }}>
         <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
-          <span style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 700, color: "#fff", letterSpacing: -0.3 }}>
+          <span style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 700, color: "#fff" }}>
             Ship<span style={{ color: GOLD }}>Scout</span>
           </span>
           <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
@@ -333,12 +411,12 @@ export default function HomePage() {
               ["Shipowners",    "/shipowners"],
               ["Contact",       "mailto:info@turqomarine.com"],
             ] as [string, string][]).map(([label, href]) => (
-              <Link key={label} href={href} style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", textDecoration: "none" }}>
+              <Link key={label} href={href} style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", textDecoration: "none" }}>
                 {label}
               </Link>
             ))}
           </div>
-          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)" }}>© 2026 ShipScout</span>
+          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.22)" }}>© 2026 ShipScout</span>
         </div>
       </footer>
 

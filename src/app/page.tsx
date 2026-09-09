@@ -50,7 +50,7 @@ export default function HomePage() {
 
       {/* ── HERO ─────────────────────────────────────────────────────────────── */}
       <section style={{
-        backgroundImage: `linear-gradient(to right, rgba(7,18,46,0.88) 0%, rgba(7,18,46,0.72) 100%), url(https://images.unsplash.com/photo-1613690399151-65ea69478674?w=1800&q=80&auto=format&fit=crop)`,
+        backgroundImage: `linear-gradient(to right, rgba(7,18,46,0.88) 0%, rgba(7,18,46,0.72) 100%), url(/hero-ship.jpg)`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
@@ -281,7 +281,7 @@ export default function HomePage() {
 
       {/* ── SHIPOWNER CTA ─────────────────────────────────────────────────────── */}
       <section style={{
-        backgroundImage: `linear-gradient(135deg, rgba(7,18,46,0.94) 0%, rgba(13,31,74,0.96) 100%), url(https://images.unsplash.com/photo-1613690399151-65ea69478674?w=1200&q=70&auto=format&fit=crop)`,
+        backgroundImage: `linear-gradient(135deg, rgba(7,18,46,0.94) 0%, rgba(13,31,74,0.96) 100%), url(/hero-ship.jpg)`,
         backgroundSize: "cover", backgroundPosition: "center",
         padding: "80px 24px", textAlign: "center",
       }}>

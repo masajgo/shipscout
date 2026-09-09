@@ -552,6 +552,98 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ── PRICE STORY ──────────────────────────────────────────────────────── */}
+        <section style={{ background: NAVY, padding: "88px 40px" }}>
+          <div style={{ maxWidth: 860, margin: "0 auto" }}>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GOLD, textTransform: "uppercase", marginBottom: 16 }}>
+              For shipowners
+            </p>
+            <h2 style={{ fontFamily: SERIF, fontSize: "clamp(26px, 3vw, 40px)", fontWeight: 700, color: "#fff", margin: "0 0 12px", lineHeight: 1.2 }}>
+              The first offer is never the best offer.
+            </h2>
+            <p style={{ fontSize: 16, color: "rgba(255,255,255,0.45)", marginBottom: 64, lineHeight: 1.7, maxWidth: 560 }}>
+              One owner received four different quotes for the same vessel — from the same market,
+              at the same time. The difference was who was asking.
+            </p>
+
+            {/* Bar chart */}
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 20, marginBottom: 32 }}>
+              {[
+                { price: 230, pct: 55, label: "First broker quote",   sub: "Via intermediary",        muted: true  },
+                { price: 240, pct: 65, label: "Second offer",         sub: "Sub-broker chain",        muted: true  },
+                { price: 250, pct: 78, label: "Counter offer",        sub: "After negotiation",       muted: true  },
+                { price: 280, pct: 100, label: "Direct yard price",   sub: "ShipScout — direct rep", muted: false },
+              ].map(({ price, pct, label, sub, muted }) => (
+                <div key={price} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  {/* Price label above bar */}
+                  <div style={{
+                    fontFamily: SERIF, fontSize: muted ? 22 : 32, fontWeight: 700,
+                    color: muted ? "rgba(255,255,255,0.3)" : GOLD,
+                    marginBottom: 8,
+                  }}>
+                    ${price}
+                  </div>
+                  <div style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>
+                    /LDT
+                  </div>
+                  {/* Bar */}
+                  <div style={{
+                    width: "100%", height: pct * 1.8,
+                    background: muted
+                      ? "rgba(255,255,255,0.07)"
+                      : `linear-gradient(to top, ${GOLD}, #e8c565)`,
+                    borderRadius: "6px 6px 0 0",
+                    border: muted ? "1px solid rgba(255,255,255,0.06)" : `1px solid ${GOLD}`,
+                    position: "relative",
+                  }}>
+                    {!muted && (
+                      <div style={{
+                        position: "absolute", top: -28, left: "50%", transform: "translateX(-50%)",
+                        background: GOLD, color: NAVY, fontSize: 9, fontWeight: 800,
+                        padding: "2px 8px", borderRadius: 4, whiteSpace: "nowrap",
+                        letterSpacing: "0.06em", textTransform: "uppercase",
+                      }}>
+                        Best price
+                      </div>
+                    )}
+                  </div>
+                  {/* Labels below */}
+                  <div style={{
+                    width: "100%", paddingTop: 12, borderTop: `2px solid ${muted ? "rgba(255,255,255,0.06)" : GOLD}`,
+                    textAlign: "center",
+                  }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: muted ? "rgba(255,255,255,0.3)" : "#fff", marginBottom: 4, lineHeight: 1.4 }}>
+                      {label}
+                    </div>
+                    <div style={{ fontSize: 10, color: muted ? "rgba(255,255,255,0.15)" : "rgba(201,168,76,0.7)", letterSpacing: "0.04em" }}>
+                      {sub}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Callout */}
+            <div style={{
+              background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.2)",
+              borderRadius: 10, padding: "20px 24px",
+              display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap",
+            }}>
+              <div style={{ fontFamily: SERIF, fontSize: 28, fontWeight: 700, color: GOLD, flexShrink: 0 }}>
+                +$50<span style={{ fontSize: 14, fontWeight: 400, color: "rgba(201,168,76,0.6)", marginLeft: 4 }}>/LDT</span>
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#fff", marginBottom: 4 }}>
+                  On a 15,000 LDT vessel, that's $750,000 more in your pocket.
+                </div>
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", lineHeight: 1.6 }}>
+                  We represent you directly with breaking yards — no sub-broker chain, no information loss, no price erosion.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* ── NO UPFRONT FEES ──────────────────────────────────────────────────── */}
         <section style={{ background: "#F8FAFC", padding: "88px 40px", borderTop: "1px solid #E2E8F0" }}>
           <div style={{ maxWidth: 860, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 80, alignItems: "center" }}>

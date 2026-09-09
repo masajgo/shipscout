@@ -563,8 +563,8 @@ export default function HomePage() {
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
                 <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.85, margin: 0 }}>
-                  We were trying to sell a vessel. Not a small one.
-                  Fifteen thousand lightship tons of steel, sitting idle, costing money every day.
+                  We were trying to sell a vessel. Not a small one —
+                  fifteen thousand lightship tons of steel, sitting idle, costing money every day.
                 </p>
                 <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.85, margin: 0 }}>
                   The first offer came back at{" "}
@@ -574,23 +574,31 @@ export default function HomePage() {
                 </p>
                 <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.85, margin: 0 }}>
                   We pushed. He came back with <strong style={{ color: NAVY }}>$240.</strong>{" "}
-                  A second broker appeared with <strong style={{ color: NAVY }}>$250</strong> —
-                  each one promising the best buyer, each one with a chain of people
-                  behind them we never got to meet.
+                  A second broker appeared at <strong style={{ color: NAVY }}>$250</strong> —
+                  each one claiming to have the best buyer, each one with a chain of
+                  people behind them we never got to meet.
                 </p>
                 <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.85, margin: 0 }}>
-                  Then we picked up the phone and called the yard directly.
+                  So we cut through the chain and called a breaking yard directly.
+                  The commercial team quoted us <strong style={{ color: NAVY }}>$260.</strong>{" "}
+                  Better — but we still felt there was room.
                 </p>
-                <p style={{ fontFamily: SERIF, fontSize: 22, color: NAVY, lineHeight: 1.5, margin: 0, fontWeight: 700 }}>
-                  $280.
+                <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.85, margin: 0 }}>
+                  Then we reached the owner of the yard personally. Someone we knew.
+                  A relationship built over years — not a cold call, not a form, not a broker introduction.
+                </p>
+                <p style={{ fontFamily: SERIF, fontSize: 24, color: NAVY, lineHeight: 1.4, margin: 0, fontWeight: 700 }}>
+                  $285. Final offer. Deal closed.
                 </p>
                 <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.85, margin: 0 }}>
                   Same vessel. Same steel. Same week.{" "}
-                  <strong style={{ color: NAVY }}>$750,000 had been sitting in the chain</strong> — and nobody told us.
+                  <strong style={{ color: NAVY }}>$55 more per LDT</strong> — simply because
+                  we knew who to call and they picked up.
                 </p>
                 <p style={{ fontSize: 15, color: "#64748B", lineHeight: 1.85, margin: 0 }}>
-                  That was the moment we understood what we had to build.
-                  ShipScout exists because that phone call should have been the first call, not the last.
+                  That was the moment ShipScout was born. The best price in this industry
+                  doesn't come from the loudest broker — it comes from the right relationship.
+                  We built ShipScout to make those relationships available to every owner.
                 </p>
               </div>
             </div>
@@ -599,19 +607,20 @@ export default function HomePage() {
             <div style={{ display: "flex", flexDirection: "column", gap: 40 }}>
               <div style={{ borderLeft: `3px solid ${GOLD}`, paddingLeft: 28 }}>
                 <div style={{ fontFamily: SERIF, fontSize: "clamp(48px, 5vw, 72px)", fontWeight: 700, color: NAVY, lineHeight: 1 }}>
-                  $750K
+                  $825K
                 </div>
                 <div style={{ fontSize: 14, color: "#64748B", marginTop: 10, lineHeight: 1.6 }}>
-                  difference on a 15,000 LDT vessel — $50/LDT lost in the broker chain.
+                  more — on a 15,000 LDT vessel at $55/LDT. The difference between the first offer and the right relationship.
                 </div>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
                 {[
-                  { price: "$230", label: "First broker quote",   dim: true  },
-                  { price: "$240", label: "Second offer",         dim: true  },
-                  { price: "$250", label: "Counter offer",        dim: true  },
-                  { price: "$280", label: "Direct to yard",       dim: false },
+                  { price: "$230", label: "First broker quote",      dim: true  },
+                  { price: "$240", label: "Pushed back",             dim: true  },
+                  { price: "$250", label: "Second broker",           dim: true  },
+                  { price: "$260", label: "Called yard directly",    dim: true  },
+                  { price: "$285", label: "Owner relationship",      dim: false },
                 ].map(({ price, label, dim }, i, arr) => (
                   <div key={price} style={{
                     display: "flex", alignItems: "center", gap: 16,

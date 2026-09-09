@@ -704,7 +704,7 @@ export default function HomePage() {
                   info@turqomarine.com
                 </a>
                 <a
-                  href="https://wa.me/906396675922"
+                  href="https://wa.me/905396675922"
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
@@ -739,7 +739,7 @@ export default function HomePage() {
                 ["Shipowners",    "/shipowners"],
                 ["How It Works",  "/how-it-works"],
                 ["Contact",       "mailto:info@turqomarine.com"],
-                ["WhatsApp",      "https://wa.me/906396675922"],
+                ["WhatsApp",      "https://wa.me/905396675922"],
               ] as [string, string][]).map(([label, href]) => (
                 <Link key={label} href={href} style={{ fontSize: 13, color: "rgba(255,255,255,0.32)", textDecoration: "none" }}>
                   {label}

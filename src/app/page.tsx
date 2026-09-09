@@ -30,15 +30,19 @@ const STEPS = [
     body: "Our AI monitors 81,000+ vessels around the clock. Arrests, detentions, layups, sanctions — flagged within hours, long before they appear on any public market.",
   },
   {
-    n: "02", title: "Negotiate",
-    body: "We reach verified owners directly. Represent you in price negotiation backed by live scrap benchmarks and market data. No middlemen, no guesswork.",
+    n: "02", title: "Inspect",
+    body: "Before any offer is made, we send a certified marine surveyor. Hull, machinery, documentation — a full technical report in your hands so you know exactly what you're buying.",
   },
   {
-    n: "03", title: "Escrow",
+    n: "03", title: "Negotiate",
+    body: "Armed with the survey report, we approach the owner directly. Real leverage, real data — not gut feel. Issues found mean price comes down. Clean report means you close fast.",
+  },
+  {
+    n: "04", title: "Escrow",
     body: "Funds held securely before title transfer. Full documentation and legal compliance handled end-to-end. Zero exposure for buyer or seller.",
   },
   {
-    n: "04", title: "Close",
+    n: "05", title: "Close",
     body: "Deal done. Title transferred. No upfront fees — we earn only when you do. Every incentive aligned from first contact to final handshake.",
   },
 ];
@@ -305,7 +309,7 @@ export default function HomePage() {
             <h2 style={{ fontFamily: SERIF, fontSize: "clamp(26px, 3vw, 40px)", fontWeight: 700, color: NAVY, margin: "0 0 64px", lineHeight: 1.2 }}>
               One team. Start to close.
             </h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 40 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 32 }}>
               {STEPS.map((s, i) => (
                 <div key={s.n} style={{ position: "relative" }}>
                   {i < STEPS.length - 1 && (

@@ -101,6 +101,7 @@ function ContactForm() {
         style={{ ...inputStyle, color: form.intent ? "#0F172A" : "#94A3B8" }}>
         <option value="Buy">I want to buy a vessel</option>
         <option value="Sell">I want to sell a vessel</option>
+        <option value="Inspect">Request a pre-purchase inspection</option>
         <option value="Both">Buy and sell</option>
         <option value="General">General inquiry</option>
       </select>

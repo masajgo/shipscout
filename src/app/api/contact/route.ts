@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
           from:     "noreply@turqomarine.com",
           to:       "info@turqomarine.com",
           reply_to: email,
-          subject:  `Deal inquiry — ${intent ?? "General"} — ${name}`,
+          subject:  `${intent === "Inspect" ? "Inspection request" : "Deal inquiry"} — ${intent ?? "General"} — ${name}`,
           html: `
             <p><strong>Name:</strong> ${name}</p>
             <p><strong>Company:</strong> ${company ?? "—"}</p>

@@ -561,28 +561,36 @@ export default function HomePage() {
               <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GOLD, textTransform: "uppercase", marginBottom: 24 }}>
                 How ShipScout started
               </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
                 <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.85, margin: 0 }}>
-                  We were trying to sell a vessel. The first offer came back at{" "}
-                  <strong style={{ color: NAVY }}>$230 per LDT</strong> — a number that felt low,
-                  but we had no way to verify it.
+                  We were trying to sell a vessel. Not a small one.
+                  Fifteen thousand lightship tons of steel, sitting idle, costing money every day.
                 </p>
                 <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.85, margin: 0 }}>
-                  We pushed back through the broker. <strong style={{ color: NAVY }}>$240.</strong>{" "}
-                  Then another broker came in at <strong style={{ color: NAVY }}>$250.</strong>{" "}
-                  Each one claimed to have the best buyer. Each one had a chain behind them we couldn't see.
+                  The first offer came back at{" "}
+                  <strong style={{ color: NAVY }}>$230 per LDT.</strong>{" "}
+                  We didn't know if it was fair. We had no way to know.
+                  So we trusted the broker.
                 </p>
                 <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.85, margin: 0 }}>
-                  Then we called a breaking yard directly.{" "}
-                  <strong style={{ color: NAVY }}>$280.</strong>
+                  We pushed. He came back with <strong style={{ color: NAVY }}>$240.</strong>{" "}
+                  A second broker appeared with <strong style={{ color: NAVY }}>$250</strong> —
+                  each one promising the best buyer, each one with a chain of people
+                  behind them we never got to meet.
                 </p>
                 <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.85, margin: 0 }}>
-                  Same vessel. Same market. Same week.
+                  Then we picked up the phone and called the yard directly.
+                </p>
+                <p style={{ fontFamily: SERIF, fontSize: 22, color: NAVY, lineHeight: 1.5, margin: 0, fontWeight: 700 }}>
+                  $280.
                 </p>
                 <p style={{ fontSize: 16, color: "#374151", lineHeight: 1.85, margin: 0 }}>
-                  The problem wasn't the market. It was the chain.
-                  We built ShipScout to close that gap — direct representation,
-                  verified yard contacts, and no broker between you and the real price.
+                  Same vessel. Same steel. Same week.{" "}
+                  <strong style={{ color: NAVY }}>$750,000 had been sitting in the chain</strong> — and nobody told us.
+                </p>
+                <p style={{ fontSize: 15, color: "#64748B", lineHeight: 1.85, margin: 0 }}>
+                  That was the moment we understood what we had to build.
+                  ShipScout exists because that phone call should have been the first call, not the last.
                 </p>
               </div>
             </div>

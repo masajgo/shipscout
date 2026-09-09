@@ -59,8 +59,8 @@ export default function HomePage() {
               fontStyle: "italic",
               letterSpacing: -1.5,
             }}>
-              The vessels your competitors<br />
-              <span style={{ color: GOLD }}>don't know about yet.</span>
+              Maritime intelligence.<br />
+              <span style={{ color: GOLD }}>Before anyone else.</span>
             </h1>
 
             <p style={{

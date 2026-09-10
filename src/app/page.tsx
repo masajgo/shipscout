@@ -741,8 +741,8 @@ export default function HomePage() {
             <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
               {([
                 ["Opportunities", "/opportunities"],
+                ["Vessels for Sale", "/for-sale"],
                 ["Shipowners",    "/shipowners"],
-                ["How It Works",  "/how-it-works"],
                 ["Contact",       "mailto:info@turqomarine.com"],
                 ["WhatsApp",      "https://wa.me/905396675922"],
               ] as [string, string][]).map(([label, href]) => (

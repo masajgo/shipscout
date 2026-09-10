@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.shipscout.shiplistings</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-c</string>
+    <string>mkdir -p "$HOME/Library/Logs/shipscout"; /usr/bin/caffeinate -i /usr/local/bin/node /Users/macbook/Desktop/shipscout/scripts/scrapeShipListings.js >> "$HOME/Library/Logs/shipscout/shiplistings.log" 2>&amp;1</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/macbook/Desktop/shipscout</string>
+
+  <!-- Every day at 06:00 -->
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>6</integer>
+    <key>Minute</key>
+    <integer>0</integer>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <false/>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HOME</key>
+    <string>/Users/macbook</string>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/bin:/bin</string>
+    <key>SCRAPE_PAGES</key>
+    <string>10</string>
+  </dict>
+</dict>
+</plist>

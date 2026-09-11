@@ -69,9 +69,18 @@ export default function ForSalePage() {
 
   return (
     <div style={{ background: "#F8FAFC", minHeight: "100vh" }}>
+      <style>{`
+        @media (max-width: 768px) {
+          .for-sale-header { padding: 36px 20px 28px !important; }
+          .for-sale-filters { flex-direction: column !important; }
+          .for-sale-filters input, .for-sale-filters select { width: 100% !important; box-sizing: border-box; }
+          .for-sale-grid { grid-template-columns: 1fr !important; padding: 20px !important; }
+          .for-sale-cta { margin: 32px 0 0 !important; border-radius: 0 !important; }
+        }
+      `}</style>
 
       {/* Header */}
-      <div style={{ background: NAVY, padding: "48px 40px 40px" }}>
+      <div className="for-sale-header" style={{ background: NAVY, padding: "48px 40px 40px" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GOLD, textTransform: "uppercase", marginBottom: 12 }}>
             Vessels for Sale
@@ -84,7 +93,7 @@ export default function ForSalePage() {
           </p>
 
           {/* Filters */}
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <div className="for-sale-filters" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <input
               placeholder="Search by name, type…"
               value={search}
@@ -124,7 +133,7 @@ export default function ForSalePage() {
             No vessels match your filters.
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
+          <div className="for-sale-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
             {filtered.map(l => (
               <div key={l.id} style={{
                 background: "#fff", borderRadius: 10,

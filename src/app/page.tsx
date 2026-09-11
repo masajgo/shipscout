@@ -139,19 +139,41 @@ export default function HomePage() {
         }
         .ticker-track { animation: ticker 40s linear infinite; }
         .ticker-track:hover { animation-play-state: paused; }
+
+        @media (max-width: 768px) {
+          .hero-section      { padding: 48px 20px 40px !important; min-height: auto !important; }
+          .hero-inner        { gap: 36px !important; }
+          .hero-mockup       { display: none !important; }
+          .section-pad       { padding: 56px 20px !important; }
+          .section-pad-sm    { padding: 40px 20px !important; }
+          .steps-grid        { grid-template-columns: 1fr 1fr !important; gap: 28px !important; }
+          .chain-row         { overflow-x: auto !important; padding-bottom: 12px !important; }
+          .compare-grid      { grid-template-columns: 1fr !important; }
+          .compare-row       { grid-template-columns: 1fr !important; gap: 4px !important; }
+          .compare-row > *:first-child { display: none !important; }
+          .two-col           { grid-template-columns: 1fr !important; gap: 36px !important; }
+          .split-panel       { flex-direction: column !important; }
+          .split-panel > div { padding: 48px 24px !important; }
+          .footer-inner      { flex-direction: column !important; gap: 20px !important; align-items: flex-start !important; }
+          .footer-links      { flex-wrap: wrap !important; gap: 14px !important; }
+          .contact-info      { display: none !important; }
+        }
+        @media (max-width: 480px) {
+          .steps-grid { grid-template-columns: 1fr !important; }
+        }
       `}</style>
 
       <div style={{ fontFamily: "system-ui, -apple-system, sans-serif", color: "#0F172A" }}>
 
         {/* ── HERO ─────────────────────────────────────────────────────────────── */}
-        <section style={{
+        <section className="hero-section" style={{
           background: `radial-gradient(ellipse at 25% 60%, #0d1f4a 0%, ${NAVY} 65%)`,
           padding: "80px 40px 72px",
           minHeight: "88vh",
           display: "flex",
           alignItems: "center",
         }}>
-          <div style={{ maxWidth: 1140, margin: "0 auto", width: "100%", display: "flex", gap: 64, alignItems: "center", flexWrap: "wrap" }}>
+          <div className="hero-inner" style={{ maxWidth: 1140, margin: "0 auto", width: "100%", display: "flex", gap: 64, alignItems: "center", flexWrap: "wrap" }}>
 
             {/* Left: text */}
             <div style={{ flex: "1 1 380px", maxWidth: 520 }}>
@@ -199,7 +221,7 @@ export default function HomePage() {
             </div>
 
             {/* Right: radar mockup */}
-            <div style={{ flex: "1 1 420px", maxWidth: 580 }}>
+            <div className="hero-mockup" style={{ flex: "1 1 420px", maxWidth: 580 }}>
               <div style={{
                 background: "#080F20",
                 borderRadius: 12,
@@ -302,7 +324,7 @@ export default function HomePage() {
         </div>
 
         {/* ── 4 STEPS ──────────────────────────────────────────────────────────── */}
-        <section style={{ background: "#F8FAFC", padding: "96px 40px", borderBottom: "1px solid #E2E8F0" }}>
+        <section className="section-pad" style={{ background: "#F8FAFC", padding: "96px 40px", borderBottom: "1px solid #E2E8F0" }}>
           <div style={{ maxWidth: 1060, margin: "0 auto" }}>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GOLD, textTransform: "uppercase", marginBottom: 16 }}>
               How We Work
@@ -310,7 +332,7 @@ export default function HomePage() {
             <h2 style={{ fontFamily: SERIF, fontSize: "clamp(26px, 3vw, 40px)", fontWeight: 700, color: NAVY, margin: "0 0 64px", lineHeight: 1.2 }}>
               One team. Start to close.
             </h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 32 }}>
+            <div className="steps-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 32 }}>
               {STEPS.map((s, i) => (
                 <div key={s.n} style={{ position: "relative" }}>
                   {i < STEPS.length - 1 && (
@@ -343,7 +365,7 @@ export default function HomePage() {
               <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 28 }}>
                 The old way — 3 to 4 commissions
               </div>
-              <div style={{ display: "flex", alignItems: "center", overflowX: "auto", paddingBottom: 8 }}>
+              <div className="chain-row" style={{ display: "flex", alignItems: "center", overflowX: "auto", paddingBottom: 8 }}>
                 {/* Seller */}
                 <div style={{ flexShrink: 0, border: "1.5px solid #CBD5E1", borderRadius: 10, padding: "12px 20px", background: "#F8FAFC", textAlign: "center", minWidth: 90 }}>
                   <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Seller</div>
@@ -469,7 +491,7 @@ export default function HomePage() {
               The old way leaves money on the table.
             </h2>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 0, marginBottom: 0 }}>
+            <div className="compare-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 0, marginBottom: 0 }}>
               <div />
               <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.25)", letterSpacing: "0.12em", textTransform: "uppercase", paddingBottom: 16, borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
                 Traditional Broker
@@ -487,7 +509,7 @@ export default function HomePage() {
               { cat: "Fees",           old: "Commission both sides, no clarity",   neo: "No upfront fees — we earn when you close" },
               { cat: "Deal support",   old: "Introduce parties and step away",     neo: "Find → Negotiate → Escrow → Close" },
             ].map(({ cat, old, neo }) => (
-              <div key={cat} style={{
+              <div key={cat} className="compare-row" style={{
                 display: "grid", gridTemplateColumns: "1fr 1fr 1fr",
                 gap: 0, padding: "20px 0",
                 borderBottom: "1px solid rgba(255,255,255,0.05)",
@@ -516,7 +538,7 @@ export default function HomePage() {
         }} />
 
         {/* ── BUYER / SELLER SPLIT ─────────────────────────────────────────────── */}
-        <section style={{ display: "flex", flexWrap: "wrap" }}>
+        <section className="split-panel" style={{ display: "flex", flexWrap: "wrap" }}>
           <div style={{ flex: "1 1 300px", background: NAVY, padding: "72px 56px", borderRight: "1px solid rgba(255,255,255,0.05)" }}>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GOLD, textTransform: "uppercase", marginBottom: 20 }}>
               For Cash Buyers & Recycling Yards
@@ -559,7 +581,7 @@ export default function HomePage() {
 
         {/* ── ORIGIN STORY ─────────────────────────────────────────────────────── */}
         <section style={{ background: "#F8FAFC", padding: "96px 40px", borderTop: "1px solid #E2E8F0", borderBottom: "1px solid #E2E8F0" }}>
-          <div style={{ maxWidth: 860, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 96, alignItems: "start" }}>
+          <div className="two-col" style={{ maxWidth: 860, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 96, alignItems: "start" }}>
 
             {/* Left: story */}
             <div>
@@ -656,7 +678,7 @@ export default function HomePage() {
 
         {/* ── NO UPFRONT FEES ──────────────────────────────────────────────────── */}
         <section style={{ background: "#F8FAFC", padding: "88px 40px", borderTop: "1px solid #E2E8F0" }}>
-          <div style={{ maxWidth: 860, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 80, alignItems: "center" }}>
+          <div className="two-col" style={{ maxWidth: 860, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 80, alignItems: "center" }}>
             <div>
               <h2 style={{ fontFamily: SERIF, fontSize: "clamp(30px, 3.5vw, 48px)", fontWeight: 700, color: NAVY, margin: "0 0 20px", lineHeight: 1.1 }}>
                 No upfront fees.<br />Ever.
@@ -692,7 +714,7 @@ export default function HomePage() {
 
         {/* ── CONTACT FORM ─────────────────────────────────────────────────────── */}
         <section id="contact" style={{ background: "#fff", padding: "88px 40px", borderTop: "1px solid #E2E8F0" }}>
-          <div style={{ maxWidth: 860, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 80, alignItems: "flex-start" }}>
+          <div className="two-col" style={{ maxWidth: 860, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 80, alignItems: "flex-start" }}>
             <div>
               <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.14em", color: GOLD, textTransform: "uppercase", marginBottom: 16 }}>
                 Start a Deal
@@ -734,11 +756,11 @@ export default function HomePage() {
 
         {/* ── FOOTER ───────────────────────────────────────────────────────────── */}
         <footer style={{ background: NAVY, borderTop: "1px solid rgba(255,255,255,0.06)", padding: "32px 40px" }}>
-          <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
+          <div className="footer-inner" style={{ maxWidth: 1100, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
             <span style={{ fontFamily: SERIF, fontSize: 18, fontWeight: 700, color: "#fff" }}>
               Ship<span style={{ color: GOLD }}>Scout</span>
             </span>
-            <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+            <div className="footer-links" style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
               {([
                 ["Opportunities", "/opportunities"],
                 ["Vessels for Sale", "/for-sale"],

@@ -85,7 +85,7 @@ function ContactForm() {
 
   return (
     <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+      <div className="form-name-row" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <input required placeholder="Your name" value={form.name}
           onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
           style={inputStyle} />
@@ -141,22 +141,45 @@ export default function HomePage() {
         .ticker-track:hover { animation-play-state: paused; }
 
         @media (max-width: 768px) {
+          /* Hero */
           .hero-section      { padding: 48px 20px 40px !important; min-height: auto !important; }
           .hero-inner        { gap: 36px !important; }
           .hero-mockup       { display: none !important; }
+
+          /* All sections: shrink horizontal padding */
+          section            { padding-left: 20px !important; padding-right: 20px !important; }
           .section-pad       { padding: 56px 20px !important; }
-          .section-pad-sm    { padding: 40px 20px !important; }
+
+          /* Steps */
           .steps-grid        { grid-template-columns: 1fr 1fr !important; gap: 28px !important; }
-          .chain-row         { overflow-x: auto !important; padding-bottom: 12px !important; }
-          .compare-grid      { grid-template-columns: 1fr !important; }
-          .compare-row       { grid-template-columns: 1fr !important; gap: 4px !important; }
-          .compare-row > *:first-child { display: none !important; }
+
+          /* Chain diagram — make it horizontally scrollable, shrink boxes/arrows */
+          .chain-row         { overflow-x: auto !important; padding-bottom: 12px !important; -webkit-overflow-scrolling: touch; }
+          .chain-box         { min-width: 68px !important; padding: 8px 10px !important; }
+          .chain-arrow-line  { width: 18px !important; }
+          .chain-direct-line { max-width: 48px !important; }
+          .step-connector    { display: none !important; }
+
+          /* Comparison table */
+          .compare-grid      { grid-template-columns: 1fr 1fr !important; }
+          .compare-grid > div:first-child { display: none !important; }
+          .compare-row       { grid-template-columns: 1fr 1fr !important; gap: 8px !important; padding: 14px 0 !important; }
+          .compare-row > div:first-child { display: none !important; }
+
+          /* Two-col layouts → single col */
           .two-col           { grid-template-columns: 1fr !important; gap: 36px !important; }
+
+          /* Buyer/seller split */
           .split-panel       { flex-direction: column !important; }
           .split-panel > div { padding: 48px 24px !important; }
+
+          /* Footer */
           .footer-inner      { flex-direction: column !important; gap: 20px !important; align-items: flex-start !important; }
           .footer-links      { flex-wrap: wrap !important; gap: 14px !important; }
+
+          /* Contact form */
           .contact-info      { display: none !important; }
+          .form-name-row     { grid-template-columns: 1fr !important; }
         }
         @media (max-width: 480px) {
           .steps-grid { grid-template-columns: 1fr !important; }
@@ -336,7 +359,7 @@ export default function HomePage() {
               {STEPS.map((s, i) => (
                 <div key={s.n} style={{ position: "relative" }}>
                   {i < STEPS.length - 1 && (
-                    <div style={{
+                    <div className="step-connector" style={{
                       position: "absolute", top: 28, left: "calc(100% - 20px)", width: 40,
                       height: 1, background: "#E2E8F0", zIndex: 0,
                     }} />
@@ -367,7 +390,7 @@ export default function HomePage() {
               </div>
               <div className="chain-row" style={{ display: "flex", alignItems: "center", overflowX: "auto", paddingBottom: 8 }}>
                 {/* Seller */}
-                <div style={{ flexShrink: 0, border: "1.5px solid #CBD5E1", borderRadius: 10, padding: "12px 20px", background: "#F8FAFC", textAlign: "center", minWidth: 90 }}>
+                <div className="chain-box" style={{ flexShrink: 0, border: "1.5px solid #CBD5E1", borderRadius: 10, padding: "12px 20px", background: "#F8FAFC", textAlign: "center", minWidth: 90 }}>
                   <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Seller</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>Shipowner</div>
                 </div>
@@ -376,13 +399,13 @@ export default function HomePage() {
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0, margin: "0 2px" }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", marginBottom: 4 }}>1%</div>
                   <div style={{ display: "flex", alignItems: "center" }}>
-                    <div style={{ width: 32, height: 1.5, background: "#E2E8F0" }} />
+                    <div className="chain-arrow-line" style={{ width: 32, height: 1.5, background: "#E2E8F0" }} />
                     <div style={{ width: 0, height: 0, borderTop: "5px solid transparent", borderBottom: "5px solid transparent", borderLeft: "7px solid #E2E8F0" }} />
                   </div>
                 </div>
 
                 {/* Broker 1 */}
-                <div style={{ flexShrink: 0, border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "12px 20px", background: "#FAFAFA", textAlign: "center", minWidth: 110 }}>
+                <div className="chain-box" style={{ flexShrink: 0, border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "12px 20px", background: "#FAFAFA", textAlign: "center", minWidth: 110 }}>
                   <div style={{ fontSize: 10, color: "#CBD5E1", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Selling broker</div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "#9CA3AF" }}>Commission</div>
                 </div>
@@ -391,13 +414,13 @@ export default function HomePage() {
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0, margin: "0 2px" }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", marginBottom: 4 }}>1%</div>
                   <div style={{ display: "flex", alignItems: "center" }}>
-                    <div style={{ width: 32, height: 1.5, background: "#E2E8F0" }} />
+                    <div className="chain-arrow-line" style={{ width: 32, height: 1.5, background: "#E2E8F0" }} />
                     <div style={{ width: 0, height: 0, borderTop: "5px solid transparent", borderBottom: "5px solid transparent", borderLeft: "7px solid #E2E8F0" }} />
                   </div>
                 </div>
 
                 {/* Broker 2 */}
-                <div style={{ flexShrink: 0, border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "12px 20px", background: "#FAFAFA", textAlign: "center", minWidth: 110 }}>
+                <div className="chain-box" style={{ flexShrink: 0, border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "12px 20px", background: "#FAFAFA", textAlign: "center", minWidth: 110 }}>
                   <div style={{ fontSize: 10, color: "#CBD5E1", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Sub-broker</div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "#9CA3AF" }}>Commission</div>
                 </div>
@@ -406,13 +429,13 @@ export default function HomePage() {
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0, margin: "0 2px" }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", marginBottom: 4 }}>1%</div>
                   <div style={{ display: "flex", alignItems: "center" }}>
-                    <div style={{ width: 32, height: 1.5, background: "#E2E8F0" }} />
+                    <div className="chain-arrow-line" style={{ width: 32, height: 1.5, background: "#E2E8F0" }} />
                     <div style={{ width: 0, height: 0, borderTop: "5px solid transparent", borderBottom: "5px solid transparent", borderLeft: "7px solid #E2E8F0" }} />
                   </div>
                 </div>
 
                 {/* Broker 3 */}
-                <div style={{ flexShrink: 0, border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "12px 20px", background: "#FAFAFA", textAlign: "center", minWidth: 110 }}>
+                <div className="chain-box" style={{ flexShrink: 0, border: "1.5px solid #E2E8F0", borderRadius: 10, padding: "12px 20px", background: "#FAFAFA", textAlign: "center", minWidth: 110 }}>
                   <div style={{ fontSize: 10, color: "#CBD5E1", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Buying broker</div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "#9CA3AF" }}>Commission</div>
                 </div>
@@ -421,13 +444,13 @@ export default function HomePage() {
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0, margin: "0 2px" }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "#EF4444", marginBottom: 4 }}>0.5%</div>
                   <div style={{ display: "flex", alignItems: "center" }}>
-                    <div style={{ width: 32, height: 1.5, background: "#E2E8F0" }} />
+                    <div className="chain-arrow-line" style={{ width: 32, height: 1.5, background: "#E2E8F0" }} />
                     <div style={{ width: 0, height: 0, borderTop: "5px solid transparent", borderBottom: "5px solid transparent", borderLeft: "7px solid #E2E8F0" }} />
                   </div>
                 </div>
 
                 {/* Buyer */}
-                <div style={{ flexShrink: 0, border: "1.5px solid #CBD5E1", borderRadius: 10, padding: "12px 20px", background: "#F8FAFC", textAlign: "center", minWidth: 90 }}>
+                <div className="chain-box" style={{ flexShrink: 0, border: "1.5px solid #CBD5E1", borderRadius: 10, padding: "12px 20px", background: "#F8FAFC", textAlign: "center", minWidth: 90 }}>
                   <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Buyer</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>Cash buyer</div>
                 </div>
@@ -445,7 +468,7 @@ export default function HomePage() {
               <div style={{ fontSize: 11, fontWeight: 700, color: GOLD, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 28 }}>
                 ShipScout — direct
               </div>
-              <div style={{ display: "flex", alignItems: "center" }}>
+              <div className="chain-row" style={{ display: "flex", alignItems: "center" }}>
                 {/* Seller */}
                 <div style={{ flexShrink: 0, border: `2px solid ${NAVY}`, borderRadius: 10, padding: "12px 20px", background: "#fff", textAlign: "center", minWidth: 90 }}>
                   <div style={{ fontSize: 10, color: "#64748B", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Seller</div>
@@ -453,7 +476,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Line left */}
-                <div style={{ flex: 1, height: 2, background: `linear-gradient(to right, ${NAVY}, ${GOLD})`, maxWidth: 120 }} />
+                <div className="chain-direct-line" style={{ flex: 1, height: 2, background: `linear-gradient(to right, ${NAVY}, ${GOLD})`, maxWidth: 120 }} />
 
                 {/* ShipScout node */}
                 <div style={{ flexShrink: 0, border: `2px solid ${GOLD}`, borderRadius: 10, padding: "14px 28px", background: NAVY, textAlign: "center" }}>
@@ -462,7 +485,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Line right */}
-                <div style={{ flex: 1, height: 2, background: `linear-gradient(to right, ${GOLD}, ${NAVY})`, maxWidth: 120 }} />
+                <div className="chain-direct-line" style={{ flex: 1, height: 2, background: `linear-gradient(to right, ${GOLD}, ${NAVY})`, maxWidth: 120 }} />
 
                 {/* Buyer */}
                 <div style={{ flexShrink: 0, border: `2px solid ${NAVY}`, borderRadius: 10, padding: "12px 20px", background: "#fff", textAlign: "center", minWidth: 90 }}>
@@ -726,7 +749,7 @@ export default function HomePage() {
                 Bulk carrier, tanker, general cargo — any vessel type, any size.
                 We'll come back to you within one business day with a plan.
               </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div className="contact-info" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <a href="mailto:info@turqomarine.com" style={{ fontSize: 14, color: "#94A3B8", textDecoration: "none" }}>
                   info@turqomarine.com
                 </a>

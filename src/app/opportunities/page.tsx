@@ -794,6 +794,8 @@ function NewsSignalsSection() {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function OpportunitiesPage() {
+  const [activeTab, setActiveTab] = useState<"ais" | "news">("ais");
+
   const [vessels, setVessels]                 = useState<OpportunityVessel[]>([]);
   const [total, setTotal]                     = useState<number>(0);
   const [contactableTotal, setContactableTotal] = useState<number>(0);
@@ -801,6 +803,14 @@ export default function OpportunitiesPage() {
   const [expanded, setExpanded]               = useState<Set<string>>(new Set());
   const [draftVessel, setDraftVessel]         = useState<OpportunityVessel | null>(null);
   const [pricesUpdatedAt, setPricesUpdatedAt] = useState<string | null>(null);
+  const [newsCount, setNewsCount]             = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("/api/radar-events?limit=1&days=30")
+      .then(r => r.json())
+      .then(d => setNewsCount(d.total ?? null))
+      .catch(() => {});
+  }, []);
 
   const [signalFilter, setSignalFilter] = useState<string>("all");
   const [minAge, setMinAge]             = useState<number>(20);
@@ -904,6 +914,35 @@ export default function OpportunitiesPage() {
           </div>
         )}
       </div>
+
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 24, borderBottom: "1px solid #E5E7EB" }}>
+        {([
+          { key: "ais",  label: "AIS Signals",  count: !loading ? total : null },
+          { key: "news", label: "News Signals",  count: newsCount },
+        ] as { key: "ais" | "news"; label: string; count: number | null }[]).map(tab => (
+          <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
+            fontSize: 13, fontWeight: activeTab === tab.key ? 700 : 400,
+            color: activeTab === tab.key ? "#07122E" : "#6B7280",
+            background: "none", border: "none", cursor: "pointer",
+            padding: "8px 16px", borderBottom: activeTab === tab.key ? "2px solid #C9A84C" : "2px solid transparent",
+            marginBottom: -1, display: "flex", alignItems: "center", gap: 7,
+          }}>
+            {tab.label}
+            {tab.count !== null && (
+              <span style={{
+                fontSize: 11, fontWeight: 700, padding: "1px 6px", borderRadius: 10,
+                background: activeTab === tab.key ? "#07122E" : "#F3F4F6",
+                color: activeTab === tab.key ? "#C9A84C" : "#9CA3AF",
+              }}>
+                {tab.count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "ais" && <>
 
       {/* Breaking opportunities banner */}
       {!loading && filtered.length > 0 && (
@@ -1133,7 +1172,9 @@ export default function OpportunitiesPage() {
         </div>
       )}
 
-      <NewsSignalsSection />
+      </>}
+
+      {activeTab === "news" && <NewsSignalsSection />}
     </div>
   );
 }

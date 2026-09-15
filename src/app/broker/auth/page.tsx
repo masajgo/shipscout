@@ -23,10 +23,12 @@ function AuthForm() {
   const [mode, setMode]         = useState<Mode>("login");
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName]         = useState("");
-  const [company, setCompany]   = useState("");
+  const [name]    = useState("");
+  const [company] = useState("");
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState("");
+
+  const fromProtected = !!params.get("redirect");
 
   useEffect(() => { setError(""); }, [mode]);
 
@@ -67,12 +69,14 @@ function AuthForm() {
       </div>
 
       <h1 style={{ fontSize: 20, fontWeight: 700, color: "#101828", margin: "0 0 4px" }}>
-        {mode === "login" ? "Sign in" : "Create account"}
+        {mode === "login" ? "Sign in" : "Request access"}
       </h1>
       <p style={{ fontSize: 13, color: "#667085", margin: "0 0 24px" }}>
-        {mode === "login"
-          ? "List your vessels for sale, charter, or scrap."
-          : "Join brokers already listing on ShipScout."}
+        {fromProtected
+          ? "This section is for ShipScout partners. Sign in to continue."
+          : mode === "login"
+            ? "Sign in to your ShipScout broker account."
+            : "ShipScout is invite-only. Contact us to request access."}
       </p>
 
       {error && (
@@ -81,43 +85,41 @@ function AuthForm() {
         </div>
       )}
 
-      <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {mode === "signup" && (
-          <>
+      {mode === "login" ? (
+        <>
+          <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 500, color: "#344054", display: "block", marginBottom: 5 }}>Full name</label>
-              <input style={INPUT} type="text" value={name} onChange={e => setName(e.target.value)} required placeholder="John Smith" />
+              <label style={{ fontSize: 12, fontWeight: 500, color: "#344054", display: "block", marginBottom: 5 }}>Email</label>
+              <input style={INPUT} type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@company.com" autoComplete="email" />
             </div>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 500, color: "#344054", display: "block", marginBottom: 5 }}>Company</label>
-              <input style={INPUT} type="text" value={company} onChange={e => setCompany(e.target.value)} placeholder="Acme Shipbrokers Ltd." />
+              <label style={{ fontSize: 12, fontWeight: 500, color: "#344054", display: "block", marginBottom: 5 }}>Password</label>
+              <input style={INPUT} type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" minLength={8} autoComplete="current-password" />
             </div>
-          </>
-        )}
-        <div>
-          <label style={{ fontSize: 12, fontWeight: 500, color: "#344054", display: "block", marginBottom: 5 }}>Email</label>
-          <input style={INPUT} type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="you@company.com" autoComplete="email" />
+            <button type="submit" style={{ ...BTN, opacity: loading ? 0.7 : 1, marginTop: 4 }} disabled={loading}>
+              {loading ? "Please wait…" : "Sign in"}
+            </button>
+          </form>
+          <div style={{ textAlign: "center", marginTop: 20, fontSize: 12, color: "#667085" }}>
+            No account?{" "}
+            <button onClick={() => setMode("signup")} style={{ color: "#1D9E75", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontSize: 12 }}>
+              Request access →
+            </button>
+          </div>
+        </>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 10, padding: "20px 18px", fontSize: 13, color: "#374151", lineHeight: 1.7 }}>
+            ShipScout partner access is by invitation only.<br />
+            To request an account, email us at{" "}
+            <a href="mailto:info@turqomarine.com" style={{ color: "#1D9E75", fontWeight: 600 }}>info@turqomarine.com</a>
+            {" "}with your name and company.
+          </div>
+          <button onClick={() => setMode("login")} style={{ ...BTN, background: "transparent", color: "#667085", border: "1px solid #D0D5DD" }}>
+            ← Back to sign in
+          </button>
         </div>
-        <div>
-          <label style={{ fontSize: 12, fontWeight: 500, color: "#344054", display: "block", marginBottom: 5 }}>Password</label>
-          <input style={INPUT} type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder={mode === "signup" ? "At least 8 characters" : "••••••••"} minLength={8} autoComplete={mode === "signup" ? "new-password" : "current-password"} />
-        </div>
-        <button type="submit" style={{ ...BTN, opacity: loading ? 0.7 : 1, marginTop: 4 }} disabled={loading}>
-          {loading ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}
-        </button>
-      </form>
-
-      <div style={{ textAlign: "center", marginTop: 20, fontSize: 12, color: "#667085" }}>
-        {mode === "login" ? (
-          <>Don&apos;t have an account?{" "}
-            <button onClick={() => setMode("signup")} style={{ color: "#1D9E75", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontSize: 12 }}>Sign up</button>
-          </>
-        ) : (
-          <>Already have an account?{" "}
-            <button onClick={() => setMode("login")} style={{ color: "#1D9E75", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontSize: 12 }}>Sign in</button>
-          </>
-        )}
-      </div>
+      )}
     </div>
   );
 }

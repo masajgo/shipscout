@@ -796,7 +796,11 @@ export default function HomePage() {
                 </Link>
               ))}
             </div>
-            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.18)" }}>© 2026 ShipScout</span>
+            <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+              <Link href="/privacy" style={{ fontSize: 12, color: "rgba(255,255,255,0.18)", textDecoration: "none" }}>Privacy</Link>
+              <Link href="/terms" style={{ fontSize: 12, color: "rgba(255,255,255,0.18)", textDecoration: "none" }}>Terms</Link>
+              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.18)" }}>© 2026 ShipScout</span>
+            </div>
           </div>
         </footer>
 

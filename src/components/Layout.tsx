@@ -28,7 +28,7 @@ const FALLBACK_TICKER: TickerItem[] = [
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const path = usePathname();
-  const PUBLIC_MARKETING = ["/", "/shipowners", "/buyers", "/how-it-works"];
+  const PUBLIC_MARKETING = ["/", "/shipowners", "/buyers", "/how-it-works", "/privacy", "/terms", "/for-sale"];
   const isVesselPage = path.startsWith("/vessel/");
   const isMarketingPage = PUBLIC_MARKETING.includes(path) || isVesselPage;
   const isPublic = isVesselPage; // vessel pages have no nav at all

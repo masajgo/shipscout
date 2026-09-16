@@ -25,7 +25,8 @@ const AGENT_META: Record<string, { label: string; schedule: string; where: "verc
   // Local launchd jobs (Mac)
   ownerscan:       { label: "Owner Scan (Equasis)",     schedule: "Daily 13:00",       where: "local" },
   healthmonitor:   { label: "Health Monitor",           schedule: "Every hour",        where: "local" },
-  shiplistings:    { label: "Ship Listings Scraper",    schedule: "Daily 08:00",       where: "local" },
+  shiplistings:      { label: "Ship Listings Scraper",    schedule: "Daily 08:00",       where: "local" },
+  updatepositions:   { label: "AIS Position Update",      schedule: "Daily 07:00 (2h)",  where: "local" },
 };
 
 function timeAgo(iso: string): string {

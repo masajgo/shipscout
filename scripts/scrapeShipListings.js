@@ -71,7 +71,16 @@ async function scrapeCategory(page, cat) {
 }
 
 async function run() {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({
+    headless: true,
+    args: [
+      "--disable-dev-shm-usage",
+      "--disable-extensions",
+      "--disable-background-networking",
+      "--no-first-run",
+      "--single-process",
+    ],
+  });
   const page    = await browser.newPage();
   await page.setExtraHTTPHeaders({
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",

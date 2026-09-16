@@ -25,7 +25,7 @@ const AGENT_META: Record<string, { label: string; schedule: string; where: "verc
   // Local launchd jobs (Mac)
   ownerscan:       { label: "Owner Scan (Equasis)",     schedule: "Daily 13:00",       where: "local" },
   healthmonitor:   { label: "Health Monitor",           schedule: "Every hour",        where: "local" },
-  shiplistings:    { label: "Ship Listings Scraper",    schedule: "Daily 06:00",       where: "local" },
+  shiplistings:    { label: "Ship Listings Scraper",    schedule: "Daily 08:00",       where: "local" },
 };
 
 function timeAgo(iso: string): string {
@@ -137,7 +137,7 @@ export default function AgentsPage() {
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: NAVY, margin: 0 }}>Agent Status</h1>
           <p style={{ fontSize: 13, color: "#6B7280", margin: "4px 0 0" }}>
-            Background jobs running on the local Mac
+            Vercel crons + local Mac background jobs
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -155,115 +155,118 @@ export default function AgentsPage() {
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {rows.map(agent => {
-          const meta    = AGENT_META[agent.agent_name];
-          const isOpen  = expanded === agent.agent_name;
-          const status  = agent.last_status;
-          const never   = !agent.last_started_at;
-
-          const cardBorder = status === "error" || status === "degraded"
-            ? "1px solid #FECACA" : "1px solid #E5E7EB";
-          const cardBg = status === "error" || status === "degraded"
-            ? "#FFF5F5" : "#fff";
-
-          return (
-            <div key={agent.agent_name} style={{
-              border: cardBorder, borderRadius: 10, background: cardBg,
-              overflow: "hidden",
+      {(["vercel", "local"] as const).map(group => {
+        const groupRows = rows.filter(a => (AGENT_META[a.agent_name]?.where ?? "local") === group);
+        if (groupRows.length === 0) return null;
+        return (
+          <div key={group} style={{ marginBottom: 28 }}>
+            <div style={{
+              fontSize: 11, fontWeight: 700, color: "#6B7280",
+              textTransform: "uppercase", letterSpacing: "0.08em",
+              marginBottom: 10, display: "flex", alignItems: "center", gap: 6,
             }}>
-              <div
-                onClick={() => setExpanded(isOpen ? null : agent.agent_name)}
-                style={{ padding: "14px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}
-              >
-                <StatusDot status={status} />
-                <div style={{ flex: 1, minWidth: 180 }}>
-                  <div style={{ fontWeight: 600, color: "#111827", fontSize: 14 }}>
-                    {meta?.label ?? agent.agent_name}
-                  </div>
-                  <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 1, display: "flex", alignItems: "center", gap: 6 }}>
-                    {meta?.schedule ?? "—"}
-                    {meta && (
-                      <span style={{
-                        fontSize: 10, fontWeight: 600, padding: "1px 5px", borderRadius: 4,
-                        background: meta.where === "vercel" ? "#EEF2FF" : "#F3F4F6",
-                        color: meta.where === "vercel" ? "#4338CA" : "#6B7280",
-                      }}>
-                        {meta.where === "vercel" ? "Vercel" : "Mac"}
-                      </span>
+              {group === "vercel" ? "☁️ Vercel Crons" : "💻 Mac (Local)"}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {groupRows.map(agent => {
+                const meta   = AGENT_META[agent.agent_name];
+                const isOpen = expanded === agent.agent_name;
+                const status = agent.last_status;
+                const never  = !agent.last_started_at;
+
+                const cardBorder = status === "error" || status === "degraded"
+                  ? "1px solid #FECACA" : "1px solid #E5E7EB";
+                const cardBg = status === "error" || status === "degraded"
+                  ? "#FFF5F5" : "#fff";
+
+                return (
+                  <div key={agent.agent_name} style={{ border: cardBorder, borderRadius: 10, background: cardBg, overflow: "hidden" }}>
+                    <div
+                      onClick={() => setExpanded(isOpen ? null : agent.agent_name)}
+                      style={{ padding: "14px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}
+                    >
+                      <StatusDot status={status} />
+                      <div style={{ flex: 1, minWidth: 180 }}>
+                        <div style={{ fontWeight: 600, color: "#111827", fontSize: 14 }}>
+                          {meta?.label ?? agent.agent_name}
+                        </div>
+                        <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 1 }}>
+                          {meta?.schedule ?? "—"}
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap" }}>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: 11, color: "#9CA3AF" }}>Last run</div>
+                          <div style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>
+                            {never ? "Never" : timeAgo(agent.last_started_at!)}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: 11, color: "#9CA3AF" }}>Runs</div>
+                          <div style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>
+                            {agent.run_count}
+                          </div>
+                        </div>
+                        {agent.last_rows !== null && (
+                          <div style={{ textAlign: "right" }}>
+                            <div style={{ fontSize: 11, color: "#9CA3AF" }}>Rows</div>
+                            <div style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>
+                              {agent.last_rows}
+                            </div>
+                          </div>
+                        )}
+                        <span style={{
+                          fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 6,
+                          background: status === "success" || status === "ok"       ? "#DCFCE7"
+                                    : status === "running"                          ? "#DBEAFE"
+                                    : status === "error" || status === "degraded"   ? "#FEE2E2"
+                                    : "#F3F4F6",
+                          color:     status === "success" || status === "ok"       ? "#15803D"
+                                    : status === "running"                          ? "#1D4ED8"
+                                    : status === "error" || status === "degraded"   ? "#B91C1C"
+                                    : "#6B7280",
+                        }}>
+                          {status ?? "no data"}
+                        </span>
+                        <span style={{ fontSize: 12, color: "#9CA3AF" }}>{isOpen ? "▲" : "▼"}</span>
+                      </div>
+                    </div>
+
+                    {isOpen && (
+                      <div style={{ borderTop: "1px solid #E5E7EB", padding: "12px 16px", background: "#F9FAFB" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12, marginBottom: agent.last_error ? 12 : 0 }}>
+                          {[
+                            { label: "Started",    value: agent.last_started_at  ? new Date(agent.last_started_at).toLocaleString()  : "—" },
+                            { label: "Finished",   value: agent.last_finished_at ? new Date(agent.last_finished_at).toLocaleString() : "—" },
+                            { label: "Status",     value: agent.last_status ?? "—" },
+                            { label: "Total runs", value: String(agent.run_count) },
+                          ].map(({ label, value }) => (
+                            <div key={label}>
+                              <div style={{ fontSize: 10, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>{label}</div>
+                              <div style={{ fontSize: 13, color: "#374151", marginTop: 2 }}>{value}</div>
+                            </div>
+                          ))}
+                        </div>
+                        {agent.last_error && (
+                          <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 6, padding: "10px 12px" }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: "#B91C1C", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>
+                              Last error
+                            </div>
+                            <pre style={{ margin: 0, fontSize: 11, color: "#7F1D1D", whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.5 }}>
+                              {agent.last_error}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
-                </div>
-
-                <div style={{ display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap" }}>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 11, color: "#9CA3AF" }}>Last run</div>
-                    <div style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>
-                      {never ? "Never" : timeAgo(agent.last_started_at!)}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 11, color: "#9CA3AF" }}>Runs</div>
-                    <div style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>
-                      {agent.run_count}
-                    </div>
-                  </div>
-                  {agent.last_rows !== null && (
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 11, color: "#9CA3AF" }}>Rows</div>
-                      <div style={{ fontSize: 13, color: "#374151", fontWeight: 500 }}>
-                        {agent.last_rows}
-                      </div>
-                    </div>
-                  )}
-                  <span style={{
-                    fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 6,
-                    background: status === "success" || status === "ok"  ? "#DCFCE7"
-                              : status === "running"                     ? "#DBEAFE"
-                              : status === "error" || status === "degraded" ? "#FEE2E2"
-                              : "#F3F4F6",
-                    color:     status === "success" || status === "ok"  ? "#15803D"
-                              : status === "running"                     ? "#1D4ED8"
-                              : status === "error" || status === "degraded" ? "#B91C1C"
-                              : "#6B7280",
-                  }}>
-                    {status ?? "no data"}
-                  </span>
-                  <span style={{ fontSize: 12, color: "#9CA3AF" }}>{isOpen ? "▲" : "▼"}</span>
-                </div>
-              </div>
-
-              {isOpen && (
-                <div style={{ borderTop: "1px solid #E5E7EB", padding: "12px 16px", background: "#F9FAFB" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12, marginBottom: agent.last_error ? 12 : 0 }}>
-                    {[
-                      { label: "Started",  value: agent.last_started_at  ? new Date(agent.last_started_at).toLocaleString()  : "—" },
-                      { label: "Finished", value: agent.last_finished_at ? new Date(agent.last_finished_at).toLocaleString() : "—" },
-                      { label: "Status",   value: agent.last_status ?? "—" },
-                      { label: "Total runs", value: String(agent.run_count) },
-                    ].map(({ label, value }) => (
-                      <div key={label}>
-                        <div style={{ fontSize: 10, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>{label}</div>
-                        <div style={{ fontSize: 13, color: "#374151", marginTop: 2 }}>{value}</div>
-                      </div>
-                    ))}
-                  </div>
-                  {agent.last_error && (
-                    <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 6, padding: "10px 12px" }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: "#B91C1C", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>
-                        Last error
-                      </div>
-                      <pre style={{ margin: 0, fontSize: 11, color: "#7F1D1D", whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.5 }}>
-                        {agent.last_error}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              )}
+                );
+              })}
             </div>
-          );
-        })}
-      </div>
+          </div>
+        );
+      })}
 
       <div style={{ marginTop: 32, padding: "14px 16px", background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 10 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>

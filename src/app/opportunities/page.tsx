@@ -859,8 +859,7 @@ export default function OpportunitiesPage() {
       if (v.age < minAge) return false;
       if (typeFilter !== "all" && !(v.type_specific ?? v.type ?? "").toLowerCase().includes(typeFilter.toLowerCase())) return false;
       if (nearYard !== "all") {
-        const yardDef = YARD_DEFS.find(y => y.id === nearYard);
-        const dist = yardDef ? (v as Record<string, unknown>)[yardDef.field] as number | null : null;
+        const dist = getYardDist(v, nearYard);
         if (dist === null || dist > parseInt(nearDist)) return false;
       }
       if (contactOnly && !vesselHasContact(v)) return false;
@@ -868,18 +867,25 @@ export default function OpportunitiesPage() {
     });
   }, [vessels, signalFilter, minAge, typeFilter, nearYard, nearDist, contactOnly]);
 
+  function getYardDist(v: OpportunityVessel, yardId: string): number | null {
+    if (yardId === "aliaga")     return v.dist_aliaga_nm;
+    if (yardId === "alang")      return v.dist_alang_nm;
+    if (yardId === "chittagong") return v.dist_chittagong_nm;
+    if (yardId === "gadani")     return v.dist_gadani_nm;
+    return null;
+  }
+
   const presetCounts = useMemo(() => {
     const c = vessels.filter(vesselHasContact);
-    const yardCount = (field: string) =>
-      c.filter(v => (v as Record<string, unknown>)[field] !== null && ((v as Record<string, unknown>)[field] as number) <= 500).length;
+    const yardCount = (id: string) => c.filter(v => { const d = getYardDist(v, id); return d !== null && d <= 500; }).length;
     return {
       hot:        c.filter(v => v.signals.some(s => s.type === "layup") && v.signals.some(s => s.type === "detention_age" || s.type === "detention_trend")).length,
       layup:      c.filter(v => v.signals.some(s => s.type === "layup")).length,
       survey:     c.filter(v => v.signals.some(s => s.type === "survey_pressure")).length,
-      aliaga:     yardCount("dist_aliaga_nm"),
-      alang:      yardCount("dist_alang_nm"),
-      chittagong: yardCount("dist_chittagong_nm"),
-      gadani:     yardCount("dist_gadani_nm"),
+      aliaga:     yardCount("aliaga"),
+      alang:      yardCount("alang"),
+      chittagong: yardCount("chittagong"),
+      gadani:     yardCount("gadani"),
     };
   }, [vessels]);
 

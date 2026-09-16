@@ -191,12 +191,36 @@ async function saveEditorial(eventId: number, summary: string) {
 
 // ── Route ─────────────────────────────────────────────────────────────────────
 
+async function agentStart(name: string) {
+  try {
+    await pool.query(
+      `INSERT INTO agent_status (agent_name, last_started_at, last_status, run_count, updated_at)
+       VALUES ($1, NOW(), 'running', 1, NOW())
+       ON CONFLICT (agent_name) DO UPDATE SET
+         last_started_at = NOW(), last_status = 'running',
+         run_count = agent_status.run_count + 1, updated_at = NOW()`,
+      [name]
+    );
+  } catch { /* non-fatal */ }
+}
+
+async function agentFinish(name: string, status: string, rows?: number, error?: string) {
+  try {
+    await pool.query(
+      `UPDATE agent_status SET last_finished_at=NOW(), last_status=$2, last_rows=$3, last_error=$4, updated_at=NOW()
+       WHERE agent_name=$1`,
+      [name, status, rows ?? null, error ? error.slice(0, 1000) : null]
+    );
+  } catch { /* non-fatal */ }
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   if (!authorized(req, url)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  await agentStart("weeklydigest");
   const mode    = url.searchParams.get("mode") ?? "backfill"; // backfill | regen | current | publish
   const publish = url.searchParams.get("publish") === "yes";
 
@@ -299,5 +323,6 @@ export async function GET(req: Request) {
     weeksCount++;
   }
 
+  await agentFinish("weeklydigest", "success", weeksCount);
   return NextResponse.json({ mode, weeks_processed: weeksCount, details: processed });
 }

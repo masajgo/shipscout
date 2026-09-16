@@ -1,7 +1,9 @@
 {
   "crons": [
-    { "path": "/api/admin/run-scan",        "schedule": "30 5 * * *"   },
-    { "path": "/api/admin/run-digest?mode=backfill&publish=yes", "schedule": "0 5 * * 1" },
-    { "path": "/api/admin/run-intelligence","schedule": "0 11 * * *"   }
+    { "path": "/api/admin/run-scan",         "schedule": "30 5 * * *" },
+    { "path": "/api/admin/run-arrests",      "schedule": "0 6 * * *"  },
+    { "path": "/api/admin/run-intelligence", "schedule": "0 11 * * *" },
+    { "path": "/api/admin/run-scrap-scores", "schedule": "0 2 * * 1"  },
+    { "path": "/api/admin/run-digest?mode=backfill&publish=yes", "schedule": "0 5 * * 1" }
   ]
 }

@@ -261,32 +261,56 @@ async function ensureVesselEventsTable() {
 
 // ── Route handler ─────────────────────────────────────────────────────────────
 
+async function agentStart(name: string) {
+  try {
+    await pool.query(
+      `INSERT INTO agent_status (agent_name, last_started_at, last_status, run_count, updated_at)
+       VALUES ($1, NOW(), 'running', 1, NOW())
+       ON CONFLICT (agent_name) DO UPDATE SET
+         last_started_at = NOW(), last_status = 'running',
+         run_count = agent_status.run_count + 1, updated_at = NOW()`,
+      [name]
+    );
+  } catch { /* non-fatal */ }
+}
+
+async function agentFinish(name: string, status: string, rows?: number, error?: string) {
+  try {
+    await pool.query(
+      `UPDATE agent_status SET last_finished_at=NOW(), last_status=$2, last_rows=$3, last_error=$4, updated_at=NOW()
+       WHERE agent_name=$1`,
+      [name, status, rows ?? null, error ? error.slice(0, 1000) : null]
+    );
+  } catch { /* non-fatal */ }
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   if (!authorized(req, url)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  await agentStart("intelligence");
   const skip = url.searchParams.get("skip") ?? "";
 
-  await ensureVesselEventsTable();
-
-  const articles = await fetchAllNews();
-
-  const [newsResult, contactResult, proximityResult] = await Promise.all([
-    skip.includes("news")      ? Promise.resolve({ hits: 0, details: ["skipped"] })    : runNewsScan(articles),
-    skip.includes("contacts")  ? Promise.resolve({ updated: 0, details: ["skipped"] }) : runContactRefresh(),
-    skip.includes("proximity") ? Promise.resolve({ alerts: 0, details: ["skipped"] })  : runProximityAlerts(),
-  ]);
-
-  return NextResponse.json({
-    news_hits:      newsResult.hits,
-    contacts_updated: contactResult.updated,
-    proximity_alerts: proximityResult.alerts,
-    details: {
-      news:      newsResult.details,
-      contacts:  contactResult.details,
-      proximity: proximityResult.details,
-    },
-  });
+  try {
+    await ensureVesselEventsTable();
+    const articles = await fetchAllNews();
+    const [newsResult, contactResult, proximityResult] = await Promise.all([
+      skip.includes("news")      ? Promise.resolve({ hits: 0, details: ["skipped"] })    : runNewsScan(articles),
+      skip.includes("contacts")  ? Promise.resolve({ updated: 0, details: ["skipped"] }) : runContactRefresh(),
+      skip.includes("proximity") ? Promise.resolve({ alerts: 0, details: ["skipped"] })  : runProximityAlerts(),
+    ]);
+    await agentFinish("intelligence", "success", newsResult.hits + contactResult.updated);
+    return NextResponse.json({
+      news_hits:        newsResult.hits,
+      contacts_updated: contactResult.updated,
+      proximity_alerts: proximityResult.alerts,
+      details: { news: newsResult.details, contacts: contactResult.details, proximity: proximityResult.details },
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    await agentFinish("intelligence", "error", undefined, msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }

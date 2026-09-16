@@ -15,13 +15,17 @@ interface AgentRow {
 const NAVY = "#07122E";
 const GOLD = "#C9A84C";
 
-const AGENT_META: Record<string, { label: string; schedule: string }> = {
-  intelligence:   { label: "Intelligence Agent",  schedule: "03:00 · 09:30 · 15:00 · 21:00" },
-  ownerscan:      { label: "Owner Scan",           schedule: "Daily 13:00" },
-  healthmonitor:  { label: "Health Monitor",       schedule: "Every hour" },
-  weeklyrefresh:  { label: "Weekly Refresh",       schedule: "Weekly 03:00" },
-  arrestscan:     { label: "Arrest Scan",          schedule: "Daily 07:00" },
-  shiplistings:   { label: "Ship Listings",        schedule: "Daily 06:00" },
+const AGENT_META: Record<string, { label: string; schedule: string; where: "vercel" | "local" }> = {
+  // Vercel cron jobs
+  "run-scan":      { label: "News Scan (RSS + THETIS)", schedule: "Daily 05:30 UTC",  where: "vercel" },
+  arrestscan:      { label: "Arrest Scan",              schedule: "Daily 06:00 UTC",  where: "vercel" },
+  intelligence:    { label: "Intelligence Agent",       schedule: "Daily 11:00 UTC",  where: "vercel" },
+  "scrap-scores":  { label: "Scrap Score Recompute",    schedule: "Monday 02:00 UTC", where: "vercel" },
+  weeklydigest:    { label: "Weekly Digest",            schedule: "Monday 05:00 UTC", where: "vercel" },
+  // Local launchd jobs (Mac)
+  ownerscan:       { label: "Owner Scan (Equasis)",     schedule: "Daily 13:00",       where: "local" },
+  healthmonitor:   { label: "Health Monitor",           schedule: "Every hour",        where: "local" },
+  shiplistings:    { label: "Ship Listings Scraper",    schedule: "Daily 06:00",       where: "local" },
 };
 
 function timeAgo(iso: string): string {
@@ -177,8 +181,17 @@ export default function AgentsPage() {
                   <div style={{ fontWeight: 600, color: "#111827", fontSize: 14 }}>
                     {meta?.label ?? agent.agent_name}
                   </div>
-                  <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 1 }}>
+                  <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 1, display: "flex", alignItems: "center", gap: 6 }}>
                     {meta?.schedule ?? "—"}
+                    {meta && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 600, padding: "1px 5px", borderRadius: 4,
+                        background: meta.where === "vercel" ? "#EEF2FF" : "#F3F4F6",
+                        color: meta.where === "vercel" ? "#4338CA" : "#6B7280",
+                      }}>
+                        {meta.where === "vercel" ? "Vercel" : "Mac"}
+                      </span>
+                    )}
                   </div>
                 </div>
 

@@ -32,8 +32,8 @@ const LAUNCHD_JOBS = [
   "com.shipscout.intelligence",
   "com.shipscout.ownerscan",
   "com.shipscout.weeklyrefresh",
-  "com.shipscout.arrestscan",
   "com.shipscout.shiplistings",
+  // com.shipscout.arrestscan — moved to Vercel cron, no longer a local job
 ];
 
 const LOG_DIR = path.join(process.env.HOME, "Library/Logs/shipscout");

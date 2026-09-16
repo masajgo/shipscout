@@ -24,6 +24,9 @@ const YARD_DEFS = [
   { id: "gadani",     label: "Gadani",     flag: "🇵🇰", field: "dist_gadani_nm" },
 ] as const;
 
+// Only Aliağa has enough AIS coverage for a meaningful proximity preset button
+const YARD_PRESET_IDS = ["aliaga"] as const;
+
 // ─── Breaking Banner ─────────────────────────────────────────────────────────
 
 function buildSlogan(v: OpportunityVessel): string {
@@ -1031,8 +1034,8 @@ export default function OpportunitiesPage() {
           {/* Divider */}
           <div style={{ width: 1, height: 30, background: "#E5E7EB", alignSelf: "center" }} />
 
-          {/* Yard proximity presets */}
-          {YARD_DEFS.map(y => {
+          {/* Yard proximity presets — only yards with sufficient AIS coverage */}
+          {YARD_DEFS.filter(y => (YARD_PRESET_IDS as readonly string[]).includes(y.id)).map(y => {
             const count = presetCounts[y.id as keyof typeof presetCounts];
             const active = activePreset === y.id;
             return (

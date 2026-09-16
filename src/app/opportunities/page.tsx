@@ -1041,30 +1041,48 @@ export default function OpportunitiesPage() {
             const count = presetCounts[y.id as keyof typeof presetCounts];
             const active = activePreset === y.id;
             return (
-              <button key={y.id} onClick={() => applyPreset(y.id)} style={{
-                display: "flex", alignItems: "center", gap: 5,
-                fontSize: 12, fontWeight: active ? 700 : 500,
-                padding: "6px 12px", borderRadius: 20, cursor: "pointer",
-                border: active ? "1.5px solid #07122E" : "1px solid #E5E7EB",
-                background: active ? "#07122E" : "#fff",
-                color: active ? "#C9A84C" : "#374151",
-                transition: "all 0.12s",
-              }}>
-                <span style={{ fontSize: 14 }}>{y.flag}</span>
-                {y.label}
-                {y.defaultDist > 500 && (
-                  <span style={{ fontSize: 10, color: active ? "rgba(201,168,76,0.7)" : "#9CA3AF" }}>
-                    {y.defaultDist / 1000}k nm
-                  </span>
-                )}
-                <span style={{
-                  fontSize: 11, fontWeight: 700, padding: "1px 6px", borderRadius: 10,
-                  background: active ? "rgba(201,168,76,0.2)" : "#F3F4F6",
-                  color: active ? "#C9A84C" : "#6B7280",
+              <div key={y.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <button onClick={() => applyPreset(y.id)} style={{
+                  display: "flex", alignItems: "center", gap: 5,
+                  fontSize: 12, fontWeight: active ? 700 : 500,
+                  padding: "6px 12px", borderRadius: active ? "20px 0 0 20px" : 20, cursor: "pointer",
+                  border: active ? "1.5px solid #07122E" : "1px solid #E5E7EB",
+                  borderRight: active ? "none" : undefined,
+                  background: active ? "#07122E" : "#fff",
+                  color: active ? "#C9A84C" : "#374151",
+                  transition: "all 0.12s",
                 }}>
-                  {count}
-                </span>
-              </button>
+                  <span style={{ fontSize: 14 }}>{y.flag}</span>
+                  {y.label}
+                  <span style={{
+                    fontSize: 11, fontWeight: 700, padding: "1px 6px", borderRadius: 10,
+                    background: active ? "rgba(201,168,76,0.2)" : "#F3F4F6",
+                    color: active ? "#C9A84C" : "#6B7280",
+                  }}>
+                    {count}
+                  </span>
+                </button>
+                {active && (
+                  <select
+                    value={nearDist}
+                    onChange={e => { setNearDist(e.target.value); setActivePreset(y.id); }}
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      fontSize: 11, padding: "5px 6px", cursor: "pointer",
+                      border: "1.5px solid #07122E", borderLeft: "1px solid rgba(255,255,255,0.2)",
+                      borderRadius: "0 20px 20px 0",
+                      background: "#07122E", color: "#C9A84C", fontWeight: 600,
+                      outline: "none", appearance: "none" as const,
+                    }}
+                  >
+                    <option value="200">200 nm</option>
+                    <option value="500">500 nm</option>
+                    <option value="1000">1 000 nm</option>
+                    <option value="2000">2 000 nm</option>
+                    <option value="5000">5 000 nm</option>
+                  </select>
+                )}
+              </div>
             );
           })}
         </div>

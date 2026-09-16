@@ -396,8 +396,11 @@ async function runCycle() {
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
+const { agentStart, agentFinish } = require("../scripts/agentLog");
+
 async function main() {
   log("[Agent] Starting intelligence agent");
+  await agentStart("intelligence");
 
   if (isDaemon) {
     log(`[Agent] Daemon mode — cycle every ${CYCLE_HOURS}h`);
@@ -409,12 +412,14 @@ async function main() {
     }
   } else {
     await runCycle();
+    await agentFinish("intelligence", "success");
     await getPool().end();
     log("[Agent] Done, exiting.");
   }
 }
 
-main().catch(err => {
+main().catch(async err => {
   console.error("[Agent] Uncaught error:", err);
+  await agentFinish("intelligence", "error", { error: err.message }).catch(() => {});
   process.exit(1);
 });

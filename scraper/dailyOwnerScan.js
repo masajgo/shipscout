@@ -220,8 +220,11 @@ async function syncManagerName(imo, managerName) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
+const { agentStart, agentFinish } = require("../scripts/agentLog");
+
 async function main() {
   log("=== dailyOwnerScan başladı ===");
+  await agentStart("ownerscan");
   if (isDryRun) log("[DRY-RUN] Gerçek arama yapılmayacak.");
 
   // 1. Günlük limit kontrolü
@@ -390,10 +393,12 @@ async function main() {
     log(`=== Web contact tamamlandı — ${webUpdated} güncellendi, ${webErrors} hata ===`);
   }
 
+  await agentFinish("ownerscan", "success", { rows: found });
   await pool.end();
 }
 
-main().catch(err => {
+main().catch(async err => {
   log(`FATAL: ${err.message}`);
+  await agentFinish("ownerscan", "error", { error: err.message }).catch(() => {});
   process.exit(1);
 });

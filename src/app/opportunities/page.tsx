@@ -17,6 +17,23 @@ const SIGNAL_LABELS: Record<SignalType, string> = {
 
 const VESSEL_TYPES = ["Bulk Carrier", "General Cargo", "Container", "Tanker", "Ro-Ro", "Reefer", "Vehicles Carrier"];
 
+const RISK_FLAGS = new Set(["KM", "TG", "PW", "KH", "BZ", "SL", "MN", "TZ", "VU", "CK"]);
+
+function scoreReasons(v: OpportunityVessel): string[] {
+  const r: string[] = [];
+  if (v.age >= 20)            r.push(`Age ${v.age}y`);
+  if (v.detention_count > 0)  r.push(`${v.detention_count} detention${v.detention_count > 1 ? "s" : ""}`);
+  if (v.special_survey_date) {
+    const m = (new Date(v.special_survey_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24 * 30);
+    if (m < 6) r.push("Special survey due");
+  }
+  if (v.flag && RISK_FLAGS.has(v.flag))  r.push(`Risk flag (${v.flag})`);
+  if (v.nav_status === 1 || v.nav_status === 5) r.push(v.nav_status === 1 ? "Anchored" : "Moored");
+  if ((v.speed ?? 0) === 0)   r.push("Stationary");
+  if ((v.inspection_count ?? 0) >= 3) r.push("3+ PSC inspections");
+  return r;
+}
+
 const YARD_DEFS = [
   { id: "aliaga",     label: "Aliağa",     flag: "🇹🇷", field: "dist_aliaga_nm",     defaultDist: 500  },
   { id: "alang",      label: "Alang",      flag: "🇮🇳", field: "dist_alang_nm",      defaultDist: 2000 },
@@ -89,12 +106,14 @@ function BreakingBanner({ vessels }: { vessels: OpportunityVessel[] }) {
                   />
                 )}
                 {/* Score badge */}
-                <div style={{
-                  position: "absolute", top: 10, right: 10,
-                  background: v.scrap_score >= 80 ? "#DC2626" : "#D97706",
-                  color: "#fff", borderRadius: 6, padding: "2px 8px",
-                  fontSize: 12, fontWeight: 800,
-                }}>
+                <div
+                  title={`Scrap score: ${v.scrap_score}/99\n${scoreReasons(v).map(r => `• ${r}`).join("\n") || "No specific factors"}`}
+                  style={{
+                    position: "absolute", top: 10, right: 10,
+                    background: v.scrap_score >= 80 ? "#DC2626" : "#D97706",
+                    color: "#fff", borderRadius: 6, padding: "2px 8px",
+                    fontSize: 12, fontWeight: 800, cursor: "help",
+                  }}>
                   {v.scrap_score}
                 </div>
                 {/* Flag + name overlay */}
@@ -441,7 +460,17 @@ function ExpandedRow({ vessel, yards, yard, onDraftEmail }: {
               {vessel.gross_tonnage && <div><span style={{ color: "#9CA3AF" }}>GT:</span> {vessel.gross_tonnage.toLocaleString()}</div>}
               {vessel.deadweight    && <div><span style={{ color: "#9CA3AF" }}>DWT:</span> {vessel.deadweight.toLocaleString()}</div>}
               {vessel.ldt           && <div><span style={{ color: "#9CA3AF" }}>LDT:</span> {vessel.ldt.toLocaleString()}</div>}
-              {vessel.scrap_score > 0 && <div><span style={{ color: "#9CA3AF" }}>Scrap score:</span> {vessel.scrap_score}/100</div>}
+              {vessel.scrap_score > 0 && (
+                <div>
+                  <span style={{ color: "#9CA3AF" }}>Scrap score:</span>{" "}
+                  <span style={{ fontWeight: 700 }}>{vessel.scrap_score}/99</span>
+                  {scoreReasons(vessel).length > 0 && (
+                    <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>
+                      {scoreReasons(vessel).join(" · ")}
+                    </div>
+                  )}
+                </div>
+              )}
               {vessel.deficiency_count > 0 && <div><span style={{ color: "#9CA3AF" }}>Deficiencies:</span> {vessel.deficiency_count}</div>}
               {vessel.special_survey_date && (
                 <div><span style={{ color: "#9CA3AF" }}>Survey date:</span> {new Date(vessel.special_survey_date).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}</div>
@@ -811,6 +840,7 @@ export default function OpportunitiesPage() {
   const [draftVessel, setDraftVessel]         = useState<OpportunityVessel | null>(null);
   const [pricesUpdatedAt, setPricesUpdatedAt] = useState<string | null>(null);
   const [newsCount, setNewsCount]             = useState<number | null>(null);
+  const [showScoreInfo, setShowScoreInfo]     = useState(false);
 
   useEffect(() => {
     fetch("/api/radar-events?limit=1&days=30")
@@ -945,12 +975,67 @@ export default function OpportunitiesPage() {
 
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "#111827", margin: 0 }}>Opportunity Radar</h1>
+          <button
+            onClick={() => setShowScoreInfo(s => !s)}
+            title="How is the scrap score calculated?"
+            style={{
+              display: "flex", alignItems: "center", gap: 5,
+              fontSize: 12, color: showScoreInfo ? "#07122E" : "#9CA3AF",
+              background: showScoreInfo ? "#F3F4F6" : "none",
+              border: "1px solid #E5E7EB", borderRadius: 20,
+              padding: "3px 10px", cursor: "pointer", fontWeight: 500,
+            }}>
+            ? How scores work
+          </button>
         </div>
         <p style={{ fontSize: 13, color: "#6B7280", margin: "6px 0 0" }}>
           Hulls nearing the end of trading life — found from AIS movement, PSC detentions and survey schedules, before any broker lists them.
         </p>
+        {showScoreInfo && (
+          <div style={{
+            marginTop: 14, background: "#F8FAFC", border: "1px solid #E2E8F0",
+            borderRadius: 10, padding: "16px 20px",
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#07122E", marginBottom: 10 }}>
+              Scrap Score (0–99) — how it&apos;s calculated
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "6px 24px" }}>
+              {[
+                { factor: "Vessel age",            detail: "Primary driver — steep curve past 30 years",   pts: "up to 90" },
+                { factor: "Active detention",       detail: "PSC port state control arrest",                pts: "+10" },
+                { factor: "Special survey due",     detail: "Class renewal within 6 months",                pts: "+15" },
+                { factor: "Risk flag state",        detail: "KM, TG, PW, KH, BZ, SL, MN, TZ, VU, CK",     pts: "+6"  },
+                { factor: "Anchored / moored",      detail: "AIS navigation status 1 or 5",                pts: "+8"  },
+                { factor: "Stationary (speed = 0)", detail: "Not moving per latest AIS",                   pts: "+4"  },
+                { factor: "3+ PSC inspections",     detail: "Chronic inspection history",                   pts: "+5"  },
+                { factor: "Dry dock due",           detail: "Scheduled dry dock within 6 months",           pts: "+5"  },
+              ].map(({ factor, detail, pts }) => (
+                <div key={factor} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, fontSize: 12, padding: "4px 0", borderBottom: "1px solid #EEF2F7" }}>
+                  <div>
+                    <span style={{ fontWeight: 600, color: "#374151" }}>{factor}</span>
+                    <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 1 }}>{detail}</div>
+                  </div>
+                  <span style={{ fontWeight: 700, color: "#C9A84C", whiteSpace: "nowrap" }}>{pts}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 12, display: "flex", gap: 16 }}>
+              {[
+                { label: "Critical", range: "70–99", bg: "#FEE2E2", color: "#B91C1C" },
+                { label: "High",     range: "50–69", bg: "#FEF3C7", color: "#92400E" },
+                { label: "Medium",   range: "25–49", bg: "#FEF9EE", color: "#B45309" },
+                { label: "Low",      range: "0–24",  bg: "#F0FDF4", color: "#166534" },
+              ].map(({ label, range, bg, color }) => (
+                <div key={label} style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20, background: bg, color }}>
+                  {label} · {range}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
         {!loading && (
           <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 12, flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

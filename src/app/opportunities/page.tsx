@@ -18,14 +18,11 @@ const SIGNAL_LABELS: Record<SignalType, string> = {
 const VESSEL_TYPES = ["Bulk Carrier", "General Cargo", "Container", "Tanker", "Ro-Ro", "Reefer", "Vehicles Carrier"];
 
 const YARD_DEFS = [
-  { id: "aliaga",     label: "Aliağa",     flag: "🇹🇷", field: "dist_aliaga_nm" },
-  { id: "alang",      label: "Alang",      flag: "🇮🇳", field: "dist_alang_nm" },
-  { id: "chittagong", label: "Chittagong", flag: "🇧🇩", field: "dist_chittagong_nm" },
-  { id: "gadani",     label: "Gadani",     flag: "🇵🇰", field: "dist_gadani_nm" },
+  { id: "aliaga",     label: "Aliağa",     flag: "🇹🇷", field: "dist_aliaga_nm",     defaultDist: 500  },
+  { id: "alang",      label: "Alang",      flag: "🇮🇳", field: "dist_alang_nm",      defaultDist: 2000 },
+  { id: "chittagong", label: "Chittagong", flag: "🇧🇩", field: "dist_chittagong_nm", defaultDist: 2000 },
+  { id: "gadani",     label: "Gadani",     flag: "🇵🇰", field: "dist_gadani_nm",     defaultDist: 2000 },
 ] as const;
-
-// Only Aliağa has enough AIS coverage for a meaningful proximity preset button
-const YARD_PRESET_IDS = ["aliaga"] as const;
 
 // ─── Breaking Banner ─────────────────────────────────────────────────────────
 
@@ -880,7 +877,11 @@ export default function OpportunitiesPage() {
 
   const presetCounts = useMemo(() => {
     const c = vessels.filter(vesselHasContact);
-    const yardCount = (id: string) => c.filter(v => { const d = getYardDist(v, id); return d !== null && d <= 500; }).length;
+    const yardCount = (id: string) => {
+      const yard = YARD_DEFS.find(y => y.id === id);
+      const radius = yard?.defaultDist ?? 500;
+      return c.filter(v => { const d = getYardDist(v, id); return d !== null && d <= radius; }).length;
+    };
     return {
       hot:        c.filter(v => v.signals.some(s => s.type === "layup") && v.signals.some(s => s.type === "detention_age" || s.type === "detention_trend")).length,
       layup:      c.filter(v => v.signals.some(s => s.type === "layup")).length,
@@ -912,7 +913,8 @@ export default function OpportunitiesPage() {
     if (id === "hot")        { setSignalFilter("hot_leads"); }
     if (id === "layup")      { setSignalFilter("layup"); }
     if (id === "survey")     { setSignalFilter("survey_pressure"); }
-    if (YARD_DEFS.some(y => y.id === id)) { setNearYard(id); setNearDist("500"); }
+    const yard = YARD_DEFS.find(y => y.id === id);
+    if (yard) { setNearYard(id); setNearDist(String(yard.defaultDist)); }
     setActivePreset(id);
   }
 
@@ -1034,8 +1036,8 @@ export default function OpportunitiesPage() {
           {/* Divider */}
           <div style={{ width: 1, height: 30, background: "#E5E7EB", alignSelf: "center" }} />
 
-          {/* Yard proximity presets — only yards with sufficient AIS coverage */}
-          {YARD_DEFS.filter(y => (YARD_PRESET_IDS as readonly string[]).includes(y.id)).map(y => {
+          {/* Yard proximity presets */}
+          {YARD_DEFS.map(y => {
             const count = presetCounts[y.id as keyof typeof presetCounts];
             const active = activePreset === y.id;
             return (
@@ -1050,6 +1052,11 @@ export default function OpportunitiesPage() {
               }}>
                 <span style={{ fontSize: 14 }}>{y.flag}</span>
                 {y.label}
+                {y.defaultDist > 500 && (
+                  <span style={{ fontSize: 10, color: active ? "rgba(201,168,76,0.7)" : "#9CA3AF" }}>
+                    {y.defaultDist / 1000}k nm
+                  </span>
+                )}
                 <span style={{
                   fontSize: 11, fontWeight: 700, padding: "1px 6px", borderRadius: 10,
                   background: active ? "rgba(201,168,76,0.2)" : "#F3F4F6",

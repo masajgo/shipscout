@@ -17,6 +17,13 @@ const SIGNAL_LABELS: Record<SignalType, string> = {
 
 const VESSEL_TYPES = ["Bulk Carrier", "General Cargo", "Container", "Tanker", "Ro-Ro", "Reefer", "Vehicles Carrier"];
 
+const YARD_DEFS = [
+  { id: "aliaga",     label: "Aliağa",     flag: "🇹🇷", field: "dist_aliaga_nm" },
+  { id: "alang",      label: "Alang",      flag: "🇮🇳", field: "dist_alang_nm" },
+  { id: "chittagong", label: "Chittagong", flag: "🇧🇩", field: "dist_chittagong_nm" },
+  { id: "gadani",     label: "Gadani",     flag: "🇵🇰", field: "dist_gadani_nm" },
+] as const;
+
 // ─── Breaking Banner ─────────────────────────────────────────────────────────
 
 function buildSlogan(v: OpportunityVessel): string {
@@ -815,9 +822,10 @@ export default function OpportunitiesPage() {
   const [signalFilter, setSignalFilter] = useState<string>("all");
   const [minAge, setMinAge]             = useState<number>(20);
   const [typeFilter, setTypeFilter]     = useState<string>("all");
-  const [maxDist, setMaxDist]           = useState<string>("all");
-  const [maxYardDist, setMaxYardDist]   = useState<string>("all");
+  const [nearYard, setNearYard]         = useState<string>("all");
+  const [nearDist, setNearDist]         = useState<string>("500");
   const [contactOnly, setContactOnly]   = useState(true);
+  const [activePreset, setActivePreset] = useState<string>("all");
 
   const [yards, setYards] = useState<YardPrices>({});
   const [yard, setYard]   = useState<string>("Aliaga");
@@ -843,15 +851,37 @@ export default function OpportunitiesPage() {
 
   const filtered = useMemo(() => {
     return vessels.filter(v => {
-      if (signalFilter !== "all" && !v.signals.some(s => s.type === signalFilter)) return false;
+      if (signalFilter === "hot_leads") {
+        const hasLayup = v.signals.some(s => s.type === "layup");
+        const hasDetention = v.signals.some(s => s.type === "detention_age" || s.type === "detention_trend");
+        if (!hasLayup || !hasDetention) return false;
+      } else if (signalFilter !== "all" && !v.signals.some(s => s.type === signalFilter)) return false;
       if (v.age < minAge) return false;
       if (typeFilter !== "all" && !(v.type_specific ?? v.type ?? "").toLowerCase().includes(typeFilter.toLowerCase())) return false;
-      if (maxDist !== "all" && v.dist_aliaga_nm !== null && v.dist_aliaga_nm > parseInt(maxDist)) return false;
-      if (maxYardDist !== "all" && v.min_dist_scrapyard_nm !== null && v.min_dist_scrapyard_nm > parseInt(maxYardDist)) return false;
+      if (nearYard !== "all") {
+        const yardDef = YARD_DEFS.find(y => y.id === nearYard);
+        const dist = yardDef ? (v as Record<string, unknown>)[yardDef.field] as number | null : null;
+        if (dist === null || dist > parseInt(nearDist)) return false;
+      }
       if (contactOnly && !vesselHasContact(v)) return false;
       return true;
     });
-  }, [vessels, signalFilter, minAge, typeFilter, maxDist, maxYardDist, contactOnly]);
+  }, [vessels, signalFilter, minAge, typeFilter, nearYard, nearDist, contactOnly]);
+
+  const presetCounts = useMemo(() => {
+    const c = vessels.filter(vesselHasContact);
+    const yardCount = (field: string) =>
+      c.filter(v => (v as Record<string, unknown>)[field] !== null && ((v as Record<string, unknown>)[field] as number) <= 500).length;
+    return {
+      hot:        c.filter(v => v.signals.some(s => s.type === "layup") && v.signals.some(s => s.type === "detention_age" || s.type === "detention_trend")).length,
+      layup:      c.filter(v => v.signals.some(s => s.type === "layup")).length,
+      survey:     c.filter(v => v.signals.some(s => s.type === "survey_pressure")).length,
+      aliaga:     yardCount("dist_aliaga_nm"),
+      alang:      yardCount("dist_alang_nm"),
+      chittagong: yardCount("dist_chittagong_nm"),
+      gadani:     yardCount("dist_gadani_nm"),
+    };
+  }, [vessels]);
 
   function toggleExpand(mmsi: string) {
     setExpanded(prev => {
@@ -863,10 +893,21 @@ export default function OpportunitiesPage() {
 
   const resetFilters = useCallback(() => {
     setSignalFilter("all"); setMinAge(20); setTypeFilter("all");
-    setMaxDist("all"); setMaxYardDist("all"); setContactOnly(true);
+    setNearYard("all"); setNearDist("500"); setContactOnly(true);
+    setActivePreset("all");
   }, []);
 
-  const isFiltered = signalFilter !== "all" || minAge !== 20 || typeFilter !== "all" || maxDist !== "all" || maxYardDist !== "all" || !contactOnly;
+  function applyPreset(id: string) {
+    setSignalFilter("all"); setMinAge(20); setTypeFilter("all");
+    setNearYard("all"); setNearDist("500"); setContactOnly(true);
+    if (id === "hot")        { setSignalFilter("hot_leads"); }
+    if (id === "layup")      { setSignalFilter("layup"); }
+    if (id === "survey")     { setSignalFilter("survey_pressure"); }
+    if (YARD_DEFS.some(y => y.id === id)) { setNearYard(id); setNearDist("500"); }
+    setActivePreset(id);
+  }
+
+  const isFiltered = signalFilter !== "all" || minAge !== 20 || typeFilter !== "all" || nearYard !== "all" || !contactOnly;
 
   const SELECT: React.CSSProperties = {
     fontSize: 12, padding: "6px 10px", borderRadius: 6,
@@ -949,28 +990,103 @@ export default function OpportunitiesPage() {
         <BreakingBanner vessels={filtered.slice(0, 3)} />
       )}
 
-      {/* Filters */}
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 20,
-        background: "#fff", border: "1px solid #E5E7EB", borderRadius: 10, padding: "12px 16px" }}>
+      {/* Quick preset buttons */}
+      {!loading && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+          {([
+            { id: "all",    label: "All",          count: contactableTotal,        onClick: () => resetFilters() },
+            { id: "hot",    label: "🔥 Hot leads",  count: presetCounts.hot,        onClick: () => applyPreset("hot") },
+            { id: "layup",  label: "Lay-up",        count: presetCounts.layup,      onClick: () => applyPreset("layup") },
+            { id: "survey", label: "Survey Due",    count: presetCounts.survey,     onClick: () => applyPreset("survey") },
+          ] as { id: string; label: string; count: number; onClick: () => void }[]).map(p => {
+            const active = activePreset === p.id;
+            return (
+              <button key={p.id} onClick={p.onClick} style={{
+                display: "flex", alignItems: "center", gap: 6,
+                fontSize: 12, fontWeight: active ? 700 : 500,
+                padding: "6px 14px", borderRadius: 20, cursor: "pointer",
+                border: active ? "1.5px solid #07122E" : "1px solid #E5E7EB",
+                background: active ? "#07122E" : "#fff",
+                color: active ? "#C9A84C" : "#374151",
+                transition: "all 0.12s",
+              }}>
+                {p.label}
+                <span style={{
+                  fontSize: 11, fontWeight: 700, padding: "1px 6px", borderRadius: 10,
+                  background: active ? "rgba(201,168,76,0.2)" : "#F3F4F6",
+                  color: active ? "#C9A84C" : "#6B7280",
+                }}>
+                  {p.count}
+                </span>
+              </button>
+            );
+          })}
 
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {/* Divider */}
+          <div style={{ width: 1, height: 30, background: "#E5E7EB", alignSelf: "center" }} />
+
+          {/* Yard proximity presets */}
+          {YARD_DEFS.map(y => {
+            const count = presetCounts[y.id as keyof typeof presetCounts];
+            const active = activePreset === y.id;
+            return (
+              <button key={y.id} onClick={() => applyPreset(y.id)} style={{
+                display: "flex", alignItems: "center", gap: 5,
+                fontSize: 12, fontWeight: active ? 700 : 500,
+                padding: "6px 12px", borderRadius: 20, cursor: "pointer",
+                border: active ? "1.5px solid #07122E" : "1px solid #E5E7EB",
+                background: active ? "#07122E" : "#fff",
+                color: active ? "#C9A84C" : "#374151",
+                transition: "all 0.12s",
+              }}>
+                <span style={{ fontSize: 14 }}>{y.flag}</span>
+                {y.label}
+                <span style={{
+                  fontSize: 11, fontWeight: 700, padding: "1px 6px", borderRadius: 10,
+                  background: active ? "rgba(201,168,76,0.2)" : "#F3F4F6",
+                  color: active ? "#C9A84C" : "#6B7280",
+                }}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Filters row */}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 20,
+        background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 10, padding: "10px 14px" }}>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
           <span style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Signal</span>
-          <select value={signalFilter} onChange={e => setSignalFilter(e.target.value)} style={SELECT}>
+          <select value={signalFilter} onChange={e => { setSignalFilter(e.target.value); setActivePreset("custom"); }} style={SELECT}>
             <option value="all">All signals</option>
+            <option value="hot_leads">Hot (lay-up + detention)</option>
+            <option value="layup">Lay-up</option>
             <option value="survey_pressure">Survey Due</option>
             <option value="detention_age">PSC Detained</option>
             <option value="detention_trend">Chronic Detentions</option>
             <option value="scrap_proximity">Near Scrap Yard</option>
-            <option value="layup">Lay-up</option>
             <option value="age_threshold">25+ Years</option>
           </select>
         </div>
 
         <div style={{ width: 1, height: 20, background: "#E5E7EB" }} />
 
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Min age</span>
-          <select value={minAge} onChange={e => setMinAge(Number(e.target.value))} style={SELECT}>
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <span style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Type</span>
+          <select value={typeFilter} onChange={e => { setTypeFilter(e.target.value); setActivePreset("custom"); }} style={SELECT}>
+            <option value="all">All types</option>
+            {VESSEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+
+        <div style={{ width: 1, height: 20, background: "#E5E7EB" }} />
+
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <span style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Age</span>
+          <select value={minAge} onChange={e => { setMinAge(Number(e.target.value)); setActivePreset("custom"); }} style={SELECT}>
             <option value={20}>20+</option>
             <option value={25}>25+</option>
             <option value={30}>30+</option>
@@ -980,75 +1096,58 @@ export default function OpportunitiesPage() {
 
         <div style={{ width: 1, height: 20, background: "#E5E7EB" }} />
 
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Type</span>
-          <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} style={SELECT}>
-            <option value="all">All types</option>
-            {VESSEL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </div>
-
-        <div style={{ width: 1, height: 20, background: "#E5E7EB" }} />
-
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
           <span style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Near yard</span>
-          <select value={maxYardDist} onChange={e => setMaxYardDist(e.target.value)} style={SELECT}>
-            <option value="all">Any distance</option>
-            <option value="200">≤ 200 nm (beaching)</option>
-            <option value="500">≤ 500 nm</option>
-            <option value="1000">≤ 1,000 nm</option>
-          </select>
-        </div>
-
-        <div style={{ width: 1, height: 20, background: "#E5E7EB" }} />
-
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Aliağa</span>
-          <select value={maxDist} onChange={e => setMaxDist(e.target.value)} style={SELECT}>
-            <option value="all">Any distance</option>
-            <option value="500">≤ 500 nm</option>
-            <option value="1000">≤ 1,000 nm</option>
-            <option value="2000">≤ 2,000 nm</option>
-          </select>
-        </div>
-
-        <div style={{ width: 1, height: 20, background: "#E5E7EB" }} />
-
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Price at</span>
-          <select value={yard} onChange={e => setYard(e.target.value)} style={SELECT}>
-            {Object.entries(yards).map(([name, y]) => (
-              <option key={name} value={name}>{name} · {y.country}</option>
+          <select value={nearYard} onChange={e => { setNearYard(e.target.value); setActivePreset("custom"); }} style={SELECT}>
+            <option value="all">Any yard</option>
+            {YARD_DEFS.map(y => (
+              <option key={y.id} value={y.id}>{y.flag} {y.label}</option>
             ))}
           </select>
-          {pricesUpdatedAt && (
-            <span style={{ fontSize: 10, color: "#9CA3AF" }}>
-              {new Date(pricesUpdatedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
-            </span>
+          {nearYard !== "all" && (
+            <select value={nearDist} onChange={e => { setNearDist(e.target.value); setActivePreset("custom"); }} style={SELECT}>
+              <option value="200">≤ 200 nm</option>
+              <option value="500">≤ 500 nm</option>
+              <option value="1000">≤ 1,000 nm</option>
+              <option value="2000">≤ 2,000 nm</option>
+            </select>
           )}
         </div>
 
-        <div style={{ width: 1, height: 20, background: "#E5E7EB" }} />
-
-        <button
-          onClick={() => setContactOnly(c => !c)}
-          style={{
-            fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 6, cursor: "pointer",
-            border: contactOnly ? "1px solid #15803D" : "1px solid #D1D5DB",
-            background: contactOnly ? "#F0FDF4" : "#fff",
-            color: contactOnly ? "#15803D" : "#6B7280",
-            display: "flex", alignItems: "center", gap: 6,
-          }}>
-          <span style={{ fontSize: 14 }}>{contactOnly ? "✓" : "○"}</span>
-          {contactOnly ? "With contact" : "Show all"}
-        </button>
-
-        {isFiltered && (
-          <button onClick={resetFilters}
-            style={{ fontSize: 11, color: "#6B7280", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
-            Reset
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto", flexShrink: 0 }}>
+          <button
+            onClick={() => { setContactOnly(c => !c); setActivePreset("custom"); }}
+            style={{
+              fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 6, cursor: "pointer",
+              border: contactOnly ? "1px solid #15803D" : "1px solid #D1D5DB",
+              background: contactOnly ? "#F0FDF4" : "#fff",
+              color: contactOnly ? "#15803D" : "#6B7280",
+              display: "flex", alignItems: "center", gap: 5,
+            }}>
+            <span style={{ fontSize: 14 }}>{contactOnly ? "✓" : "○"}</span>
+            With contact
           </button>
-        )}
+
+          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <select value={yard} onChange={e => setYard(e.target.value)} style={{ ...SELECT, fontSize: 11 }}>
+              {Object.entries(yards).map(([name, y]) => (
+                <option key={name} value={name}>{name} · {y.country}</option>
+              ))}
+            </select>
+            {pricesUpdatedAt && (
+              <span style={{ fontSize: 10, color: "#9CA3AF" }}>
+                {new Date(pricesUpdatedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
+              </span>
+            )}
+          </div>
+
+          {isFiltered && (
+            <button onClick={resetFilters}
+              style={{ fontSize: 11, color: "#6B7280", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+              Reset
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Table */}

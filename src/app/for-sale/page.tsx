@@ -129,8 +129,27 @@ export default function ForSalePage() {
             Loading vessels…
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "80px 0", color: "#94A3B8", fontSize: 15 }}>
-            No vessels match your filters.
+          <div style={{ textAlign: "center", padding: "80px 0" }}>
+            {listings.length === 0 ? (
+              <>
+                <div style={{ fontSize: 32, marginBottom: 16 }}>🚢</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: "#07122E", marginBottom: 8 }}>
+                  Listings are being updated
+                </div>
+                <p style={{ fontSize: 14, color: "#94A3B8", maxWidth: 380, margin: "0 auto 24px" }}>
+                  Our database refreshes daily. Check back soon — or contact us directly
+                  and we'll find the vessel you need before it hits any public listing.
+                </p>
+                <a href="/#contact" style={{
+                  display: "inline-block", background: "#07122E", color: "#fff",
+                  padding: "12px 24px", borderRadius: 8, fontSize: 14, fontWeight: 700, textDecoration: "none",
+                }}>
+                  Contact us →
+                </a>
+              </>
+            ) : (
+              <div style={{ fontSize: 15, color: "#94A3B8" }}>No vessels match your filters.</div>
+            )}
           </div>
         ) : (
           <div className="for-sale-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>

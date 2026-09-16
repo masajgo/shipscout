@@ -5,8 +5,9 @@ import { useState, useEffect } from "react";
 
 // App nav — shown only to authenticated users inside the product
 const NAV = [
-  { href: "/opportunities", label: "Radar"   },
-  { href: "/vessels",       label: "Vessels" },
+  { href: "/opportunities",  label: "Radar"   },
+  { href: "/vessels",        label: "Vessels" },
+  { href: "/admin/agents",   label: "Agents"  },
 ];
 
 // Static deltas (directional arrows) — updated weekly alongside seed data

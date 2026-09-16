@@ -3,11 +3,9 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
-// App nav — shown only to authenticated users inside the product
-const NAV = [
-  { href: "/opportunities",  label: "Radar"   },
-  { href: "/vessels",        label: "Vessels" },
-  { href: "/admin/agents",   label: "Agents"  },
+const BASE_NAV = [
+  { href: "/opportunities", label: "Radar"   },
+  { href: "/vessels",       label: "Vessels" },
 ];
 
 // Static deltas (directional arrows) — updated weekly alongside seed data
@@ -36,6 +34,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   const [aisCount, setAisCount] = useState<number | null>(null);
   const [ticker, setTicker] = useState<TickerItem[]>(FALLBACK_TICKER);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/is-admin").then(r => r.json()).then(d => setIsAdmin(!!d.admin)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (isMarketingPage) return;
@@ -141,7 +144,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div style={{ display: "flex", gap: 2 }}>
-          {NAV.map(({ href, label }) => {
+          {[...BASE_NAV, ...(isAdmin ? [{ href: "/admin/agents", label: "Agents" }] : [])].map(({ href, label }) => {
             const active = path === href;
             return (
               <Link key={href} href={href} style={{
